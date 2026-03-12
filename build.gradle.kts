@@ -130,18 +130,21 @@ project(":sqool-grammar-mysql") {
         arguments = arguments + listOf(
             "-visitor",
             "-long-messages",
-            "-package",
-            "io.github.e4c5.sqool.grammar.mysql.generated",
         )
     }
 
     tasks.withType<Checkstyle>().configureEach {
-        exclude("**/generated-src/antlr/**")
-        exclude("**/BootstrapSql*.java")
+        exclude { element ->
+            element.file.path.contains("/build/generated-src/antlr/")
+                || element.file.path.contains("/src/main/java/io/github/e4c5/sqool/grammar/mysql/generated/")
+        }
     }
 
     tasks.withType<Javadoc>().configureEach {
-        exclude("**/generated-src/antlr/**")
+        exclude { element ->
+            element.file.path.contains("/build/generated-src/antlr/")
+                || element.file.path.contains("/src/main/java/io/github/e4c5/sqool/grammar/mysql/generated/")
+        }
     }
 }
 
@@ -216,6 +219,7 @@ project(":sqool-bench") {
 
     dependencies {
         "implementation"(project(":sqool-core"))
+        "implementation"(project(":sqool-dialect-mysql"))
     }
 
     tasks.withType<JavaCompile>().configureEach {

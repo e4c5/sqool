@@ -6,7 +6,16 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
 
 - Build tool: Gradle
 - Target runtime: Java 25
-- Current bootstrap status: Milestone 0 baseline implemented
+- Current status: Milestone 0 baseline implemented, MySQL MVP slice implemented
+
+## Current parser coverage
+
+- MySQL:
+  - real upstream grammar vendored from `antlr/grammars-v4`
+  - minimal parser facade implemented
+  - normalized AST currently supports simple `SELECT ... FROM ...` statements
+- PostgreSQL, Oracle, SQLite:
+  - planned, not yet implemented
 
 ## Common commands
 
