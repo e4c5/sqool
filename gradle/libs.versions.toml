@@ -1,0 +1,17 @@
+[versions]
+antlr = "4.13.2"
+checkstyle = "13.3.0"
+jmh = "1.37"
+junit = "6.0.3"
+spotless = "8.3.0"
+
+[libraries]
+antlr-runtime = { module = "org.antlr:antlr4-runtime", version.ref = "antlr" }
+antlr-tool = { module = "org.antlr:antlr4", version.ref = "antlr" }
+junit-bom = { module = "org.junit:junit-bom", version.ref = "junit" }
+junit-jupiter = { module = "org.junit.jupiter:junit-jupiter" }
+junit-platform-launcher = { module = "org.junit.platform:junit-platform-launcher" }
+
+[plugins]
+jmh = { id = "me.champeau.jmh", version = "0.7.3" }
+spotless = { id = "com.diffplug.spotless", version.ref = "spotless" }
