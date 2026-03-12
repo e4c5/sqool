@@ -5,3 +5,4 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
 ## Design documents
 
 - [SQL Parser Technical Design](docs/sql-parser-technical-design.md)
+- [SQL Parser High-Level Implementation Checklist](docs/sql-parser-implementation-checklist.md)
