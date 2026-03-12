@@ -198,13 +198,43 @@ class MysqlSqlParserTest {
   }
 
   @Test
-  void reportsUnsupportedSelectShapes() {
+  void parsesSelectedRuntimeBuiltIns() {
     var result =
-        parser.parse("select coalesce(id, 0) from demo", ParseOptions.defaults(SqlDialect.MYSQL));
+        parser.parse(
+            "select coalesce(nickname, name) as display_name, "
+                + "if(score > 10, score, 0) as normalized, "
+                + "mod(total, 10) as remainder, "
+                + "date(created_at) as created_day, "
+                + "now(3) as current_time "
+                + "from users",
+            ParseOptions.defaults(SqlDialect.MYSQL));
 
-    var failure = assertInstanceOf(ParseFailure.class, result);
-    assertFalse(failure.diagnostics().isEmpty());
-    assertTrue(failure.diagnostics().getFirst().message().contains("runtime function"));
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+
+    var coalesce = assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(0));
+    assertEquals("display_name", coalesce.alias());
+    assertEquals(
+        "COALESCE", assertInstanceOf(FunctionCallExpression.class, coalesce.expression()).name());
+
+    var ifItem = assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(1));
+    var ifFunction = assertInstanceOf(FunctionCallExpression.class, ifItem.expression());
+    assertEquals("IF", ifFunction.name());
+    assertEquals(3, ifFunction.arguments().size());
+
+    var modItem = assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(2));
+    assertEquals(
+        "MOD", assertInstanceOf(FunctionCallExpression.class, modItem.expression()).name());
+
+    var dateItem = assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(3));
+    assertEquals(
+        "DATE", assertInstanceOf(FunctionCallExpression.class, dateItem.expression()).name());
+
+    var nowItem = assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(4));
+    var nowFunction = assertInstanceOf(FunctionCallExpression.class, nowItem.expression());
+    assertEquals("NOW", nowFunction.name());
+    assertEquals(
+        "3", assertInstanceOf(LiteralExpression.class, nowFunction.arguments().getFirst()).text());
   }
 
   @Test
@@ -228,6 +258,17 @@ class MysqlSqlParserTest {
     var failure = assertInstanceOf(ParseFailure.class, result);
     assertFalse(failure.diagnostics().isEmpty());
     assertTrue(failure.diagnostics().getFirst().message().contains("predicate operation"));
+  }
+
+  @Test
+  void reportsUnsupportedRuntimeBuiltIns() {
+    var result =
+        parser.parse(
+            "select format(total, 2) from orders", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var failure = assertInstanceOf(ParseFailure.class, result);
+    assertFalse(failure.diagnostics().isEmpty());
+    assertTrue(failure.diagnostics().getFirst().message().contains("runtime function"));
   }
 
   @Test

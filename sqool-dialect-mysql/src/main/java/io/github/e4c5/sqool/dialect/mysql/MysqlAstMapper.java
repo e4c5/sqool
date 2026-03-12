@@ -555,11 +555,58 @@ final class MysqlAstMapper {
       return mapExpr(listContext.exprList().expr().getFirst(), options);
     }
     if (context instanceof MySQLParser.SimpleExprRuntimeFunctionContext runtimeContext) {
-      throw unsupportedFeature(
-          "MySQL MVP does not support built-in runtime function forms yet.", runtimeContext.start);
+      return mapRuntimeFunction(runtimeContext.runtimeFunctionCall(), options);
     }
     throw unsupportedFeature(
         "MySQL MVP encountered an unsupported expression leaf.", context.start);
+  }
+
+  private static FunctionCallExpression mapRuntimeFunction(
+      MySQLParser.RuntimeFunctionCallContext context, ParseOptions options) {
+    if (context.COALESCE_SYMBOL() != null && context.exprListWithParentheses() != null) {
+      return functionCall(
+          "COALESCE",
+          mapExprList(context.exprListWithParentheses().exprList(), options),
+          span(context.start, context.stop, options));
+    }
+    if (context.IF_SYMBOL() != null && context.expr().size() == 3) {
+      return functionCall(
+          "IF",
+          List.of(
+              mapExpr(context.expr(0), options),
+              mapExpr(context.expr(1), options),
+              mapExpr(context.expr(2), options)),
+          span(context.start, context.stop, options));
+    }
+    if (context.MOD_SYMBOL() != null && context.expr().size() == 2) {
+      return functionCall(
+          "MOD",
+          List.of(mapExpr(context.expr(0), options), mapExpr(context.expr(1), options)),
+          span(context.start, context.stop, options));
+    }
+    if (context.DATE_SYMBOL() != null && context.exprWithParentheses() != null) {
+      return functionCall(
+          "DATE",
+          List.of(mapExpr(context.exprWithParentheses().expr(), options)),
+          span(context.start, context.stop, options));
+    }
+    if (context.NOW_SYMBOL() != null) {
+      return functionCall(
+          "NOW",
+          mapTimeFunctionArguments(context.timeFunctionParameters(), options),
+          span(context.start, context.stop, options));
+    }
+    if (context.CURDATE_SYMBOL() != null) {
+      return functionCall("CURDATE", List.of(), span(context.start, context.stop, options));
+    }
+    if (context.CURRENT_USER_SYMBOL() != null) {
+      return functionCall("CURRENT_USER", List.of(), span(context.start, context.stop, options));
+    }
+    throw unsupportedFeature(
+        "MySQL MVP does not support built-in runtime function '"
+            + context.getStart().getText()
+            + "' yet.",
+        context.start);
   }
 
   private static Expression mapFunctionCall(
@@ -621,6 +668,11 @@ final class MysqlAstMapper {
         name, arguments, distinct, starArgument, span(context.start, context.stop, options));
   }
 
+  private static FunctionCallExpression functionCall(
+      String name, List<Expression> arguments, SourceSpan sourceSpan) {
+    return new FunctionCallExpression(name, arguments, false, false, sourceSpan);
+  }
+
   private static List<Expression> mapExprList(
       MySQLParser.ExprListContext context, ParseOptions options) {
     var expressions = new ArrayList<Expression>();
@@ -628,6 +680,18 @@ final class MysqlAstMapper {
       expressions.add(mapExpr(expr, options));
     }
     return List.copyOf(expressions);
+  }
+
+  private static List<Expression> mapTimeFunctionArguments(
+      MySQLParser.TimeFunctionParametersContext context, ParseOptions options) {
+    if (context == null || context.fractionalPrecision() == null) {
+      return List.of();
+    }
+    return List.of(
+        new LiteralExpression(
+            context.fractionalPrecision().getText(),
+            span(
+                context.fractionalPrecision().start, context.fractionalPrecision().stop, options)));
   }
 
   private static String aliasText(MySQLParser.SelectAliasContext context) {

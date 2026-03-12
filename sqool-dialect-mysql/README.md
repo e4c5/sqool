@@ -11,6 +11,7 @@ Current MVP scope:
   - aliases
   - arithmetic expressions
   - aggregate and generic function calls
+  - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
   - `GROUP BY`
   - `HAVING`
   - `IN` / `BETWEEN` / `LIKE`
