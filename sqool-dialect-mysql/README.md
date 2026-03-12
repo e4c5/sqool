@@ -7,7 +7,13 @@ Current MVP scope:
 - real upstream MySQL grammar integration
 - SLL-first parse path with LL fallback
 - normalized AST mapping for:
+  - `DISTINCT`
   - aliases
+  - arithmetic expressions
+  - aggregate and generic function calls
+  - `GROUP BY`
+  - `HAVING`
+  - `IN` / `BETWEEN` / `LIKE`
   - qualified references
   - `WHERE`
   - explicit joins with `ON`

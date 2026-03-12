@@ -1,12 +1,17 @@
 package io.github.e4c5.sqool.dialect.mysql;
 
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
+import io.github.e4c5.sqool.ast.BetweenExpression;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
+import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
+import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.InExpression;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
+import io.github.e4c5.sqool.ast.LikeExpression;
 import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
@@ -66,9 +71,12 @@ final class MysqlAstMapper {
       return new ParseSuccess(
           SqlDialect.MYSQL,
           new SelectStatement(
+              mappedBody.distinct(),
               mappedBody.selectItems(),
               mappedBody.from(),
               mappedBody.where(),
+              mappedBody.groupBy(),
+              mappedBody.having(),
               orderBy,
               limit,
               span(context.start, context.stop, options)),
@@ -88,15 +96,11 @@ final class MysqlAstMapper {
 
   private static QuerySpecificationMapping mapQuerySpecification(
       MySQLParser.QuerySpecificationContext context, ParseOptions options) {
-    if (context.groupByClause() != null
-        || context.havingClause() != null
-        || context.windowClause() != null
+    if (context.windowClause() != null
         || context.qualifyClause() != null
-        || context.intoClause() != null
-        || !context.selectOption().isEmpty()) {
+        || context.intoClause() != null) {
       throw unsupportedFeature(
-          "MySQL MVP currently supports SELECT queries without DISTINCT, GROUP BY, HAVING, or window clauses.",
-          context.start);
+          "MySQL MVP does not support window, QUALIFY, or INTO clauses yet.", context.start);
     }
 
     if (context.fromClause() == null) {
@@ -104,9 +108,32 @@ final class MysqlAstMapper {
     }
 
     return new QuerySpecificationMapping(
+        mapDistinct(context.selectOption()),
         mapSelectItems(context.selectItemList(), options),
         mapFromClause(context.fromClause(), options),
-        context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options));
+        context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options),
+        mapGroupBy(context.groupByClause(), options),
+        context.havingClause() == null ? null : mapExpr(context.havingClause().expr(), options));
+  }
+
+  private static boolean mapDistinct(List<MySQLParser.SelectOptionContext> selectOptions) {
+    boolean distinct = false;
+    for (var selectOption : selectOptions) {
+      if (selectOption.querySpecOption() == null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support SQL_NO_CACHE select options yet.", selectOption.start);
+      }
+      String option = selectOption.querySpecOption().getText().toUpperCase(Locale.ROOT);
+      switch (option) {
+        case "DISTINCT" -> distinct = true;
+        case "ALL" -> {}
+        default ->
+            throw unsupportedFeature(
+                "MySQL MVP does not support select option '" + option + "' yet.",
+                selectOption.start);
+      }
+    }
+    return distinct;
   }
 
   private static List<SelectItem> mapSelectItems(
@@ -274,6 +301,29 @@ final class MysqlAstMapper {
     return List.copyOf(result);
   }
 
+  private static List<Expression> mapGroupBy(
+      MySQLParser.GroupByClauseContext context, ParseOptions options) {
+    if (context == null) {
+      return List.of();
+    }
+    if (context.groupList() != null || context.olapOption() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support ROLLUP, CUBE, or advanced GROUP BY options yet.",
+          context.start);
+    }
+
+    var result = new ArrayList<Expression>();
+    for (var orderExpression : context.orderList().orderExpression()) {
+      if (orderExpression.direction() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support sort directions inside GROUP BY yet.",
+            orderExpression.start);
+      }
+      result.add(mapExpr(orderExpression.expr(), options));
+    }
+    return List.copyOf(result);
+  }
+
   private static LimitClause mapLimitClause(
       MySQLParser.LimitClauseContext context, ParseOptions options) {
     if (context == null) {
@@ -310,8 +360,7 @@ final class MysqlAstMapper {
     }
   }
 
-  private static io.github.e4c5.sqool.ast.Expression mapExpr(
-      MySQLParser.ExprContext context, ParseOptions options) {
+  private static Expression mapExpr(MySQLParser.ExprContext context, ParseOptions options) {
     if (context instanceof MySQLParser.ExprAndContext andContext) {
       return new BinaryExpression(
           mapExpr(andContext.expr(0), options),
@@ -343,8 +392,7 @@ final class MysqlAstMapper {
         "MySQL MVP encountered an unsupported expression form.", context.start);
   }
 
-  private static io.github.e4c5.sqool.ast.Expression mapBoolPri(
-      MySQLParser.BoolPriContext context, ParseOptions options) {
+  private static Expression mapBoolPri(MySQLParser.BoolPriContext context, ParseOptions options) {
     if (context instanceof MySQLParser.PrimaryExprPredicateContext predicateContext) {
       return mapPredicate(predicateContext.predicate(), options);
     }
@@ -379,28 +427,88 @@ final class MysqlAstMapper {
     };
   }
 
-  private static io.github.e4c5.sqool.ast.Expression mapPredicate(
+  private static Expression mapPredicate(
       MySQLParser.PredicateContext context, ParseOptions options) {
-    if (context.predicateOperations() != null
-        || context.simpleExprWithParentheses() != null
-        || context.SOUNDS_SYMBOL() != null) {
+    if (context.simpleExprWithParentheses() != null || context.SOUNDS_SYMBOL() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support IN, BETWEEN, LIKE, REGEXP, or SOUNDS LIKE predicates yet.",
-          context.start);
+          "MySQL MVP does not support MEMBER OF or SOUNDS LIKE predicates yet.", context.start);
     }
-    return mapBitExpr(context.bitExpr(0), options);
+    Expression left = mapBitExpr(context.bitExpr(0), options);
+    if (context.predicateOperations() == null) {
+      return left;
+    }
+
+    boolean negated = context.notRule() != null;
+    if (context.predicateOperations() instanceof MySQLParser.PredicateExprInContext inContext) {
+      if (inContext.subquery() != null) {
+        throw unsupportedFeature("MySQL MVP does not support IN subqueries yet.", inContext.start);
+      }
+      return new InExpression(
+          left,
+          mapExprList(inContext.exprList(), options),
+          negated,
+          span(inContext.start, inContext.stop, options));
+    }
+    if (context.predicateOperations()
+        instanceof MySQLParser.PredicateExprBetweenContext betweenContext) {
+      return new BetweenExpression(
+          left,
+          mapBitExpr(betweenContext.bitExpr(), options),
+          mapPredicate(betweenContext.predicate(), options),
+          negated,
+          span(betweenContext.start, betweenContext.stop, options));
+    }
+    if (context.predicateOperations() instanceof MySQLParser.PredicateExprLikeContext likeContext) {
+      return new LikeExpression(
+          left,
+          mapSimpleExpr(likeContext.simpleExpr(0), options),
+          likeContext.simpleExpr().size() > 1
+              ? mapSimpleExpr(likeContext.simpleExpr(1), options)
+              : null,
+          negated,
+          span(likeContext.start, likeContext.stop, options));
+    }
+    throw unsupportedFeature(
+        "MySQL MVP does not support this predicate operation yet.",
+        context.predicateOperations().start);
   }
 
-  private static io.github.e4c5.sqool.ast.Expression mapBitExpr(
-      MySQLParser.BitExprContext context, ParseOptions options) {
-    if (context.op != null || !context.bitExpr().isEmpty() || context.expr() != null) {
+  private static Expression mapBitExpr(MySQLParser.BitExprContext context, ParseOptions options) {
+    if (context.expr() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support arithmetic or bitwise expressions yet.", context.start);
+          "MySQL MVP does not support INTERVAL arithmetic yet.", context.start);
+    }
+    if (!context.bitExpr().isEmpty()) {
+      if (context.op == null) {
+        throw unsupportedFeature(
+            "MySQL MVP encountered an unsupported arithmetic form.", context.start);
+      }
+      return new BinaryExpression(
+          mapBitExpr(context.bitExpr(0), options),
+          mapArithmeticOperator(context.op),
+          mapBitExpr(context.bitExpr(1), options),
+          span(context.start, context.stop, options));
     }
     return mapSimpleExpr(context.simpleExpr(), options);
   }
 
-  private static io.github.e4c5.sqool.ast.Expression mapSimpleExpr(
+  private static BinaryOperator mapArithmeticOperator(Token operatorToken) {
+    return switch (operatorToken.getText().toUpperCase(Locale.ROOT)) {
+      case "+" -> BinaryOperator.PLUS;
+      case "-" -> BinaryOperator.MINUS;
+      case "*" -> BinaryOperator.MULTIPLY;
+      case "/", "DIV" -> BinaryOperator.DIVIDE;
+      case "%", "MOD" -> BinaryOperator.MODULO;
+      default ->
+          throw unsupportedFeature(
+              "MySQL MVP does not support arithmetic operator '"
+                  + operatorToken.getText()
+                  + "' yet.",
+              operatorToken);
+    };
+  }
+
+  private static Expression mapSimpleExpr(
       MySQLParser.SimpleExprContext context, ParseOptions options) {
     if (context instanceof MySQLParser.SimpleExprColumnRefContext columnRefContext) {
       if (columnRefContext.jsonOperator() != null) {
@@ -415,6 +523,12 @@ final class MysqlAstMapper {
       return new LiteralExpression(
           literalContext.literalOrNull().getText(),
           span(literalContext.start, literalContext.stop, options));
+    }
+    if (context instanceof MySQLParser.SimpleExprFunctionContext functionContext) {
+      return mapFunctionCall(functionContext.functionCall(), options);
+    }
+    if (context instanceof MySQLParser.SimpleExprSumContext sumContext) {
+      return mapSumExpr(sumContext.sumExpr(), options);
     }
     if (context instanceof MySQLParser.SimpleExprUnaryContext unaryContext) {
       if (unaryContext.BITWISE_NOT_OPERATOR() != null) {
@@ -440,8 +554,80 @@ final class MysqlAstMapper {
       }
       return mapExpr(listContext.exprList().expr().getFirst(), options);
     }
+    if (context instanceof MySQLParser.SimpleExprRuntimeFunctionContext runtimeContext) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support built-in runtime function forms yet.", runtimeContext.start);
+    }
     throw unsupportedFeature(
         "MySQL MVP encountered an unsupported expression leaf.", context.start);
+  }
+
+  private static Expression mapFunctionCall(
+      MySQLParser.FunctionCallContext context, ParseOptions options) {
+    String name =
+        context.pureIdentifier() != null
+            ? context.pureIdentifier().getText()
+            : context.qualifiedIdentifier().getText();
+    List<Expression> arguments =
+        context.udfExprList() != null
+            ? mapUdfExprList(context.udfExprList(), options)
+            : context.exprList() != null ? mapExprList(context.exprList(), options) : List.of();
+    return new FunctionCallExpression(
+        name, arguments, false, false, span(context.start, context.stop, options));
+  }
+
+  private static List<Expression> mapUdfExprList(
+      MySQLParser.UdfExprListContext context, ParseOptions options) {
+    var arguments = new ArrayList<Expression>();
+    for (var udfExpr : context.udfExpr()) {
+      if (udfExpr.selectAlias() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support aliased function arguments yet.", udfExpr.start);
+      }
+      arguments.add(mapExpr(udfExpr.expr(), options));
+    }
+    return List.copyOf(arguments);
+  }
+
+  private static FunctionCallExpression mapSumExpr(
+      MySQLParser.SumExprContext context, ParseOptions options) {
+    if (context.windowingClause() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support windowed aggregate functions yet.", context.start);
+    }
+    if (context.jsonFunction() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support JSON aggregate functions yet.", context.start);
+    }
+    if (context.GROUP_CONCAT_SYMBOL() != null
+        && (context.orderClause() != null || context.SEPARATOR_SYMBOL() != null)) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support GROUP_CONCAT ORDER BY or SEPARATOR clauses yet.",
+          context.start);
+    }
+
+    String name = context.name == null ? context.getStart().getText() : context.name.getText();
+    boolean distinct = context.DISTINCT_SYMBOL() != null;
+    boolean starArgument = context.MULT_OPERATOR() != null;
+
+    List<Expression> arguments =
+        context.exprList() != null
+            ? mapExprList(context.exprList(), options)
+            : context.inSumExpr() != null
+                ? List.of(mapExpr(context.inSumExpr().expr(), options))
+                : List.of();
+
+    return new FunctionCallExpression(
+        name, arguments, distinct, starArgument, span(context.start, context.stop, options));
+  }
+
+  private static List<Expression> mapExprList(
+      MySQLParser.ExprListContext context, ParseOptions options) {
+    var expressions = new ArrayList<Expression>();
+    for (var expr : context.expr()) {
+      expressions.add(mapExpr(expr, options));
+    }
+    return List.copyOf(expressions);
   }
 
   private static String aliasText(MySQLParser.SelectAliasContext context) {
@@ -485,9 +671,12 @@ final class MysqlAstMapper {
   }
 
   private record QuerySpecificationMapping(
+      boolean distinct,
       List<SelectItem> selectItems,
       TableReference from,
-      io.github.e4c5.sqool.ast.Expression where) {}
+      Expression where,
+      List<Expression> groupBy,
+      Expression having) {}
 
   private static final class UnsupportedFeatureException extends RuntimeException {
     private final Token token;

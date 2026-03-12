@@ -39,6 +39,19 @@ class MySQLGrammarSmokeTest {
     assertNotNull(parsed.context());
   }
 
+  @Test
+  void parsesDistinctGroupedAggregateStatement() {
+    var parsed =
+        parseSimpleStatement(
+            "select distinct category, count(*) as total "
+                + "from sales where amount between 10 and 20 "
+                + "group by category having count(*) > 1 "
+                + "order by total desc limit 3");
+
+    assertEquals(0, parsed.parser().getNumberOfSyntaxErrors());
+    assertNotNull(parsed.context());
+  }
+
   private ParsedStatement parseSimpleStatement(String sql) {
     var lexer = new MySQLLexer(CharStreams.fromString(sql));
     var parser = new MySQLParser(new CommonTokenStream(lexer));
