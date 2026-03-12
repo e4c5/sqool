@@ -6,14 +6,14 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 1. Foundation and project bootstrap
 
-- [ ] Choose the build system: Maven or Gradle
-- [ ] Create the multi-module project structure
-- [ ] Set Java 25 as the project baseline
-- [ ] Add ANTLR tool and runtime integration
-- [ ] Add the testing baseline
-- [ ] Add the benchmarking baseline with JMH
-- [ ] Define dependency and version pinning rules
-- [ ] Establish formatting, static analysis, and CI conventions
+- [x] Choose the build system: Maven or Gradle
+- [x] Create the multi-module project structure
+- [x] Set Java 25 as the project baseline
+- [x] Add ANTLR tool and runtime integration
+- [x] Add the testing baseline
+- [x] Add the benchmarking baseline with JMH
+- [x] Define dependency and version pinning rules
+- [x] Establish formatting, static analysis, and CI conventions
 
 ### Exit criteria
 
