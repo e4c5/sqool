@@ -1,11 +1,11 @@
 grammar BootstrapSql;
 
 script
-    : statement* EOF
+    : statement (SEMICOLON statement)* SEMICOLON? EOF
     ;
 
 statement
-    : selectStatement SEMICOLON?
+    : selectStatement
     ;
 
 selectStatement
@@ -21,8 +21,8 @@ tableName
     : IDENTIFIER
     ;
 
-SELECT : 'SELECT';
-FROM : 'FROM';
+SELECT : [sS] [eE] [lL] [eE] [cC] [tT];
+FROM : [fF] [rR] [oO] [mM];
 STAR : '*';
 COMMA : ',';
 SEMICOLON : ';';

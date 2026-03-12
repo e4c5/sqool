@@ -25,7 +25,7 @@ These are the recommended defaults for Milestone 0.
 
 ### 2.1 Build tool recommendation
 
-**Recommended choice: Gradle**
+**Selected choice: Gradle**
 
 Rationale:
 
@@ -35,7 +35,7 @@ Rationale:
 - good fit for JMH integration
 - better incremental-build ergonomics than the ANTLR Maven plugin path
 
-If no strong organizational preference exists, Milestone 0 should proceed with Gradle.
+Milestone 0 has been implemented with Gradle.
 
 ### 2.2 Build structure recommendation
 
@@ -64,7 +64,7 @@ Use a multi-module layout with a thin root project and focused subprojects:
 
 Start with:
 
-- JUnit 5 for tests
+- JUnit Jupiter for tests
 - simple golden-file support for future AST assertions
 
 Keep the bootstrap test stack small. Broader test tooling can be added later.
@@ -228,7 +228,7 @@ Establish the minimal automated test platform used by all later modules.
 
 ### Tasks
 
-- [ ] Add JUnit 5 configuration
+- [ ] Add JUnit configuration
 - [ ] Add one smoke test per core bootstrap module
 - [ ] Add shared test utility conventions if needed
 - [ ] Confirm test discovery works from the root build
@@ -401,10 +401,10 @@ Those belong to later milestones.
 
 ## 9. Immediate next implementation step
 
-The first execution task after approving this backlog should be:
+The immediate next task after approving this backlog should be to validate the bootstrap baseline with review feedback and then begin the MySQL MVP work:
 
-1. finalize the build tool choice,
-2. generate the multi-module project skeleton, and
-3. wire Java 25, ANTLR, tests, and JMH into the root build.
+1. confirm the Gradle bootstrap remains the desired foundation,
+2. capture any non-blocking Milestone 0 follow-up items, and
+3. start importing and hardening the real MySQL grammar.
 
-That work will complete the backbone needed for all later milestones.
+That work moves the project from infrastructure bootstrap into the first functional dialect milestone.

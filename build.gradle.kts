@@ -27,6 +27,8 @@ group = "io.github.e4c5"
 version = "0.1.0-SNAPSHOT"
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
+val targetJavaVersion = 25
+val targetJavaLanguageVersion = JavaLanguageVersion.of(targetJavaVersion)
 val javaModules = listOf(
     "sqool-core",
     "sqool-ast",
@@ -53,7 +55,7 @@ configure(javaModules.map(::project)) {
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(25)
+            languageVersion = targetJavaLanguageVersion
         }
         withJavadocJar()
         withSourcesJar()
@@ -72,7 +74,7 @@ configure(javaModules.map(::project)) {
     }
 
     tasks.withType<JavaCompile>().configureEach {
-        options.release = 25
+        options.release = targetJavaVersion
         options.encoding = "UTF-8"
         options.compilerArgs.add("-Xlint:all")
     }
@@ -82,7 +84,7 @@ configure(javaModules.map(::project)) {
         val javaToolchainService = project.extensions.getByType<JavaToolchainService>()
         javaLauncher.set(
             javaToolchainService.launcherFor {
-                languageVersion = JavaLanguageVersion.of(25)
+                languageVersion = targetJavaLanguageVersion
             },
         )
         testLogging {
@@ -208,7 +210,7 @@ project(":sqool-bench") {
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
-            languageVersion = JavaLanguageVersion.of(25)
+            languageVersion = targetJavaLanguageVersion
         }
     }
 
@@ -217,7 +219,7 @@ project(":sqool-bench") {
     }
 
     tasks.withType<JavaCompile>().configureEach {
-        options.release = 25
+        options.release = targetJavaVersion
         options.encoding = "UTF-8"
     }
 

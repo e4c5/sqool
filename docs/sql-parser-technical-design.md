@@ -486,7 +486,7 @@ between `sqool` and selected reference parsers or vendor parsers.
 
 ### 14.1 Build tooling
 
-The project should use a standard build tool with reproducible code generation. Either Maven or Gradle is acceptable; the deciding criteria should be:
+The project uses **Gradle** as the standard build tool with reproducible code generation. This choice aligns with the repository bootstrap and satisfies the key selection criteria:
 
 - clean ANTLR integration
 - multi-module ergonomics
@@ -529,13 +529,11 @@ Do not float critical parser toolchain versions.
 
 ## 16. Open Decisions
 
-The following decisions should be finalized before implementation begins:
-
-1. Build tool choice: Maven or Gradle
-2. Oracle v1 scope: SQL only or partial PL/SQL
-3. Whether comment preservation is required in v1
-4. Whether generated ANTLR sources are committed
-5. Whether script parsing is required in the first public milestone or may follow single-statement parsing
+The following decisions should be finalized before dialect implementation expands beyond the bootstrap baseline:
+1. Oracle v1 scope: SQL only or partial PL/SQL
+2. Whether comment preservation is required in v1
+3. Whether generated ANTLR sources are committed
+4. Whether script parsing is required in the first public milestone or may follow single-statement parsing
 
 ## 17. Implementation Milestones
 

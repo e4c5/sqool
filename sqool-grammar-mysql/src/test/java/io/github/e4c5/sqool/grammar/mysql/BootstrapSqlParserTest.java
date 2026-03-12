@@ -13,13 +13,33 @@ class BootstrapSqlParserTest {
 
   @Test
   void parsesSimpleSelectStatement() {
-    var lexer = new BootstrapSqlLexer(CharStreams.fromString("SELECT * FROM demo;"));
+    var parsed = parseScript("SELECT * FROM demo;");
+
+    assertEquals(0, parsed.parser().getNumberOfSyntaxErrors());
+    assertNotNull(parsed.script());
+  }
+
+  @Test
+  void parsesLowercaseKeywords() {
+    var parsed = parseScript("select * from demo;");
+
+    assertEquals(0, parsed.parser().getNumberOfSyntaxErrors());
+    assertNotNull(parsed.script());
+  }
+
+  @Test
+  void requiresSemicolonBetweenStatements() {
+    var parsed = parseScript("SELECT * FROM demo SELECT * FROM other;");
+
+    assertEquals(1, parsed.parser().getNumberOfSyntaxErrors());
+  }
+
+  private ParsedScript parseScript(String sql) {
+    var lexer = new BootstrapSqlLexer(CharStreams.fromString(sql));
     var parser = new BootstrapSqlParser(new CommonTokenStream(lexer));
     parser.setBuildParseTree(false);
-
-    var script = parser.script();
-
-    assertEquals(0, parser.getNumberOfSyntaxErrors());
-    assertNotNull(script);
+    return new ParsedScript(parser, parser.script());
   }
+
+  private record ParsedScript(BootstrapSqlParser parser, BootstrapSqlParser.ScriptContext script) {}
 }
