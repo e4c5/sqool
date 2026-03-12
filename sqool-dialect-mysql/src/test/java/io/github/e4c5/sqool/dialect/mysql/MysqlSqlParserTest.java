@@ -10,6 +10,7 @@ import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BetweenExpression;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
+import io.github.e4c5.sqool.ast.DerivedTableReference;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
@@ -22,7 +23,10 @@ import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OrderByItem;
 import io.github.e4c5.sqool.ast.SelectStatement;
+import io.github.e4c5.sqool.ast.SetOperationStatement;
+import io.github.e4c5.sqool.ast.SetOperator;
 import io.github.e4c5.sqool.ast.SortDirection;
+import io.github.e4c5.sqool.ast.SqlScript;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseSuccess;
@@ -238,6 +242,71 @@ class MysqlSqlParserTest {
   }
 
   @Test
+  void parsesDerivedTables() {
+    var result =
+        parser.parse(
+            "select derived.user_id from (select id as user_id from users) derived",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+    var derived = assertInstanceOf(DerivedTableReference.class, statement.from());
+
+    assertEquals("derived", derived.alias());
+    var subquery = assertInstanceOf(SelectStatement.class, derived.subquery());
+    assertEquals(
+        "user_id",
+        assertInstanceOf(ExpressionSelectItem.class, subquery.selectItems().getFirst()).alias());
+  }
+
+  @Test
+  void parsesUsingJoins() {
+    var result =
+        parser.parse(
+            "select u.id from users u inner join orders o using (id)",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+    var join = assertInstanceOf(JoinTableReference.class, statement.from());
+
+    assertTrue(join.usingColumns().contains("id"));
+    assertNull(join.condition());
+  }
+
+  @Test
+  void parsesUnionQueries() {
+    var result =
+        parser.parse(
+            "select id from users union all select id from archived_users order by id limit 5",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var union = assertInstanceOf(SetOperationStatement.class, success.root());
+
+    assertEquals(SetOperator.UNION_ALL, union.operator());
+    assertEquals(1, union.orderBy().size());
+    assertEquals(5L, assertInstanceOf(LimitClause.class, union.limit()).rowCount());
+    assertInstanceOf(SelectStatement.class, union.left());
+    assertInstanceOf(SelectStatement.class, union.right());
+  }
+
+  @Test
+  void parsesScriptMode() {
+    var result =
+        parser.parse(
+            "select id from users; select name from users;",
+            ParseOptions.defaults(SqlDialect.MYSQL).withScriptMode(true));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var script = assertInstanceOf(SqlScript.class, success.root());
+
+    assertEquals(2, script.statements().size());
+    assertInstanceOf(SelectStatement.class, script.statements().get(0));
+    assertInstanceOf(SelectStatement.class, script.statements().get(1));
+  }
+
+  @Test
   void parsesInPredicates() {
     var result =
         parser.parse(
@@ -280,14 +349,15 @@ class MysqlSqlParserTest {
   }
 
   @Test
-  void rejectsScriptModeForNow() {
+  void rejectsUnsupportedScriptStatements() {
     var result =
         parser.parse(
-            "select id from demo; select name from other;",
+            "begin work; select id from other;",
             ParseOptions.defaults(SqlDialect.MYSQL).withScriptMode(true));
 
     var failure = assertInstanceOf(ParseFailure.class, result);
     assertEquals(
-        "MySQL MVP does not support script mode yet.", failure.diagnostics().getFirst().message());
+        "MySQL script mode does not support BEGIN WORK statements yet.",
+        failure.diagnostics().getFirst().message());
   }
 }

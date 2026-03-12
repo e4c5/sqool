@@ -4,6 +4,7 @@ import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BetweenExpression;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
+import io.github.e4c5.sqool.ast.DerivedTableReference;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.FunctionCallExpression;
@@ -18,8 +19,12 @@ import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OrderByItem;
 import io.github.e4c5.sqool.ast.SelectItem;
 import io.github.e4c5.sqool.ast.SelectStatement;
+import io.github.e4c5.sqool.ast.SetOperationStatement;
+import io.github.e4c5.sqool.ast.SetOperator;
 import io.github.e4c5.sqool.ast.SortDirection;
 import io.github.e4c5.sqool.ast.SourceSpan;
+import io.github.e4c5.sqool.ast.SqlScript;
+import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
@@ -36,6 +41,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 final class MysqlAstMapper {
   private static final Pattern SUPPORTED_IDENTIFIER =
@@ -43,44 +49,35 @@ final class MysqlAstMapper {
 
   private MysqlAstMapper() {}
 
+  static ParseResult mapQueries(MySQLParser.QueriesContext context, ParseOptions options) {
+    try {
+      var statements = new ArrayList<Statement>();
+      for (var query : context.query()) {
+        statements.add(mapQuery(query, options));
+      }
+      SourceSpan sourceSpan =
+          statements.isEmpty()
+              ? null
+              : span(context.query().getFirst().start, context.query().getLast().stop, options);
+      return new ParseSuccess(SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of());
+    } catch (UnsupportedFeatureException exception) {
+      return new ParseFailure(
+          SqlDialect.MYSQL,
+          List.of(
+              new SyntaxDiagnostic(
+                  DiagnosticSeverity.ERROR,
+                  exception.getMessage(),
+                  exception.token == null ? 1 : exception.token.getLine(),
+                  exception.token == null ? 0 : exception.token.getCharPositionInLine(),
+                  exception.token == null ? null : exception.token.getText())));
+    }
+  }
+
   static ParseResult mapQueryExpression(
       MySQLParser.QueryExpressionContext context, ParseOptions options) {
     try {
-      if (context.withClause() != null) {
-        throw unsupportedFeature(
-            "MySQL MVP does not support WITH clauses yet.", context.withClause().start);
-      }
-      if (!context.queryExpressionBody().queryExpressionBody().isEmpty()) {
-        throw unsupportedFeature(
-            "MySQL MVP does not support UNION, INTERSECT, or EXCEPT yet.",
-            context.queryExpressionBody().start);
-      }
-      if (context.queryExpressionBody().queryExpressionParens() != null
-          || context.queryExpressionBody().queryPrimary() == null
-          || context.queryExpressionBody().queryPrimary().querySpecification() == null) {
-        throw unsupportedFeature(
-            "MySQL MVP currently supports only direct SELECT query specifications.",
-            context.queryExpressionBody().start);
-      }
-
-      var querySpecification = context.queryExpressionBody().queryPrimary().querySpecification();
-      var mappedBody = mapQuerySpecification(querySpecification, options);
-      var orderBy = mapOrderBy(context.orderClause(), options);
-      var limit = mapLimitClause(context.limitClause(), options);
-
       return new ParseSuccess(
-          SqlDialect.MYSQL,
-          new SelectStatement(
-              mappedBody.distinct(),
-              mappedBody.selectItems(),
-              mappedBody.from(),
-              mappedBody.where(),
-              mappedBody.groupBy(),
-              mappedBody.having(),
-              orderBy,
-              limit,
-              span(context.start, context.stop, options)),
-          List.of());
+          SqlDialect.MYSQL, mapQueryExpressionInternal(context, options), List.of());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
           SqlDialect.MYSQL,
@@ -114,6 +111,177 @@ final class MysqlAstMapper {
         context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options),
         mapGroupBy(context.groupByClause(), options),
         context.havingClause() == null ? null : mapExpr(context.havingClause().expr(), options));
+  }
+
+  private static Statement mapQuery(MySQLParser.QueryContext context, ParseOptions options) {
+    if (context.beginWork() != null) {
+      throw unsupportedFeature(
+          "MySQL script mode does not support BEGIN WORK statements yet.",
+          context.beginWork().start);
+    }
+    if (context.simpleStatement() == null || context.simpleStatement().selectStatement() == null) {
+      throw unsupportedFeature(
+          "MySQL script mode currently supports SELECT statements only.", context.start);
+    }
+    return mapSelectStatement(context.simpleStatement().selectStatement(), options);
+  }
+
+  private static Statement mapSelectStatement(
+      MySQLParser.SelectStatementContext context, ParseOptions options) {
+    if (context.lockingClauseList() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support SELECT locking clauses yet.",
+          context.lockingClauseList().start);
+    }
+    if (context.selectStatementWithInto() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support SELECT ... INTO forms yet.",
+          context.selectStatementWithInto().start);
+    }
+    return mapQueryExpressionInternal(context.queryExpression(), options);
+  }
+
+  private static Statement mapQueryExpressionInternal(
+      MySQLParser.QueryExpressionContext context, ParseOptions options) {
+    if (context.withClause() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support WITH clauses yet.", context.withClause().start);
+    }
+
+    Statement statement = mapQueryExpressionBody(context.queryExpressionBody(), options);
+    if (context.orderClause() != null || context.limitClause() != null) {
+      statement =
+          withOrderAndLimit(
+              statement,
+              mapOrderBy(context.orderClause(), options),
+              mapLimitClause(context.limitClause(), options),
+              span(context.start, context.stop, options));
+    }
+    return statement;
+  }
+
+  private static Statement mapQueryExpressionBody(
+      MySQLParser.QueryExpressionBodyContext context, ParseOptions options) {
+    Statement current;
+    if (context.queryPrimary() != null) {
+      current = mapQueryPrimary(context.queryPrimary(), options);
+    } else if (context.queryExpressionParens() != null) {
+      current = mapQueryExpressionParens(context.queryExpressionParens(), options);
+    } else {
+      throw unsupportedFeature(
+          "MySQL MVP encountered an unsupported query expression body.", context.start);
+    }
+
+    if (context.children == null) {
+      return current;
+    }
+
+    SetOperator pendingOperator = null;
+    boolean skippedBase = false;
+    for (var child : context.children) {
+      if (!skippedBase
+          && (child == context.queryPrimary() || child == context.queryExpressionParens())) {
+        skippedBase = true;
+        continue;
+      }
+
+      if (child instanceof TerminalNode terminalNode) {
+        int tokenType = terminalNode.getSymbol().getType();
+        if (tokenType == MySQLParser.UNION_SYMBOL) {
+          pendingOperator = SetOperator.UNION_DISTINCT;
+        } else if (tokenType == MySQLParser.EXCEPT_SYMBOL
+            || tokenType == MySQLParser.INTERSECT_SYMBOL) {
+          throw unsupportedFeature(
+              "MySQL MVP does not support EXCEPT or INTERSECT yet.", terminalNode.getSymbol());
+        }
+        continue;
+      }
+
+      if (child instanceof MySQLParser.UnionOptionContext unionOptionContext) {
+        pendingOperator =
+            "ALL".equalsIgnoreCase(unionOptionContext.getText())
+                ? SetOperator.UNION_ALL
+                : SetOperator.UNION_DISTINCT;
+        continue;
+      }
+
+      if (child instanceof MySQLParser.QueryExpressionBodyContext rhsBody) {
+        current =
+            new SetOperationStatement(
+                current,
+                pendingOperator == null ? SetOperator.UNION_DISTINCT : pendingOperator,
+                mapQueryExpressionBody(rhsBody, options),
+                List.of(),
+                null,
+                span(context.start, context.stop, options));
+        pendingOperator = null;
+      }
+    }
+
+    return current;
+  }
+
+  private static Statement mapQueryPrimary(
+      MySQLParser.QueryPrimaryContext context, ParseOptions options) {
+    if (context.querySpecification() != null) {
+      var mappedBody = mapQuerySpecification(context.querySpecification(), options);
+      return new SelectStatement(
+          mappedBody.distinct(),
+          mappedBody.selectItems(),
+          mappedBody.from(),
+          mappedBody.where(),
+          mappedBody.groupBy(),
+          mappedBody.having(),
+          List.of(),
+          null,
+          span(context.start, context.stop, options));
+    }
+    throw unsupportedFeature(
+        "MySQL MVP currently supports only SELECT query primaries.", context.start);
+  }
+
+  private static Statement mapQueryExpressionParens(
+      MySQLParser.QueryExpressionParensContext context, ParseOptions options) {
+    if (context.queryExpressionParens() != null) {
+      return mapQueryExpressionParens(context.queryExpressionParens(), options);
+    }
+    if (context.queryExpressionWithOptLockingClauses() == null) {
+      throw unsupportedFeature(
+          "MySQL MVP encountered an unsupported parenthesized query expression.", context.start);
+    }
+    if (context.queryExpressionWithOptLockingClauses().lockingClauseList() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support locking clauses inside subqueries yet.",
+          context.queryExpressionWithOptLockingClauses().lockingClauseList().start);
+    }
+    return mapQueryExpressionInternal(
+        context.queryExpressionWithOptLockingClauses().queryExpression(), options);
+  }
+
+  private static Statement withOrderAndLimit(
+      Statement statement, List<OrderByItem> orderBy, LimitClause limit, SourceSpan sourceSpan) {
+    if (statement instanceof SelectStatement selectStatement) {
+      return new SelectStatement(
+          selectStatement.distinct(),
+          selectStatement.selectItems(),
+          selectStatement.from(),
+          selectStatement.where(),
+          selectStatement.groupBy(),
+          selectStatement.having(),
+          orderBy,
+          limit,
+          sourceSpan);
+    }
+    if (statement instanceof SetOperationStatement setOperationStatement) {
+      return new SetOperationStatement(
+          setOperationStatement.left(),
+          setOperationStatement.operator(),
+          setOperationStatement.right(),
+          orderBy,
+          limit,
+          sourceSpan);
+    }
+    return statement;
   }
 
   private static boolean mapDistinct(List<MySQLParser.SelectOptionContext> selectOptions) {
@@ -212,6 +380,12 @@ final class MysqlAstMapper {
     if (context.singleTable() != null) {
       return mapSingleTable(context.singleTable(), options);
     }
+    if (context.derivedTable() != null) {
+      return mapDerivedTable(context.derivedTable(), options);
+    }
+    if (context.tableReferenceListParens() != null) {
+      return mapTableReferenceListParens(context.tableReferenceListParens(), options);
+    }
     throw unsupportedFeature(
         "MySQL MVP currently supports only direct table references in FROM and JOIN clauses.",
         context.start);
@@ -241,7 +415,13 @@ final class MysqlAstMapper {
   private static JoinTableReference mapJoinedTable(
       TableReference left, MySQLParser.JoinedTableContext context, ParseOptions options) {
     if (context.identifierListWithParentheses() != null) {
-      throw unsupportedFeature("MySQL MVP does not support USING join clauses yet.", context.start);
+      return new JoinTableReference(
+          left,
+          mapJoinType(context),
+          mapTableReference(context.tableReference(), options),
+          null,
+          mapIdentifierListWithParentheses(context.identifierListWithParentheses()),
+          span(context.start, context.stop, options));
     }
     if (context.naturalJoinType() != null || context.tableFactor() != null) {
       throw unsupportedFeature("MySQL MVP does not support NATURAL joins yet.", context.start);
@@ -255,6 +435,7 @@ final class MysqlAstMapper {
         mapJoinType(context),
         mapTableReference(context.tableReference(), options),
         context.expr() == null ? null : mapExpr(context.expr(), options),
+        List.of(),
         span(context.start, context.stop, options));
   }
 
@@ -692,6 +873,58 @@ final class MysqlAstMapper {
             context.fractionalPrecision().getText(),
             span(
                 context.fractionalPrecision().start, context.fractionalPrecision().stop, options)));
+  }
+
+  private static DerivedTableReference mapDerivedTable(
+      MySQLParser.DerivedTableContext context, ParseOptions options) {
+    if (context.getStart().getType() == MySQLParser.LATERAL_SYMBOL) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support LATERAL derived tables yet.", context.start);
+    }
+    if (context.subquery() == null) {
+      throw unsupportedFeature(
+          "MySQL MVP encountered an unsupported derived table form.", context.start);
+    }
+
+    return new DerivedTableReference(
+        mapQueryExpressionParens(context.subquery().queryExpressionParens(), options),
+        aliasText(context.tableAlias()),
+        mapColumnAliases(context.columnInternalRefList()),
+        span(context.start, context.stop, options));
+  }
+
+  private static TableReference mapTableReferenceListParens(
+      MySQLParser.TableReferenceListParensContext context, ParseOptions options) {
+    if (context.tableReferenceListParens() != null) {
+      return mapTableReferenceListParens(context.tableReferenceListParens(), options);
+    }
+    if (context.tableReferenceList() == null
+        || context.tableReferenceList().tableReference().size() != 1) {
+      throw unsupportedFeature(
+          "MySQL MVP currently supports only a single table reference inside parenthesized FROM items.",
+          context.start);
+    }
+    return mapTableReference(context.tableReferenceList().tableReference().getFirst(), options);
+  }
+
+  private static List<String> mapIdentifierListWithParentheses(
+      MySQLParser.IdentifierListWithParenthesesContext context) {
+    var identifiers = new ArrayList<String>();
+    for (var identifier : context.identifierList().identifier()) {
+      identifiers.add(identifier.getText());
+    }
+    return List.copyOf(identifiers);
+  }
+
+  private static List<String> mapColumnAliases(MySQLParser.ColumnInternalRefListContext context) {
+    if (context == null) {
+      return List.of();
+    }
+    var aliases = new ArrayList<String>();
+    for (var columnInternalRef : context.columnInternalRef()) {
+      aliases.add(columnInternalRef.identifier().getText());
+    }
+    return List.copyOf(aliases);
   }
 
   private static String aliasText(MySQLParser.SelectAliasContext context) {

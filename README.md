@@ -19,10 +19,14 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
     - arithmetic expressions
     - aggregate and generic function calls
     - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
+    - derived tables
     - `GROUP BY`
     - `HAVING`
     - `IN` / `BETWEEN` / `LIKE`
     - qualified references
+    - script mode for multi-statement SELECT batches
+    - `UNION` / `UNION ALL`
+    - joins with `USING`
     - `WHERE`
     - explicit joins with `ON`
     - `ORDER BY`

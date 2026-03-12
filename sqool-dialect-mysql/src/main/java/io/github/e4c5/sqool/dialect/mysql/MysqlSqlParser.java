@@ -32,7 +32,11 @@ public final class MysqlSqlParser implements SqlParser {
       return failure("MysqlSqlParser only accepts MYSQL parse options.", 1, 0, null);
     }
     if (options.scriptMode()) {
-      return failure("MySQL MVP does not support script mode yet.", 1, 0, null);
+      var attempt = parseQueries(sql, options.enableFallback());
+      if (!attempt.diagnostics().isEmpty()) {
+        return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
+      }
+      return MysqlAstMapper.mapQueries(attempt.context(), options);
     }
 
     var attempt = parseQueryExpression(sql, options.enableFallback());
@@ -81,6 +85,43 @@ public final class MysqlSqlParser implements SqlParser {
         : new ParseAttempt(context, List.of());
   }
 
+  private QueriesAttempt parseQueries(String sql, boolean enableFallback) {
+    try {
+      return parseQueries(sql, PredictionMode.SLL, new BailErrorStrategy());
+    } catch (ParseCancellationException | InputMismatchException exception) {
+      if (!enableFallback) {
+        return failureQueriesAttempt(
+            List.of(
+                new SyntaxDiagnostic(
+                    DiagnosticSeverity.ERROR, "Fast-path MySQL script parse failed.", 1, 0, null)));
+      }
+      return parseQueries(sql, PredictionMode.LL, new DefaultErrorStrategy());
+    }
+  }
+
+  private QueriesAttempt parseQueries(
+      String sql,
+      PredictionMode predictionMode,
+      org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
+    var syntaxErrors = new MysqlSyntaxErrorListener();
+    var lexer = new MySQLLexer(CharStreams.fromString(sql));
+    lexer.removeErrorListeners();
+    lexer.addErrorListener(syntaxErrors);
+
+    var tokens = new CommonTokenStream(lexer);
+    var parser = new MySQLParser(tokens);
+    parser.removeErrorListeners();
+    parser.addErrorListener(syntaxErrors);
+    parser.setBuildParseTree(true);
+    parser.setErrorHandler(errorStrategy);
+    parser.getInterpreter().setPredictionMode(predictionMode);
+
+    var context = parser.queries();
+    return syntaxErrors.hasDiagnostics()
+        ? failureQueriesAttempt(syntaxErrors.diagnostics())
+        : new QueriesAttempt(context, List.of());
+  }
+
   private void requireEndOfInput(CommonTokenStream tokens, MysqlSyntaxErrorListener syntaxErrors) {
     if (tokens.LA(1) == MySQLLexer.SEMICOLON_SYMBOL) {
       tokens.consume();
@@ -109,6 +150,13 @@ public final class MysqlSqlParser implements SqlParser {
     return new ParseAttempt(null, diagnostics);
   }
 
+  private static QueriesAttempt failureQueriesAttempt(List<SyntaxDiagnostic> diagnostics) {
+    return new QueriesAttempt(null, diagnostics);
+  }
+
   private record ParseAttempt(
       MySQLParser.QueryExpressionContext context, List<SyntaxDiagnostic> diagnostics) {}
+
+  private record QueriesAttempt(
+      MySQLParser.QueriesContext context, List<SyntaxDiagnostic> diagnostics) {}
 }
