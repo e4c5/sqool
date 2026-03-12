@@ -27,6 +27,18 @@ class MySQLGrammarSmokeTest {
     assertNotNull(parsed.context());
   }
 
+  @Test
+  void parsesJoinWhereOrderAndLimitStatement() {
+    var parsed =
+        parseSimpleStatement(
+            "select u.id as user_id, u.name from users u "
+                + "inner join orders o on u.id = o.user_id "
+                + "where o.total >= 100 order by o.created_at desc limit 10 offset 5");
+
+    assertEquals(0, parsed.parser().getNumberOfSyntaxErrors());
+    assertNotNull(parsed.context());
+  }
+
   private ParsedStatement parseSimpleStatement(String sql) {
     var lexer = new MySQLLexer(CharStreams.fromString(sql));
     var parser = new MySQLParser(new CommonTokenStream(lexer));

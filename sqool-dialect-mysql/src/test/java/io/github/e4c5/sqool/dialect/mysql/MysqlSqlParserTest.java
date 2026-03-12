@@ -3,13 +3,22 @@ package io.github.e4c5.sqool.dialect.mysql;
 import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
+import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
+import io.github.e4c5.sqool.ast.BinaryExpression;
+import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.JoinTableReference;
+import io.github.e4c5.sqool.ast.JoinType;
+import io.github.e4c5.sqool.ast.LimitClause;
+import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
+import io.github.e4c5.sqool.ast.OrderByItem;
 import io.github.e4c5.sqool.ast.SelectStatement;
+import io.github.e4c5.sqool.ast.SortDirection;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseSuccess;
@@ -27,7 +36,12 @@ class MysqlSqlParserTest {
     var statement = assertInstanceOf(SelectStatement.class, success.root());
 
     assertEquals(2, statement.selectItems().size());
-    assertEquals("demo", assertInstanceOf(NamedTableReference.class, statement.from()).name());
+    var from = assertInstanceOf(NamedTableReference.class, statement.from());
+    assertEquals("demo", from.name());
+    assertNull(from.alias());
+    assertNull(statement.where());
+    assertTrue(statement.orderBy().isEmpty());
+    assertNull(statement.limit());
     assertEquals(
         "id",
         assertInstanceOf(
@@ -39,27 +53,93 @@ class MysqlSqlParserTest {
 
   @Test
   void parsesAllColumnsProjection() {
-    var result = parser.parse("SELECT * FROM demo", ParseOptions.defaults(SqlDialect.MYSQL));
+    var result =
+        parser.parse(
+            "SELECT u.* FROM demo u ORDER BY u.id LIMIT 5",
+            ParseOptions.defaults(SqlDialect.MYSQL));
 
     var success = assertInstanceOf(ParseSuccess.class, result);
     var statement = assertInstanceOf(SelectStatement.class, success.root());
 
     assertEquals(1, statement.selectItems().size());
-    assertInstanceOf(AllColumnsSelectItem.class, statement.selectItems().get(0));
+    assertEquals(
+        "u",
+        assertInstanceOf(AllColumnsSelectItem.class, statement.selectItems().get(0)).qualifier());
+    assertEquals(1, statement.orderBy().size());
+    assertEquals(
+        SortDirection.ASC,
+        assertInstanceOf(OrderByItem.class, statement.orderBy().getFirst()).direction());
+    assertEquals(5L, assertInstanceOf(LimitClause.class, statement.limit()).rowCount());
+  }
+
+  @Test
+  void parsesAliasesWhereJoinOrderAndLimit() {
+    var result =
+        parser.parse(
+            "select u.id as user_id, u.name name from users u "
+                + "inner join orders o on u.id = o.user_id "
+                + "where o.total >= 100 order by o.created_at desc limit 10 offset 5",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+    var join = assertInstanceOf(JoinTableReference.class, statement.from());
+
+    assertEquals(JoinType.INNER, join.joinType());
+    assertEquals("users", assertInstanceOf(NamedTableReference.class, join.left()).name());
+    assertEquals("u", assertInstanceOf(NamedTableReference.class, join.left()).alias());
+    assertEquals("orders", assertInstanceOf(NamedTableReference.class, join.right()).name());
+    assertEquals("o", assertInstanceOf(NamedTableReference.class, join.right()).alias());
+
+    var joinCondition = assertInstanceOf(BinaryExpression.class, join.condition());
+    assertEquals(BinaryOperator.EQUAL, joinCondition.operator());
+    assertEquals("u.id", assertInstanceOf(IdentifierExpression.class, joinCondition.left()).text());
+    assertEquals(
+        "o.user_id", assertInstanceOf(IdentifierExpression.class, joinCondition.right()).text());
+
+    var where = assertInstanceOf(BinaryExpression.class, statement.where());
+    assertEquals(BinaryOperator.GREATER_OR_EQUAL, where.operator());
+    assertEquals("o.total", assertInstanceOf(IdentifierExpression.class, where.left()).text());
+    assertEquals("100", assertInstanceOf(LiteralExpression.class, where.right()).text());
+
+    assertEquals(
+        "user_id",
+        assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(0)).alias());
+    assertEquals(
+        "name",
+        assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(1)).alias());
+
+    assertEquals(1, statement.orderBy().size());
+    var orderBy = statement.orderBy().getFirst();
+    assertEquals(SortDirection.DESC, orderBy.direction());
+    assertEquals(
+        "o.created_at", assertInstanceOf(IdentifierExpression.class, orderBy.expression()).text());
+
+    var limit = assertInstanceOf(LimitClause.class, statement.limit());
+    assertEquals(10L, limit.rowCount());
+    assertEquals(5L, limit.offset());
   }
 
   @Test
   void reportsUnsupportedSelectShapes() {
-    var result = parser.parse("select 1 from demo", ParseOptions.defaults(SqlDialect.MYSQL));
+    var result = parser.parse("select count(*) from demo", ParseOptions.defaults(SqlDialect.MYSQL));
 
     var failure = assertInstanceOf(ParseFailure.class, result);
     assertFalse(failure.diagnostics().isEmpty());
     assertTrue(
-        failure
-            .diagnostics()
-            .getFirst()
-            .message()
-            .contains("identifier select items without aliases"));
+        failure.diagnostics().getFirst().message().contains("unsupported expression leaf")
+            || failure.diagnostics().getFirst().message().contains("unsupported select item"));
+  }
+
+  @Test
+  void reportsUnsupportedPredicates() {
+    var result =
+        parser.parse(
+            "select id from demo where id in (1, 2)", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var failure = assertInstanceOf(ParseFailure.class, result);
+    assertFalse(failure.diagnostics().isEmpty());
+    assertTrue(failure.diagnostics().getFirst().message().contains("IN"));
   }
 
   @Test

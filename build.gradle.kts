@@ -220,6 +220,7 @@ project(":sqool-bench") {
     dependencies {
         "implementation"(project(":sqool-core"))
         "implementation"(project(":sqool-dialect-mysql"))
+        "implementation"(libsCatalog.findLibrary("jsqlparser").get())
     }
 
     tasks.withType<JavaCompile>().configureEach {

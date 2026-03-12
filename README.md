@@ -12,8 +12,15 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
 
 - MySQL:
   - real upstream grammar vendored from `antlr/grammars-v4`
-  - minimal parser facade implemented
-  - normalized AST currently supports simple `SELECT ... FROM ...` statements
+  - parser facade implemented with SLL-first parsing and LL fallback
+  - normalized AST currently supports:
+    - aliases
+    - qualified references
+    - `WHERE`
+    - explicit joins with `ON`
+    - `ORDER BY`
+    - numeric `LIMIT`
+  - JMH benchmark includes a first comparison against JSqlParser
 - PostgreSQL, Oracle, SQLite:
   - planned, not yet implemented
 

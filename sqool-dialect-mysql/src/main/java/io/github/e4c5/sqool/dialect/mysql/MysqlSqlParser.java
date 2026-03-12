@@ -35,17 +35,17 @@ public final class MysqlSqlParser implements SqlParser {
       return failure("MySQL MVP does not support script mode yet.", 1, 0, null);
     }
 
-    var attempt = parseQuerySpecification(sql, options.enableFallback());
+    var attempt = parseQueryExpression(sql, options.enableFallback());
     if (!attempt.diagnostics().isEmpty()) {
       return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
     }
 
-    return MysqlAstMapper.mapQuerySpecification(attempt.context(), options);
+    return MysqlAstMapper.mapQueryExpression(attempt.context(), options);
   }
 
-  private ParseAttempt parseQuerySpecification(String sql, boolean enableFallback) {
+  private ParseAttempt parseQueryExpression(String sql, boolean enableFallback) {
     try {
-      return parseQuerySpecification(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return parseQueryExpression(sql, PredictionMode.SLL, new BailErrorStrategy());
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
         return failureAttempt(
@@ -53,11 +53,11 @@ public final class MysqlSqlParser implements SqlParser {
                 new SyntaxDiagnostic(
                     DiagnosticSeverity.ERROR, "Fast-path MySQL parse failed.", 1, 0, null)));
       }
-      return parseQuerySpecification(sql, PredictionMode.LL, new DefaultErrorStrategy());
+      return parseQueryExpression(sql, PredictionMode.LL, new DefaultErrorStrategy());
     }
   }
 
-  private ParseAttempt parseQuerySpecification(
+  private ParseAttempt parseQueryExpression(
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
@@ -74,7 +74,7 @@ public final class MysqlSqlParser implements SqlParser {
     parser.setErrorHandler(errorStrategy);
     parser.getInterpreter().setPredictionMode(predictionMode);
 
-    var context = parser.querySpecification();
+    var context = parser.queryExpression();
     requireEndOfInput(tokens, syntaxErrors);
     return syntaxErrors.hasDiagnostics()
         ? failureAttempt(syntaxErrors.diagnostics())
@@ -110,5 +110,5 @@ public final class MysqlSqlParser implements SqlParser {
   }
 
   private record ParseAttempt(
-      MySQLParser.QuerySpecificationContext context, List<SyntaxDiagnostic> diagnostics) {}
+      MySQLParser.QueryExpressionContext context, List<SyntaxDiagnostic> diagnostics) {}
 }
