@@ -134,11 +134,11 @@ project(":sqool-grammar-mysql") {
     }
 
     tasks.named<Checkstyle>("checkstyleMain") {
-        source = fileTree("src/main/java")
+        source = files()
     }
 
     tasks.named<Javadoc>("javadoc") {
-        source = fileTree("src/main/java")
+        source = files()
     }
 }
 
