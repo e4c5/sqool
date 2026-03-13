@@ -7,7 +7,10 @@ Current MVP scope:
 - real upstream MySQL grammar integration
 - SLL-first parse path with LL fallback
 - normalized AST mapping for:
+  - `CREATE TABLE`
   - `DISTINCT`
+  - `DELETE`
+  - `INSERT`
   - aliases
   - arithmetic expressions
   - aggregate and generic function calls
@@ -17,8 +20,9 @@ Current MVP scope:
   - `HAVING`
   - `IN` / `BETWEEN` / `LIKE`
   - qualified references
-  - script mode for multi-statement SELECT batches
+  - script mode for mixed multi-statement SELECT/DML/DDL batches
   - `UNION` / `UNION ALL`
+  - `UPDATE`
   - joins with `USING`
   - `WHERE`
   - explicit joins with `ON`

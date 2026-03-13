@@ -10,11 +10,15 @@ import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BetweenExpression;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
+import io.github.e4c5.sqool.ast.ColumnDefinition;
+import io.github.e4c5.sqool.ast.CreateTableStatement;
+import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.DerivedTableReference;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
 import io.github.e4c5.sqool.ast.InExpression;
+import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
@@ -27,10 +31,12 @@ import io.github.e4c5.sqool.ast.SetOperationStatement;
 import io.github.e4c5.sqool.ast.SetOperator;
 import io.github.e4c5.sqool.ast.SortDirection;
 import io.github.e4c5.sqool.ast.SqlScript;
+import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseSuccess;
 import io.github.e4c5.sqool.core.SqlDialect;
+import java.util.List;
 import org.junit.jupiter.api.Test;
 
 class MysqlSqlParserTest {
@@ -60,6 +66,103 @@ class MysqlSqlParserTest {
                 assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(0))
                     .expression())
             .text());
+  }
+
+  @Test
+  void parsesInsertValuesStatement() {
+    var result =
+        parser.parse(
+            "insert into users (id, name) values (1, 'alice'), (2, default)",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(InsertStatement.class, success.root());
+
+    assertEquals("users", statement.tableName());
+    assertEquals(List.of("id", "name"), statement.columns());
+    assertEquals(2, statement.rows().size());
+    assertEquals(
+        "1", assertInstanceOf(LiteralExpression.class, statement.rows().get(0).get(0)).text());
+    assertEquals(
+        "DEFAULT",
+        assertInstanceOf(LiteralExpression.class, statement.rows().get(1).get(1)).text());
+  }
+
+  @Test
+  void parsesInsertSelectStatement() {
+    var result =
+        parser.parse(
+            "insert into archived_users (id) "
+                + "select id from users union all select id from deleted_users",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(InsertStatement.class, success.root());
+
+    assertEquals("archived_users", statement.tableName());
+    assertEquals(List.of("id"), statement.columns());
+    assertInstanceOf(SetOperationStatement.class, statement.sourceQuery());
+  }
+
+  @Test
+  void parsesUpdateStatement() {
+    var result =
+        parser.parse(
+            "update users set name = coalesce(nickname, name), score = score + 1 "
+                + "where id = 1 order by id limit 1",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(UpdateStatement.class, success.root());
+
+    assertEquals(2, statement.assignments().size());
+    assertEquals("name", statement.assignments().get(0).column());
+    assertInstanceOf(FunctionCallExpression.class, statement.assignments().get(0).value());
+    assertEquals("score", statement.assignments().get(1).column());
+    assertInstanceOf(BinaryExpression.class, statement.assignments().get(1).value());
+    assertEquals(1, statement.orderBy().size());
+    assertEquals(1L, assertInstanceOf(LimitClause.class, statement.limit()).rowCount());
+  }
+
+  @Test
+  void parsesDeleteStatement() {
+    var result =
+        parser.parse(
+            "delete from users where active = 0 order by id limit 5",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(DeleteStatement.class, success.root());
+
+    assertEquals("users", assertInstanceOf(NamedTableReference.class, statement.target()).name());
+    assertInstanceOf(BinaryExpression.class, statement.where());
+    assertEquals(1, statement.orderBy().size());
+    assertEquals(5L, assertInstanceOf(LimitClause.class, statement.limit()).rowCount());
+  }
+
+  @Test
+  void parsesCreateTableStatement() {
+    var result =
+        parser.parse(
+            "create table if not exists users ("
+                + "id bigint primary key auto_increment, "
+                + "name varchar(255) not null, "
+                + "created_at timestamp"
+                + ")",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(CreateTableStatement.class, success.root());
+
+    assertEquals("users", statement.tableName());
+    assertTrue(statement.ifNotExists());
+    assertEquals(3, statement.columns().size());
+    ColumnDefinition first = statement.columns().get(0);
+    assertEquals("id", first.name());
+    assertTrue(first.typeName().toLowerCase().startsWith("bigint"));
+    assertTrue(
+        first.attributes().stream()
+            .anyMatch(attribute -> attribute.toUpperCase().contains("PRIMARY")));
   }
 
   @Test

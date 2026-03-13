@@ -19,17 +19,26 @@ class MysqlConformanceTest {
   private static final List<ResourceCase> SUPPORTED_CASES =
       List.of(
           new ResourceCase("mysql/supported/basic-select.sql", false),
+          new ResourceCase("mysql/supported/create-table.sql", false),
+          new ResourceCase("mysql/supported/delete-statement.sql", false),
           new ResourceCase("mysql/supported/grouped-aggregate.sql", false),
+          new ResourceCase("mysql/supported/insert-statement.sql", false),
+          new ResourceCase("mysql/supported/mixed-script.sql", true),
           new ResourceCase("mysql/supported/runtime-functions.sql", false),
           new ResourceCase("mysql/supported/union-derived-join.sql", false),
+          new ResourceCase("mysql/supported/update-statement.sql", false),
           new ResourceCase("mysql/supported/select-script.sql", true));
 
   private static final List<ResourceExpectation> UNSUPPORTED_CASES =
       List.of(
           new ResourceExpectation(
+              "mysql/unsupported/create-table-constraint.sql", false, "table constraints"),
+          new ResourceExpectation(
               "mysql/unsupported/regex-predicate.sql", false, "predicate operation"),
           new ResourceExpectation(
               "mysql/unsupported/runtime-format.sql", false, "runtime function"),
+          new ResourceExpectation(
+              "mysql/unsupported/update-multi-table.sql", false, "single-table UPDATE"),
           new ResourceExpectation(
               "mysql/unsupported/begin-work-script.sql", true, "BEGIN WORK statements"));
 

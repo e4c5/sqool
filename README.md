@@ -14,23 +14,28 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
   - real upstream grammar vendored from `antlr/grammars-v4`
   - parser facade implemented with SLL-first parsing and LL fallback
   - normalized AST currently supports:
+    - `CREATE TABLE`
     - `DISTINCT`
-    - aliases
-    - arithmetic expressions
-    - aggregate and generic function calls
-    - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
+    - `DELETE`
     - derived tables
     - `GROUP BY`
     - `HAVING`
     - `IN` / `BETWEEN` / `LIKE`
+    - `INSERT`
+    - aliases
+    - arithmetic expressions
+    - aggregate and generic function calls
+    - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
     - qualified references
-    - script mode for multi-statement SELECT batches
+    - script mode for mixed multi-statement SELECT/DML/DDL batches
     - `UNION` / `UNION ALL`
+    - `UPDATE`
     - joins with `USING`
     - `WHERE`
     - explicit joins with `ON`
     - `ORDER BY`
     - numeric `LIMIT`
+  - resource-backed conformance/regression suite for supported and unsupported MySQL corpus cases
   - JMH benchmark includes a first comparison against JSqlParser
 - PostgreSQL, Oracle, SQLite:
   - planned, not yet implemented

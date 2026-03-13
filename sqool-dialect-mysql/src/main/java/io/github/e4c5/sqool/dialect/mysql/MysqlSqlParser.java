@@ -39,29 +39,29 @@ public final class MysqlSqlParser implements SqlParser {
       return MysqlAstMapper.mapQueries(attempt.context(), options);
     }
 
-    var attempt = parseQueryExpression(sql, options.enableFallback());
+    var attempt = parseSimpleStatement(sql, options.enableFallback());
     if (!attempt.diagnostics().isEmpty()) {
       return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
     }
 
-    return MysqlAstMapper.mapQueryExpression(attempt.context(), options);
+    return MysqlAstMapper.mapSimpleStatement(attempt.context(), options);
   }
 
-  private ParseAttempt parseQueryExpression(String sql, boolean enableFallback) {
+  private SimpleStatementAttempt parseSimpleStatement(String sql, boolean enableFallback) {
     try {
-      return parseQueryExpression(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return parseSimpleStatement(sql, PredictionMode.SLL, new BailErrorStrategy());
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
-        return failureAttempt(
+        return failureSimpleStatementAttempt(
             List.of(
                 new SyntaxDiagnostic(
                     DiagnosticSeverity.ERROR, "Fast-path MySQL parse failed.", 1, 0, null)));
       }
-      return parseQueryExpression(sql, PredictionMode.LL, new DefaultErrorStrategy());
+      return parseSimpleStatement(sql, PredictionMode.LL, new DefaultErrorStrategy());
     }
   }
 
-  private ParseAttempt parseQueryExpression(
+  private SimpleStatementAttempt parseSimpleStatement(
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
@@ -78,11 +78,11 @@ public final class MysqlSqlParser implements SqlParser {
     parser.setErrorHandler(errorStrategy);
     parser.getInterpreter().setPredictionMode(predictionMode);
 
-    var context = parser.queryExpression();
+    var context = parser.simpleStatement();
     requireEndOfInput(tokens, syntaxErrors);
     return syntaxErrors.hasDiagnostics()
-        ? failureAttempt(syntaxErrors.diagnostics())
-        : new ParseAttempt(context, List.of());
+        ? failureSimpleStatementAttempt(syntaxErrors.diagnostics())
+        : new SimpleStatementAttempt(context, List.of());
   }
 
   private QueriesAttempt parseQueries(String sql, boolean enableFallback) {
@@ -146,16 +146,17 @@ public final class MysqlSqlParser implements SqlParser {
             new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
   }
 
-  private static ParseAttempt failureAttempt(List<SyntaxDiagnostic> diagnostics) {
-    return new ParseAttempt(null, diagnostics);
+  private static SimpleStatementAttempt failureSimpleStatementAttempt(
+      List<SyntaxDiagnostic> diagnostics) {
+    return new SimpleStatementAttempt(null, diagnostics);
   }
 
   private static QueriesAttempt failureQueriesAttempt(List<SyntaxDiagnostic> diagnostics) {
     return new QueriesAttempt(null, diagnostics);
   }
 
-  private record ParseAttempt(
-      MySQLParser.QueryExpressionContext context, List<SyntaxDiagnostic> diagnostics) {}
+  private record SimpleStatementAttempt(
+      MySQLParser.SimpleStatementContext context, List<SyntaxDiagnostic> diagnostics) {}
 
   private record QueriesAttempt(
       MySQLParser.QueriesContext context, List<SyntaxDiagnostic> diagnostics) {}

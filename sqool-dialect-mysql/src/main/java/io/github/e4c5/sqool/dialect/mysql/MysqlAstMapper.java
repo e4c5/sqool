@@ -4,12 +4,17 @@ import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BetweenExpression;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
+import io.github.e4c5.sqool.ast.ColumnAssignment;
+import io.github.e4c5.sqool.ast.ColumnDefinition;
+import io.github.e4c5.sqool.ast.CreateTableStatement;
+import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.DerivedTableReference;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
 import io.github.e4c5.sqool.ast.InExpression;
+import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
@@ -28,6 +33,7 @@ import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
+import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.DiagnosticSeverity;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
@@ -60,6 +66,24 @@ final class MysqlAstMapper {
               ? null
               : span(context.query().getFirst().start, context.query().getLast().stop, options);
       return new ParseSuccess(SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of());
+    } catch (UnsupportedFeatureException exception) {
+      return new ParseFailure(
+          SqlDialect.MYSQL,
+          List.of(
+              new SyntaxDiagnostic(
+                  DiagnosticSeverity.ERROR,
+                  exception.getMessage(),
+                  exception.token == null ? 1 : exception.token.getLine(),
+                  exception.token == null ? 0 : exception.token.getCharPositionInLine(),
+                  exception.token == null ? null : exception.token.getText())));
+    }
+  }
+
+  static ParseResult mapSimpleStatement(
+      MySQLParser.SimpleStatementContext context, ParseOptions options) {
+    try {
+      return new ParseSuccess(
+          SqlDialect.MYSQL, mapSimpleStatementInternal(context, options), List.of());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
           SqlDialect.MYSQL,
@@ -119,11 +143,31 @@ final class MysqlAstMapper {
           "MySQL script mode does not support BEGIN WORK statements yet.",
           context.beginWork().start);
     }
-    if (context.simpleStatement() == null || context.simpleStatement().selectStatement() == null) {
+    if (context.simpleStatement() == null) {
       throw unsupportedFeature(
-          "MySQL script mode currently supports SELECT statements only.", context.start);
+          "MySQL script mode encountered an unsupported statement.", context.start);
     }
-    return mapSelectStatement(context.simpleStatement().selectStatement(), options);
+    return mapSimpleStatementInternal(context.simpleStatement(), options);
+  }
+
+  private static Statement mapSimpleStatementInternal(
+      MySQLParser.SimpleStatementContext context, ParseOptions options) {
+    if (context.selectStatement() != null) {
+      return mapSelectStatement(context.selectStatement(), options);
+    }
+    if (context.insertStatement() != null) {
+      return mapInsertStatement(context.insertStatement(), options);
+    }
+    if (context.updateStatement() != null) {
+      return mapUpdateStatement(context.updateStatement(), options);
+    }
+    if (context.deleteStatement() != null) {
+      return mapDeleteStatement(context.deleteStatement(), options);
+    }
+    if (context.createStatement() != null && context.createStatement().createTable() != null) {
+      return mapCreateTableStatement(context.createStatement().createTable(), options);
+    }
+    throw unsupportedFeature("MySQL MVP does not support this statement kind yet.", context.start);
   }
 
   private static Statement mapSelectStatement(
@@ -139,6 +183,144 @@ final class MysqlAstMapper {
           context.selectStatementWithInto().start);
     }
     return mapQueryExpressionInternal(context.queryExpression(), options);
+  }
+
+  private static Statement mapInsertStatement(
+      MySQLParser.InsertStatementContext context, ParseOptions options) {
+    if (context.insertLockOption() != null || context.usePartition() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support INSERT lock or partition options yet.", context.start);
+    }
+
+    String tableName = context.tableRef().getText();
+    boolean ignore = context.IGNORE_SYMBOL() != null;
+    List<String> columns = List.of();
+    List<List<Expression>> rows = List.of();
+    List<ColumnAssignment> assignments = List.of();
+    Statement sourceQuery = null;
+
+    if (context.insertFromConstructor() != null) {
+      columns = mapFields(context.insertFromConstructor().fields());
+      rows = mapValueList(context.insertFromConstructor().insertValues().valueList(), options);
+      if (context.valuesReference() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support VALUES references in INSERT yet.",
+            context.valuesReference().start);
+      }
+    } else if (context.updateList() != null) {
+      assignments = mapUpdateList(context.updateList(), options);
+      if (context.valuesReference() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support VALUES references in INSERT ... SET yet.",
+            context.valuesReference().start);
+      }
+    } else if (context.insertQueryExpression() != null) {
+      columns = mapFields(context.insertQueryExpression().fields());
+      sourceQuery = mapInsertQueryExpression(context.insertQueryExpression(), options);
+    } else {
+      throw unsupportedFeature("MySQL MVP encountered an unsupported INSERT shape.", context.start);
+    }
+
+    return new InsertStatement(
+        tableName,
+        columns,
+        rows,
+        assignments,
+        sourceQuery,
+        context.insertUpdateList() == null
+            ? List.of()
+            : mapUpdateList(context.insertUpdateList().updateList(), options),
+        ignore,
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapUpdateStatement(
+      MySQLParser.UpdateStatementContext context, ParseOptions options) {
+    if (context.withClause() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support UPDATE with WITH clauses yet.", context.start);
+    }
+    if (context.tableReferenceList().tableReference().size() != 1) {
+      throw unsupportedFeature(
+          "MySQL MVP currently supports only single-table UPDATE statements.", context.start);
+    }
+
+    return new UpdateStatement(
+        mapTableReference(context.tableReferenceList().tableReference().getFirst(), options),
+        mapUpdateList(context.updateList(), options),
+        context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options),
+        mapOrderBy(context.orderClause(), options),
+        mapSimpleLimitClause(context.simpleLimitClause(), options),
+        context.IGNORE_SYMBOL() != null,
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapDeleteStatement(
+      MySQLParser.DeleteStatementContext context, ParseOptions options) {
+    if (context.withClause() != null
+        || context.tableAliasRefList() != null
+        || context.USING_SYMBOL() != null
+        || context.partitionDelete() != null
+        || !context.deleteStatementOption().isEmpty()) {
+      throw unsupportedFeature(
+          "MySQL MVP currently supports only simple single-table DELETE statements.",
+          context.start);
+    }
+    if (context.tableRef() == null) {
+      throw unsupportedFeature("MySQL MVP encountered an unsupported DELETE shape.", context.start);
+    }
+
+    return new DeleteStatement(
+        new NamedTableReference(
+            context.tableRef().getText(),
+            aliasText(context.tableAlias()),
+            span(context.tableRef().start, context.tableRef().stop, options)),
+        context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options),
+        mapOrderBy(context.orderClause(), options),
+        mapSimpleLimitClause(context.simpleLimitClause(), options),
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapCreateTableStatement(
+      MySQLParser.CreateTableContext context, ParseOptions options) {
+    String tableName = context.tableName().getText();
+    boolean temporary = context.TEMPORARY_SYMBOL() != null;
+    boolean ifNotExists = context.ifNotExists() != null;
+
+    if (context.LIKE_SYMBOL() != null && context.tableRef() != null) {
+      return new CreateTableStatement(
+          tableName,
+          temporary,
+          ifNotExists,
+          List.of(),
+          context.tableRef().getText(),
+          null,
+          span(context.start, context.stop, options));
+    }
+
+    if (context.tableElementList() == null) {
+      throw unsupportedFeature(
+          "MySQL MVP encountered an unsupported CREATE TABLE form.", context.start);
+    }
+
+    var columns = new ArrayList<ColumnDefinition>();
+    for (var tableElement : context.tableElementList().tableElement()) {
+      if (tableElement.tableConstraintDef() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support table constraints in CREATE TABLE yet.",
+            tableElement.tableConstraintDef().start);
+      }
+      columns.add(mapColumnDefinition(tableElement.columnDefinition(), options));
+    }
+
+    return new CreateTableStatement(
+        tableName,
+        temporary,
+        ifNotExists,
+        columns,
+        null,
+        context.createTableOptionsEtc() == null ? null : context.createTableOptionsEtc().getText(),
+        span(context.start, context.stop, options));
   }
 
   private static Statement mapQueryExpressionInternal(
@@ -482,6 +664,81 @@ final class MysqlAstMapper {
     return List.copyOf(result);
   }
 
+  private static List<String> mapFields(MySQLParser.FieldsContext context) {
+    if (context == null) {
+      return List.of();
+    }
+    var columns = new ArrayList<String>();
+    for (var insertIdentifier : context.insertIdentifier()) {
+      if (insertIdentifier.tableWild() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support wildcard INSERT target lists.", insertIdentifier.start);
+      }
+      columns.add(insertIdentifier.columnRef().getText());
+    }
+    return List.copyOf(columns);
+  }
+
+  private static List<List<Expression>> mapValueList(
+      MySQLParser.ValueListContext context, ParseOptions options) {
+    var rows = new ArrayList<List<Expression>>();
+    for (var values : context.values()) {
+      rows.add(mapValues(values, options));
+    }
+    if (rows.isEmpty()) {
+      rows.add(List.of());
+    }
+    return List.copyOf(rows);
+  }
+
+  private static List<Expression> mapValues(
+      MySQLParser.ValuesContext context, ParseOptions options) {
+    var values = new ArrayList<Expression>();
+    if (context.children == null) {
+      return List.of();
+    }
+    for (var child : context.children) {
+      if (child instanceof MySQLParser.ExprContext exprContext) {
+        values.add(mapExpr(exprContext, options));
+      } else if (child instanceof TerminalNode terminalNode
+          && terminalNode.getSymbol().getType() == MySQLParser.DEFAULT_SYMBOL) {
+        values.add(
+            new LiteralExpression(
+                "DEFAULT", span(terminalNode.getSymbol(), terminalNode.getSymbol(), options)));
+      }
+    }
+    return List.copyOf(values);
+  }
+
+  private static List<ColumnAssignment> mapUpdateList(
+      MySQLParser.UpdateListContext context, ParseOptions options) {
+    var assignments = new ArrayList<ColumnAssignment>();
+    for (var updateElement : context.updateElement()) {
+      assignments.add(
+          new ColumnAssignment(
+              updateElement.columnRef().getText(),
+              updateElement.DEFAULT_SYMBOL() != null
+                  ? new LiteralExpression(
+                      "DEFAULT",
+                      span(
+                          updateElement.DEFAULT_SYMBOL().getSymbol(),
+                          updateElement.DEFAULT_SYMBOL().getSymbol(),
+                          options))
+                  : mapExpr(updateElement.expr(), options),
+              span(updateElement.start, updateElement.stop, options)));
+    }
+    return List.copyOf(assignments);
+  }
+
+  private static LimitClause mapSimpleLimitClause(
+      MySQLParser.SimpleLimitClauseContext context, ParseOptions options) {
+    if (context == null) {
+      return null;
+    }
+    return new LimitClause(
+        numericLimit(context.limitOption()), null, span(context.start, context.stop, options));
+  }
+
   private static List<Expression> mapGroupBy(
       MySQLParser.GroupByClauseContext context, ParseOptions options) {
     if (context == null) {
@@ -503,6 +760,27 @@ final class MysqlAstMapper {
       result.add(mapExpr(orderExpression.expr(), options));
     }
     return List.copyOf(result);
+  }
+
+  private static Statement mapInsertQueryExpression(
+      MySQLParser.InsertQueryExpressionContext context, ParseOptions options) {
+    if (context.queryExpression() != null) {
+      return mapQueryExpressionInternal(context.queryExpression(), options);
+    }
+    if (context.queryExpressionParens() != null) {
+      return mapQueryExpressionParens(context.queryExpressionParens(), options);
+    }
+    if (context.queryExpressionWithOptLockingClauses() != null) {
+      if (context.queryExpressionWithOptLockingClauses().lockingClauseList() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support locking clauses in INSERT ... SELECT yet.",
+            context.queryExpressionWithOptLockingClauses().lockingClauseList().start);
+      }
+      return mapQueryExpressionInternal(
+          context.queryExpressionWithOptLockingClauses().queryExpression(), options);
+    }
+    throw unsupportedFeature(
+        "MySQL MVP encountered an unsupported INSERT ... SELECT form.", context.start);
   }
 
   private static LimitClause mapLimitClause(
@@ -873,6 +1151,30 @@ final class MysqlAstMapper {
             context.fractionalPrecision().getText(),
             span(
                 context.fractionalPrecision().start, context.fractionalPrecision().stop, options)));
+  }
+
+  private static ColumnDefinition mapColumnDefinition(
+      MySQLParser.ColumnDefinitionContext context, ParseOptions options) {
+    if (context.fieldDefinition().AS_SYMBOL() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support generated columns in CREATE TABLE yet.", context.start);
+    }
+    if (context.checkOrReferences() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support column-level CHECK or REFERENCES clauses yet.",
+          context.checkOrReferences().start);
+    }
+
+    var attributes = new ArrayList<String>();
+    for (var attribute : context.fieldDefinition().columnAttribute()) {
+      attributes.add(attribute.getText());
+    }
+
+    return new ColumnDefinition(
+        context.columnName().getText(),
+        context.fieldDefinition().dataType().getText(),
+        attributes,
+        span(context.start, context.stop, options));
   }
 
   private static DerivedTableReference mapDerivedTable(
