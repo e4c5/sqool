@@ -59,9 +59,7 @@ class MySQLGrammarSmokeTest {
     parser.setBuildParseTree(true);
     var context = parser.simpleStatement();
     assertEquals(
-        Token.EOF,
-        parser.getCurrentToken().getType(),
-        "Parser did not consume the full SQL input");
+        Token.EOF, parser.getCurrentToken().getType(), "Parser did not consume the full SQL input");
     return new ParsedStatement(parser, context);
   }
 
