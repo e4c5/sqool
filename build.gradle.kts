@@ -133,14 +133,12 @@ project(":sqool-grammar-mysql") {
         )
     }
 
-    tasks.withType<Checkstyle>().configureEach {
-        exclude("**/generated-src/antlr/**")
-        exclude("**/io/github/e4c5/sqool/grammar/mysql/generated/**")
+    tasks.named<Checkstyle>("checkstyleMain") {
+        source = fileTree("src/main/java")
     }
 
-    tasks.withType<Javadoc>().configureEach {
-        exclude("**/generated-src/antlr/**")
-        exclude("**/io/github/e4c5/sqool/grammar/mysql/generated/**")
+    tasks.named<Javadoc>("javadoc") {
+        source = fileTree("src/main/java")
     }
 }
 
