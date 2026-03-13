@@ -1691,16 +1691,20 @@ final class MysqlAstMapper {
       return null;
     }
 
+    int startColumn = start.getCharPositionInLine();
     int stopColumn = stop.getCharPositionInLine();
     if (stop.getText() != null && !stop.getText().isEmpty()) {
       stopColumn += stop.getText().length() - 1;
+    }
+    if (start.getLine() == stop.getLine()) {
+      stopColumn = Math.max(stopColumn, startColumn);
     }
 
     return new SourceSpan(
         start.getStartIndex(),
         stop.getStopIndex(),
         start.getLine(),
-        start.getCharPositionInLine(),
+        startColumn,
         stop.getLine(),
         stopColumn);
   }

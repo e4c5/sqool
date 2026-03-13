@@ -1,5 +1,5 @@
 #begin
--- common conustructions tests
+-- common constructions tests
 -- -- Literals
 -- -- -- String literal
 SELECT 'hello world';
