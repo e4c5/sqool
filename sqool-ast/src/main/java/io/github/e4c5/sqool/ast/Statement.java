@@ -8,6 +8,7 @@ public sealed interface Statement extends AstNode
         DropDatabaseStatement,
         DropTableStatement,
         InsertStatement,
+        MySqlRawStatement,
         ReplaceStatement,
         SelectStatement,
         SetOperationStatement,

@@ -36,4 +36,5 @@ Current MVP scope:
   - explicit joins with `ON`
   - `ORDER BY`
   - numeric `LIMIT`
+- valid but not-yet-normalized MySQL statements fall back to `MySqlRawStatement`
 - syntax diagnostics for malformed input

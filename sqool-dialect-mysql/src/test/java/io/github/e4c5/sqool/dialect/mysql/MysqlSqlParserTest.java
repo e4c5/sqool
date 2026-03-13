@@ -27,6 +27,8 @@ import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
 import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
+import io.github.e4c5.sqool.ast.MySqlRawStatement;
+import io.github.e4c5.sqool.ast.MySqlStatementKind;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OrderByItem;
 import io.github.e4c5.sqool.ast.ReplaceStatement;
@@ -546,9 +548,9 @@ class MysqlSqlParserTest {
             "select id from demo where customer_name regexp '^A'",
             ParseOptions.defaults(SqlDialect.MYSQL));
 
-    var failure = assertInstanceOf(ParseFailure.class, result);
-    assertFalse(failure.diagnostics().isEmpty());
-    assertTrue(failure.diagnostics().getFirst().message().contains("predicate operation"));
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(MySqlRawStatement.class, success.root());
+    assertEquals(MySqlStatementKind.SELECT, statement.kind());
   }
 
   @Test
@@ -557,9 +559,9 @@ class MysqlSqlParserTest {
         parser.parse(
             "select format(total, 2) from orders", ParseOptions.defaults(SqlDialect.MYSQL));
 
-    var failure = assertInstanceOf(ParseFailure.class, result);
-    assertFalse(failure.diagnostics().isEmpty());
-    assertTrue(failure.diagnostics().getFirst().message().contains("runtime function"));
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(MySqlRawStatement.class, success.root());
+    assertEquals(MySqlStatementKind.SELECT, statement.kind());
   }
 
   @Test
@@ -577,9 +579,11 @@ class MysqlSqlParserTest {
             "begin work; select id from other;",
             ParseOptions.defaults(SqlDialect.MYSQL).withScriptMode(true));
 
-    var failure = assertInstanceOf(ParseFailure.class, result);
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var script = assertInstanceOf(SqlScript.class, success.root());
+    assertEquals(2, script.statements().size());
     assertEquals(
-        "MySQL script mode does not support BEGIN WORK statements yet.",
-        failure.diagnostics().getFirst().message());
+        MySqlStatementKind.BEGIN_WORK,
+        assertInstanceOf(MySqlRawStatement.class, script.statements().get(0)).kind());
   }
 }

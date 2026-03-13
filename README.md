@@ -43,6 +43,7 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
     - explicit joins with `ON`
     - `ORDER BY`
     - numeric `LIMIT`
+  - valid but not-yet-normalized MySQL statement kinds fall back to a typed `MySqlRawStatement` node
   - resource-backed conformance/regression suite for supported and unsupported MySQL corpus cases
   - JMH benchmark includes a first comparison against JSqlParser
 - PostgreSQL, Oracle, SQLite:

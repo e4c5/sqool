@@ -19,34 +19,31 @@ class MysqlConformanceTest {
   private static final List<ResourceCase> SUPPORTED_CASES =
       List.of(
           new ResourceCase("mysql/supported/basic-select.sql", false),
+          new ResourceCase("mysql/supported/begin-work-script.sql", true),
           new ResourceCase("mysql/supported/create-database.sql", false),
+          new ResourceCase("mysql/supported/create-table-constraint.sql", false),
           new ResourceCase("mysql/supported/create-table.sql", false),
           new ResourceCase("mysql/supported/delete-statement.sql", false),
           new ResourceCase("mysql/supported/drop-table.sql", false),
+          new ResourceCase("mysql/supported/drop-view.sql", false),
           new ResourceCase("mysql/supported/grouped-aggregate.sql", false),
           new ResourceCase("mysql/supported/insert-statement.sql", false),
           new ResourceCase("mysql/supported/mixed-script.sql", true),
+          new ResourceCase("mysql/supported/regex-predicate.sql", false),
           new ResourceCase("mysql/supported/replace-statement.sql", false),
+          new ResourceCase("mysql/supported/runtime-format.sql", false),
           new ResourceCase("mysql/supported/runtime-functions.sql", false),
           new ResourceCase("mysql/supported/show-statements.sql", false),
           new ResourceCase("mysql/supported/truncate-table.sql", false),
           new ResourceCase("mysql/supported/union-derived-join.sql", false),
+          new ResourceCase("mysql/supported/update-multi-table.sql", false),
           new ResourceCase("mysql/supported/update-statement.sql", false),
           new ResourceCase("mysql/supported/select-script.sql", true));
 
   private static final List<ResourceExpectation> UNSUPPORTED_CASES =
       List.of(
-          new ResourceExpectation(
-              "mysql/unsupported/create-table-constraint.sql", false, "table constraints"),
-          new ResourceExpectation("mysql/unsupported/drop-view.sql", false, "DROP statement kind"),
-          new ResourceExpectation(
-              "mysql/unsupported/regex-predicate.sql", false, "predicate operation"),
-          new ResourceExpectation(
-              "mysql/unsupported/runtime-format.sql", false, "runtime function"),
-          new ResourceExpectation(
-              "mysql/unsupported/update-multi-table.sql", false, "single-table UPDATE"),
-          new ResourceExpectation(
-              "mysql/unsupported/begin-work-script.sql", true, "BEGIN WORK statements"));
+          new ResourceExpectation("mysql/unsupported/invalid-select.sql", false, ""),
+          new ResourceExpectation("mysql/unsupported/invalid-create-table.sql", false, ""));
 
   private final MysqlSqlParser parser = new MysqlSqlParser();
 
