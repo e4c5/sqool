@@ -8,8 +8,10 @@ Current MVP scope:
 - SLL-first parse path with LL fallback
 - normalized AST mapping for:
   - `CREATE TABLE`
+  - `CREATE DATABASE`
   - `DISTINCT`
   - `DELETE`
+  - `DROP TABLE`
   - `INSERT`
   - aliases
   - arithmetic expressions
@@ -20,7 +22,13 @@ Current MVP scope:
   - `HAVING`
   - `IN` / `BETWEEN` / `LIKE`
   - qualified references
+  - `REPLACE`
   - script mode for mixed multi-statement SELECT/DML/DDL batches
+  - `SHOW COLUMNS`
+  - `SHOW CREATE TABLE`
+  - `SHOW DATABASES`
+  - `SHOW TABLES`
+  - `TRUNCATE TABLE`
   - `UNION` / `UNION ALL`
   - `UPDATE`
   - joins with `USING`

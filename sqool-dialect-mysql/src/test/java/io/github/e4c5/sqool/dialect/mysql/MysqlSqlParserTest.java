@@ -11,9 +11,12 @@ import io.github.e4c5.sqool.ast.BetweenExpression;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.ColumnDefinition;
+import io.github.e4c5.sqool.ast.CreateDatabaseStatement;
 import io.github.e4c5.sqool.ast.CreateTableStatement;
 import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.DerivedTableReference;
+import io.github.e4c5.sqool.ast.DropDatabaseStatement;
+import io.github.e4c5.sqool.ast.DropTableStatement;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
@@ -26,11 +29,15 @@ import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OrderByItem;
+import io.github.e4c5.sqool.ast.ReplaceStatement;
 import io.github.e4c5.sqool.ast.SelectStatement;
 import io.github.e4c5.sqool.ast.SetOperationStatement;
 import io.github.e4c5.sqool.ast.SetOperator;
+import io.github.e4c5.sqool.ast.ShowStatement;
+import io.github.e4c5.sqool.ast.ShowStatementKind;
 import io.github.e4c5.sqool.ast.SortDirection;
 import io.github.e4c5.sqool.ast.SqlScript;
+import io.github.e4c5.sqool.ast.TruncateTableStatement;
 import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
@@ -163,6 +170,118 @@ class MysqlSqlParserTest {
     assertTrue(
         first.attributes().stream()
             .anyMatch(attribute -> attribute.toUpperCase().contains("PRIMARY")));
+  }
+
+  @Test
+  void parsesReplaceStatement() {
+    var result =
+        parser.parse(
+            "replace into cache_entries (cache_key, cache_value) values ('a', 'b')",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(ReplaceStatement.class, success.root());
+
+    assertEquals("cache_entries", statement.tableName());
+    assertEquals(2, statement.columns().size());
+    assertEquals(1, statement.rows().size());
+  }
+
+  @Test
+  void parsesCreateDatabaseStatement() {
+    var result =
+        parser.parse(
+            "create database if not exists reporting", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(CreateDatabaseStatement.class, success.root());
+
+    assertEquals("reporting", statement.name());
+    assertTrue(statement.ifNotExists());
+  }
+
+  @Test
+  void parsesDropTableStatement() {
+    var result =
+        parser.parse(
+            "drop table if exists cache_entries, cache_index",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(DropTableStatement.class, success.root());
+
+    assertTrue(statement.ifExists());
+    assertEquals(2, statement.tableNames().size());
+  }
+
+  @Test
+  void parsesDropDatabaseStatement() {
+    var result =
+        parser.parse("drop database if exists reporting", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(DropDatabaseStatement.class, success.root());
+
+    assertEquals("reporting", statement.name());
+    assertTrue(statement.ifExists());
+  }
+
+  @Test
+  void parsesTruncateTableStatement() {
+    var result = parser.parse("truncate table audit_log", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(TruncateTableStatement.class, success.root());
+
+    assertEquals("audit_log", statement.tableName());
+  }
+
+  @Test
+  void parsesShowStatements() {
+    var databases =
+        assertInstanceOf(
+            ShowStatement.class,
+            assertInstanceOf(
+                    ParseSuccess.class,
+                    parser.parse(
+                        "show databases like 'prod%'", ParseOptions.defaults(SqlDialect.MYSQL)))
+                .root());
+    assertEquals(ShowStatementKind.SHOW_DATABASES, databases.kind());
+
+    var tables =
+        assertInstanceOf(
+            ShowStatement.class,
+            assertInstanceOf(
+                    ParseSuccess.class,
+                    parser.parse(
+                        "show full tables from reporting", ParseOptions.defaults(SqlDialect.MYSQL)))
+                .root());
+    assertEquals(ShowStatementKind.SHOW_TABLES, tables.kind());
+    assertEquals("reporting", tables.schemaName());
+    assertEquals("FULL", tables.modifier());
+
+    var columns =
+        assertInstanceOf(
+            ShowStatement.class,
+            assertInstanceOf(
+                    ParseSuccess.class,
+                    parser.parse(
+                        "show columns from users from reporting",
+                        ParseOptions.defaults(SqlDialect.MYSQL)))
+                .root());
+    assertEquals(ShowStatementKind.SHOW_COLUMNS, columns.kind());
+    assertEquals("users", columns.targetName());
+
+    var createTable =
+        assertInstanceOf(
+            ShowStatement.class,
+            assertInstanceOf(
+                    ParseSuccess.class,
+                    parser.parse(
+                        "show create table users", ParseOptions.defaults(SqlDialect.MYSQL)))
+                .root());
+    assertEquals(ShowStatementKind.SHOW_CREATE_TABLE, createTable.kind());
+    assertEquals("users", createTable.targetName());
   }
 
   @Test

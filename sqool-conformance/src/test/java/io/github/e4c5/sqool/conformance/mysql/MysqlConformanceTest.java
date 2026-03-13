@@ -19,12 +19,17 @@ class MysqlConformanceTest {
   private static final List<ResourceCase> SUPPORTED_CASES =
       List.of(
           new ResourceCase("mysql/supported/basic-select.sql", false),
+          new ResourceCase("mysql/supported/create-database.sql", false),
           new ResourceCase("mysql/supported/create-table.sql", false),
           new ResourceCase("mysql/supported/delete-statement.sql", false),
+          new ResourceCase("mysql/supported/drop-table.sql", false),
           new ResourceCase("mysql/supported/grouped-aggregate.sql", false),
           new ResourceCase("mysql/supported/insert-statement.sql", false),
           new ResourceCase("mysql/supported/mixed-script.sql", true),
+          new ResourceCase("mysql/supported/replace-statement.sql", false),
           new ResourceCase("mysql/supported/runtime-functions.sql", false),
+          new ResourceCase("mysql/supported/show-statements.sql", false),
+          new ResourceCase("mysql/supported/truncate-table.sql", false),
           new ResourceCase("mysql/supported/union-derived-join.sql", false),
           new ResourceCase("mysql/supported/update-statement.sql", false),
           new ResourceCase("mysql/supported/select-script.sql", true));
@@ -33,6 +38,7 @@ class MysqlConformanceTest {
       List.of(
           new ResourceExpectation(
               "mysql/unsupported/create-table-constraint.sql", false, "table constraints"),
+          new ResourceExpectation("mysql/unsupported/drop-view.sql", false, "DROP statement kind"),
           new ResourceExpectation(
               "mysql/unsupported/regex-predicate.sql", false, "predicate operation"),
           new ResourceExpectation(

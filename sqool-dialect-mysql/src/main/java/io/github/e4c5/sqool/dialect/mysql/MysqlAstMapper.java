@@ -6,9 +6,12 @@ import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.ColumnAssignment;
 import io.github.e4c5.sqool.ast.ColumnDefinition;
+import io.github.e4c5.sqool.ast.CreateDatabaseStatement;
 import io.github.e4c5.sqool.ast.CreateTableStatement;
 import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.DerivedTableReference;
+import io.github.e4c5.sqool.ast.DropDatabaseStatement;
+import io.github.e4c5.sqool.ast.DropTableStatement;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.FunctionCallExpression;
@@ -22,15 +25,19 @@ import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OrderByItem;
+import io.github.e4c5.sqool.ast.ReplaceStatement;
 import io.github.e4c5.sqool.ast.SelectItem;
 import io.github.e4c5.sqool.ast.SelectStatement;
 import io.github.e4c5.sqool.ast.SetOperationStatement;
 import io.github.e4c5.sqool.ast.SetOperator;
+import io.github.e4c5.sqool.ast.ShowStatement;
+import io.github.e4c5.sqool.ast.ShowStatementKind;
 import io.github.e4c5.sqool.ast.SortDirection;
 import io.github.e4c5.sqool.ast.SourceSpan;
 import io.github.e4c5.sqool.ast.SqlScript;
 import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
+import io.github.e4c5.sqool.ast.TruncateTableStatement;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
 import io.github.e4c5.sqool.ast.UpdateStatement;
@@ -164,8 +171,34 @@ final class MysqlAstMapper {
     if (context.deleteStatement() != null) {
       return mapDeleteStatement(context.deleteStatement(), options);
     }
-    if (context.createStatement() != null && context.createStatement().createTable() != null) {
-      return mapCreateTableStatement(context.createStatement().createTable(), options);
+    if (context.replaceStatement() != null) {
+      return mapReplaceStatement(context.replaceStatement(), options);
+    }
+    if (context.truncateTableStatement() != null) {
+      return mapTruncateTableStatement(context.truncateTableStatement(), options);
+    }
+    if (context.createStatement() != null) {
+      if (context.createStatement().createTable() != null) {
+        return mapCreateTableStatement(context.createStatement().createTable(), options);
+      }
+      if (context.createStatement().createDatabase() != null) {
+        return mapCreateDatabaseStatement(context.createStatement().createDatabase(), options);
+      }
+    }
+    if (context.dropStatement() != null) {
+      return mapDropStatement(context.dropStatement(), options);
+    }
+    if (context.showDatabasesStatement() != null) {
+      return mapShowDatabasesStatement(context.showDatabasesStatement(), options);
+    }
+    if (context.showTablesStatement() != null) {
+      return mapShowTablesStatement(context.showTablesStatement(), options);
+    }
+    if (context.showColumnsStatement() != null) {
+      return mapShowColumnsStatement(context.showColumnsStatement(), options);
+    }
+    if (context.showCreateTableStatement() != null) {
+      return mapShowCreateTableStatement(context.showCreateTableStatement(), options);
     }
     throw unsupportedFeature("MySQL MVP does not support this statement kind yet.", context.start);
   }
@@ -281,6 +314,49 @@ final class MysqlAstMapper {
         span(context.start, context.stop, options));
   }
 
+  private static Statement mapReplaceStatement(
+      MySQLParser.ReplaceStatementContext context, ParseOptions options) {
+    if (context.usePartition() != null
+        || context.LOW_PRIORITY_SYMBOL() != null
+        || context.DELAYED_SYMBOL() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support REPLACE priority or partition options yet.", context.start);
+    }
+
+    String tableName = context.tableRef().getText();
+    List<String> columns = List.of();
+    List<List<Expression>> rows = List.of();
+    List<ColumnAssignment> assignments = List.of();
+    Statement sourceQuery = null;
+
+    if (context.insertFromConstructor() != null) {
+      columns = mapFields(context.insertFromConstructor().fields());
+      rows = mapValueList(context.insertFromConstructor().insertValues().valueList(), options);
+    } else if (context.updateList() != null) {
+      assignments = mapUpdateList(context.updateList(), options);
+    } else if (context.insertQueryExpression() != null) {
+      columns = mapFields(context.insertQueryExpression().fields());
+      sourceQuery = mapInsertQueryExpression(context.insertQueryExpression(), options);
+    } else {
+      throw unsupportedFeature(
+          "MySQL MVP encountered an unsupported REPLACE shape.", context.start);
+    }
+
+    return new ReplaceStatement(
+        tableName,
+        columns,
+        rows,
+        assignments,
+        sourceQuery,
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapTruncateTableStatement(
+      MySQLParser.TruncateTableStatementContext context, ParseOptions options) {
+    return new TruncateTableStatement(
+        context.tableRef().getText(), span(context.start, context.stop, options));
+  }
+
   private static Statement mapCreateTableStatement(
       MySQLParser.CreateTableContext context, ParseOptions options) {
     String tableName = context.tableName().getText();
@@ -320,6 +396,55 @@ final class MysqlAstMapper {
         columns,
         null,
         context.createTableOptionsEtc() == null ? null : context.createTableOptionsEtc().getText(),
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapCreateDatabaseStatement(
+      MySQLParser.CreateDatabaseContext context, ParseOptions options) {
+    if (!context.createDatabaseOption().isEmpty()) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support CREATE DATABASE options yet.", context.start);
+    }
+    return new CreateDatabaseStatement(
+        context.schemaName().getText(),
+        context.ifNotExists() != null,
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapDropStatement(
+      MySQLParser.DropStatementContext context, ParseOptions options) {
+    if (context.dropTable() != null) {
+      return mapDropTableStatement(context.dropTable(), options);
+    }
+    if (context.dropDatabase() != null) {
+      return mapDropDatabaseStatement(context.dropDatabase(), options);
+    }
+    throw unsupportedFeature(
+        "MySQL MVP does not support this DROP statement kind yet.", context.start);
+  }
+
+  private static Statement mapDropTableStatement(
+      MySQLParser.DropTableContext context, ParseOptions options) {
+    if (context.CASCADE_SYMBOL() != null || context.RESTRICT_SYMBOL() != null) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support DROP TABLE CASCADE/RESTRICT yet.", context.start);
+    }
+    var tableNames = new ArrayList<String>();
+    for (var tableRef : context.tableRefList().tableRef()) {
+      tableNames.add(tableRef.getText());
+    }
+    return new DropTableStatement(
+        tableNames,
+        context.ifExists() != null,
+        context.TEMPORARY_SYMBOL() != null,
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapDropDatabaseStatement(
+      MySQLParser.DropDatabaseContext context, ParseOptions options) {
+    return new DropDatabaseStatement(
+        context.schemaRef().getText(),
+        context.ifExists() != null,
         span(context.start, context.stop, options));
   }
 
@@ -781,6 +906,54 @@ final class MysqlAstMapper {
     }
     throw unsupportedFeature(
         "MySQL MVP encountered an unsupported INSERT ... SELECT form.", context.start);
+  }
+
+  private static Statement mapShowDatabasesStatement(
+      MySQLParser.ShowDatabasesStatementContext context, ParseOptions options) {
+    return new ShowStatement(
+        ShowStatementKind.SHOW_DATABASES,
+        null,
+        null,
+        null,
+        context.likeOrWhere() == null ? null : context.likeOrWhere().getText(),
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapShowTablesStatement(
+      MySQLParser.ShowTablesStatementContext context, ParseOptions options) {
+    return new ShowStatement(
+        ShowStatementKind.SHOW_TABLES,
+        null,
+        context.inDb() == null ? null : context.inDb().identifier().getText(),
+        context.showCommandType() == null
+            ? null
+            : context.showCommandType().getText().toUpperCase(Locale.ROOT),
+        context.likeOrWhere() == null ? null : context.likeOrWhere().getText(),
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapShowColumnsStatement(
+      MySQLParser.ShowColumnsStatementContext context, ParseOptions options) {
+    return new ShowStatement(
+        ShowStatementKind.SHOW_COLUMNS,
+        context.tableRef().getText(),
+        context.inDb() == null ? null : context.inDb().identifier().getText(),
+        context.showCommandType() == null
+            ? null
+            : context.showCommandType().getText().toUpperCase(Locale.ROOT),
+        context.likeOrWhere() == null ? null : context.likeOrWhere().getText(),
+        span(context.start, context.stop, options));
+  }
+
+  private static Statement mapShowCreateTableStatement(
+      MySQLParser.ShowCreateTableStatementContext context, ParseOptions options) {
+    return new ShowStatement(
+        ShowStatementKind.SHOW_CREATE_TABLE,
+        context.tableRef().getText(),
+        null,
+        null,
+        null,
+        span(context.start, context.stop, options));
   }
 
   private static LimitClause mapLimitClause(

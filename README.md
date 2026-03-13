@@ -15,8 +15,10 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
   - parser facade implemented with SLL-first parsing and LL fallback
   - normalized AST currently supports:
     - `CREATE TABLE`
+    - `CREATE DATABASE`
     - `DISTINCT`
     - `DELETE`
+    - `DROP TABLE`
     - derived tables
     - `GROUP BY`
     - `HAVING`
@@ -28,8 +30,14 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
     - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
     - qualified references
     - script mode for mixed multi-statement SELECT/DML/DDL batches
+    - `SHOW COLUMNS`
+    - `SHOW CREATE TABLE`
+    - `SHOW DATABASES`
+    - `SHOW TABLES`
+    - `TRUNCATE TABLE`
     - `UNION` / `UNION ALL`
     - `UPDATE`
+    - `REPLACE`
     - joins with `USING`
     - `WHERE`
     - explicit joins with `ON`
