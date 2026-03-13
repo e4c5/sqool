@@ -29,6 +29,11 @@ version = "0.1.0-SNAPSHOT"
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val targetJavaVersion = 25
 val targetJavaLanguageVersion = JavaLanguageVersion.of(targetJavaVersion)
+fun isMysqlGeneratedPath(path: String): Boolean {
+    val normalizedPath = path.replace('\\', '/')
+    return normalizedPath.contains("/build/generated-src/antlr/") ||
+        normalizedPath.contains("/src/main/java/io/github/e4c5/sqool/grammar/mysql/generated/")
+}
 val javaModules = listOf(
     "sqool-core",
     "sqool-ast",
@@ -134,17 +139,11 @@ project(":sqool-grammar-mysql") {
     }
 
     tasks.withType<Checkstyle>().configureEach {
-        exclude { element ->
-            element.file.path.contains("/build/generated-src/antlr/")
-                || element.file.path.contains("/src/main/java/io/github/e4c5/sqool/grammar/mysql/generated/")
-        }
+        exclude { element -> isMysqlGeneratedPath(element.file.path) }
     }
 
     tasks.withType<Javadoc>().configureEach {
-        exclude { element ->
-            element.file.path.contains("/build/generated-src/antlr/")
-                || element.file.path.contains("/src/main/java/io/github/e4c5/sqool/grammar/mysql/generated/")
-        }
+        exclude { element -> isMysqlGeneratedPath(element.file.path) }
     }
 }
 

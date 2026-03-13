@@ -14,5 +14,8 @@ public record SourceSpan(
     if (startColumn < 0 || stopColumn < 0) {
       throw new IllegalArgumentException("Column numbers are 0-based.");
     }
+    if (stopLine < startLine || (stopLine == startLine && stopColumn < startColumn)) {
+      throw new IllegalArgumentException("Stop position must not precede start position.");
+    }
   }
 }

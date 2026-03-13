@@ -7,5 +7,8 @@ public record TruncateTableStatement(String tableName, SourceSpan sourceSpan) im
 
   public TruncateTableStatement {
     Objects.requireNonNull(tableName, "tableName");
+    if (tableName.isBlank()) {
+      throw new IllegalArgumentException("tableName must not be blank");
+    }
   }
 }

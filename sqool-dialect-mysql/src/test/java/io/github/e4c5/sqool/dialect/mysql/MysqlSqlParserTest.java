@@ -22,6 +22,7 @@ import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
 import io.github.e4c5.sqool.ast.InExpression;
 import io.github.e4c5.sqool.ast.InsertStatement;
+import io.github.e4c5.sqool.ast.IsNullExpression;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
@@ -542,6 +543,71 @@ class MysqlSqlParserTest {
   }
 
   @Test
+  void parsesSelectWithoutFromClause() {
+    var result = parser.parse("select 1", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+    assertNull(statement.from());
+    assertEquals(
+        "1",
+        assertInstanceOf(
+                LiteralExpression.class,
+                assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().getFirst())
+                    .expression())
+            .text());
+  }
+
+  @Test
+  void mapsIsNullToDedicatedExpression() {
+    var result =
+        parser.parse(
+            "select id from demo where id is not null", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+    var isNull = assertInstanceOf(IsNullExpression.class, statement.where());
+    assertTrue(isNull.negated());
+    assertEquals("id", assertInstanceOf(IdentifierExpression.class, isNull.expression()).text());
+  }
+
+  @Test
+  void distinguishesDivFromSlashOperators() {
+    var result =
+        parser.parse(
+            "select score / 2 as ratio, score div 2 as quotient from demo",
+            ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+
+    var divideExpr =
+        assertInstanceOf(
+            BinaryExpression.class,
+            assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(0))
+                .expression());
+    assertEquals(BinaryOperator.DIVIDE, divideExpr.operator());
+
+    var integerDivideExpr =
+        assertInstanceOf(
+            BinaryExpression.class,
+            assertInstanceOf(ExpressionSelectItem.class, statement.selectItems().get(1))
+                .expression());
+    assertEquals(BinaryOperator.INTEGER_DIVIDE, integerDivideExpr.operator());
+  }
+
+  @Test
+  void preservesRawStatementWhitespace() {
+    var sql = "show   triggers    from demo";
+    var result = parser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(MySqlRawStatement.class, success.root());
+    assertEquals(MySqlStatementKind.SHOW_OTHER, statement.kind());
+    assertEquals(sql, statement.sqlText());
+  }
+
+  @Test
   void reportsUnsupportedRegexPredicates() {
     var result =
         parser.parse(
@@ -570,6 +636,18 @@ class MysqlSqlParserTest {
 
     var failure = assertInstanceOf(ParseFailure.class, result);
     assertFalse(failure.diagnostics().isEmpty());
+  }
+
+  @Test
+  void reportsGenericTrailingTokensForAnySimpleStatement() {
+    var result =
+        parser.parse(
+            "insert into users (id) values (1) trailing", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var failure = assertInstanceOf(ParseFailure.class, result);
+    assertTrue(
+        failure.diagnostics().getFirst().message().contains("after statement"),
+        "Expected generic trailing-token diagnostic");
   }
 
   @Test

@@ -13,7 +13,10 @@ import java.io.IOException;
 import java.io.InputStream;
 import java.nio.charset.StandardCharsets;
 import java.util.List;
+import java.util.stream.Stream;
 import org.junit.jupiter.api.Test;
+import org.junit.jupiter.params.ParameterizedTest;
+import org.junit.jupiter.params.provider.MethodSource;
 
 class MysqlConformanceTest {
   private static final List<ResourceCase> SUPPORTED_CASES =
@@ -47,21 +50,18 @@ class MysqlConformanceTest {
 
   private final MysqlSqlParser parser = new MysqlSqlParser();
 
-  @Test
-  void parsesSupportedMysqlCorpus() {
-    for (var resourceCase : SUPPORTED_CASES) {
-      var sql = readResource(resourceCase.path());
-      var result =
-          parser.parse(
-              sql,
-              ParseOptions.defaults(SqlDialect.MYSQL).withScriptMode(resourceCase.scriptMode()));
+  @ParameterizedTest(name = "parses supported resource: {0}")
+  @MethodSource("supportedCasesProvider")
+  void parsesSupportedMysqlCorpus(ResourceCase resourceCase) {
+    var sql = readResource(resourceCase.path());
+    var result =
+        parser.parse(
+            sql, ParseOptions.defaults(SqlDialect.MYSQL).withScriptMode(resourceCase.scriptMode()));
 
-      var success =
-          assertInstanceOf(
-              ParseSuccess.class, result, "Expected success for resource " + resourceCase.path());
-      assertTrue(
-          success.diagnostics().isEmpty(), "Unexpected diagnostics for " + resourceCase.path());
-    }
+    var success =
+        assertInstanceOf(
+            ParseSuccess.class, result, "Expected success for resource " + resourceCase.path());
+    assertTrue(success.diagnostics().isEmpty(), "Unexpected diagnostics for " + resourceCase.path());
   }
 
   @Test
@@ -78,13 +78,19 @@ class MysqlConformanceTest {
               ParseFailure.class, result, "Expected failure for resource " + resourceCase.path());
       assertFalse(
           failure.diagnostics().isEmpty(), "Expected diagnostics for " + resourceCase.path());
-      assertTrue(
-          failure.diagnostics().getFirst().message().contains(resourceCase.messageFragment()),
-          "Expected message fragment '"
-              + resourceCase.messageFragment()
-              + "' for "
-              + resourceCase.path());
+      if (!resourceCase.messageFragment().isBlank()) {
+        assertTrue(
+            failure.diagnostics().getFirst().message().contains(resourceCase.messageFragment()),
+            "Expected message fragment '"
+                + resourceCase.messageFragment()
+                + "' for "
+                + resourceCase.path());
+      }
     }
+  }
+
+  private static Stream<ResourceCase> supportedCasesProvider() {
+    return SUPPORTED_CASES.stream();
   }
 
   private String readResource(String path) {
@@ -98,7 +104,12 @@ class MysqlConformanceTest {
     }
   }
 
-  private record ResourceCase(String path, boolean scriptMode) {}
+  private record ResourceCase(String path, boolean scriptMode) {
+    @Override
+    public String toString() {
+      return path;
+    }
+  }
 
   private record ResourceExpectation(String path, boolean scriptMode, String messageFragment) {}
 }

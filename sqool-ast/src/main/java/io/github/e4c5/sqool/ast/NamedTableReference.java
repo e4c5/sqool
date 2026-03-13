@@ -8,5 +8,8 @@ public record NamedTableReference(String name, String alias, SourceSpan sourceSp
 
   public NamedTableReference {
     Objects.requireNonNull(name, "name");
+    if (name.isBlank()) {
+      throw new IllegalArgumentException("name must not be blank");
+    }
   }
 }

@@ -7,6 +7,7 @@ import io.github.e4c5.sqool.grammar.mysql.generated.MySQLLexer;
 import io.github.e4c5.sqool.grammar.mysql.generated.MySQLParser;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.Test;
 
 class MySQLGrammarSmokeTest {
@@ -56,7 +57,12 @@ class MySQLGrammarSmokeTest {
     var lexer = new MySQLLexer(CharStreams.fromString(sql));
     var parser = new MySQLParser(new CommonTokenStream(lexer));
     parser.setBuildParseTree(true);
-    return new ParsedStatement(parser, parser.simpleStatement());
+    var context = parser.simpleStatement();
+    assertEquals(
+        Token.EOF,
+        parser.getCurrentToken().getType(),
+        "Parser did not consume the full SQL input");
+    return new ParsedStatement(parser, context);
   }
 
   private record ParsedStatement(MySQLParser parser, MySQLParser.SimpleStatementContext context) {}

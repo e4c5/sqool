@@ -16,5 +16,11 @@ public record FunctionCallExpression(
     Objects.requireNonNull(name, "name");
     Objects.requireNonNull(arguments, "arguments");
     arguments = List.copyOf(arguments);
+    if (starArgument && !arguments.isEmpty()) {
+      throw new IllegalArgumentException("starArgument requires empty arguments.");
+    }
+    if (starArgument && distinct) {
+      throw new IllegalArgumentException("starArgument cannot be combined with distinct.");
+    }
   }
 }

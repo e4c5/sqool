@@ -4,6 +4,7 @@ package io.github.e4c5.sqool.ast;
 public enum BinaryOperator {
   AND,
   DIVIDE,
+  INTEGER_DIVIDE,
   EQUAL,
   GREATER_OR_EQUAL,
   GREATER_THAN,

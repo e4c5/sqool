@@ -9,6 +9,9 @@ public record SyntaxDiagnostic(
   public SyntaxDiagnostic {
     Objects.requireNonNull(severity, "severity");
     Objects.requireNonNull(message, "message");
+    if (message.isBlank()) {
+      throw new IllegalArgumentException("message must not be blank.");
+    }
     if (line < 1) {
       throw new IllegalArgumentException("Line numbers are 1-based.");
     }

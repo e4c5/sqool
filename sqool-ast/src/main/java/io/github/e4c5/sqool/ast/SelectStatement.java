@@ -18,7 +18,6 @@ public record SelectStatement(
 
   public SelectStatement {
     Objects.requireNonNull(selectItems, "selectItems");
-    Objects.requireNonNull(from, "from");
     Objects.requireNonNull(groupBy, "groupBy");
     Objects.requireNonNull(orderBy, "orderBy");
     selectItems = List.copyOf(selectItems);

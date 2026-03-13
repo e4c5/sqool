@@ -126,7 +126,7 @@ select table_name from information_schema.TABLES where table_schema = DATABASE()
 #end
 #begin
 -- identifiers tests
-select 1 as 123e;
+select 1 as `123e`;
 #end
 #begin
 -- not latin1 literals
@@ -174,7 +174,7 @@ SELECT JSON_VALID('{"a": 1}');
 SELECT JSON_SCHEMA_VALID(@schema, @document);
 SELECT JSON_SCHEMA_VALIDATION_REPORT(@schema, @document);
 SELECT JSON_PRETTY('123');
-SELECT JSON_STORAGE_FREE(jcol), JSON_STORAGE_FREE(jcol) FROM jtable;
+SELECT JSON_STORAGE_SIZE(jcol), JSON_STORAGE_FREE(jcol) FROM jtable;
 SELECT o_id, JSON_ARRAYAGG(attribute) AS attributes FROM t3 GROUP BY o_id;
 SELECT o_id, JSON_OBJECTAGG(attribute, value) FROM t3 GROUP BY o_id;
 #end

@@ -10,7 +10,6 @@ import io.github.e4c5.sqool.core.SyntaxDiagnostic;
 import io.github.e4c5.sqool.grammar.mysql.generated.MySQLLexer;
 import io.github.e4c5.sqool.grammar.mysql.generated.MySQLParser;
 import java.util.List;
-import java.util.Objects;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -25,26 +24,29 @@ public final class MysqlSqlParser implements SqlParser {
 
   @Override
   public ParseResult parse(String sql, ParseOptions options) {
-    Objects.requireNonNull(sql, "sql");
-    Objects.requireNonNull(options, "options");
+    if (sql == null || sql.isBlank()) {
+      return failure("SQL input must not be null or blank.", 1, 0, null);
+    }
+    ParseOptions effectiveOptions =
+        options == null ? ParseOptions.defaults(SqlDialect.MYSQL) : options;
 
-    if (options.dialect() != SqlDialect.MYSQL) {
+    if (effectiveOptions.dialect() != SqlDialect.MYSQL) {
       return failure("MysqlSqlParser only accepts MYSQL parse options.", 1, 0, null);
     }
-    if (options.scriptMode()) {
-      var attempt = parseQueries(sql, options.enableFallback());
+    if (effectiveOptions.scriptMode()) {
+      var attempt = parseQueries(sql, effectiveOptions.enableFallback());
       if (!attempt.diagnostics().isEmpty()) {
         return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
       }
-      return MysqlAstMapper.mapQueries(attempt.context(), options);
+      return MysqlAstMapper.mapQueries(attempt.context(), effectiveOptions);
     }
 
-    var attempt = parseSimpleStatement(sql, options.enableFallback());
+    var attempt = parseSimpleStatement(sql, effectiveOptions.enableFallback());
     if (!attempt.diagnostics().isEmpty()) {
       return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
     }
 
-    return MysqlAstMapper.mapSimpleStatement(attempt.context(), options);
+    return MysqlAstMapper.mapSimpleStatement(attempt.context(), effectiveOptions);
   }
 
   private SimpleStatementAttempt parseSimpleStatement(String sql, boolean enableFallback) {
@@ -134,7 +136,7 @@ public final class MysqlSqlParser implements SqlParser {
           trailingToken,
           trailingToken.getLine(),
           trailingToken.getCharPositionInLine(),
-          "Unexpected trailing tokens after SELECT statement.",
+          "Unexpected trailing tokens after statement.",
           null);
     }
   }

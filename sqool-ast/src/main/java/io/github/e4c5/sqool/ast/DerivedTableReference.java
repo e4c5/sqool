@@ -10,6 +10,6 @@ public record DerivedTableReference(
 
   public DerivedTableReference {
     Objects.requireNonNull(subquery, "subquery");
-    columnAliases = List.copyOf(columnAliases);
+    columnAliases = columnAliases == null ? List.of() : List.copyOf(columnAliases);
   }
 }

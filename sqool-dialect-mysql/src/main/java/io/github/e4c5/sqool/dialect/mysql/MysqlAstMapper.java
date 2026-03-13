@@ -18,6 +18,7 @@ import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
 import io.github.e4c5.sqool.ast.InExpression;
 import io.github.e4c5.sqool.ast.InsertStatement;
+import io.github.e4c5.sqool.ast.IsNullExpression;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
@@ -56,6 +57,7 @@ import java.util.List;
 import java.util.Locale;
 import java.util.regex.Pattern;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 final class MysqlAstMapper {
@@ -133,14 +135,10 @@ final class MysqlAstMapper {
           "MySQL MVP does not support window, QUALIFY, or INTO clauses yet.", context.start);
     }
 
-    if (context.fromClause() == null) {
-      throw unsupportedFeature("MySQL MVP currently requires a FROM clause.", context.start);
-    }
-
     return new QuerySpecificationMapping(
         mapDistinct(context.selectOption()),
         mapSelectItems(context.selectItemList(), options),
-        mapFromClause(context.fromClause(), options),
+        context.fromClause() == null ? null : mapFromClause(context.fromClause(), options),
         context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options),
         mapGroupBy(context.groupByClause(), options),
         context.havingClause() == null ? null : mapExpr(context.havingClause().expr(), options));
@@ -403,7 +401,8 @@ final class MysqlAstMapper {
       throw unsupportedFeature(
           "MySQL MVP does not support UPDATE with WITH clauses yet.", context.start);
     }
-    if (context.tableReferenceList().tableReference().size() != 1) {
+    if (context.tableReferenceList().tableReference().size() != 1
+        || !context.tableReferenceList().tableReference().getFirst().joinedTable().isEmpty()) {
       throw unsupportedFeature(
           "MySQL MVP currently supports only single-table UPDATE statements.", context.start);
     }
@@ -1095,8 +1094,12 @@ final class MysqlAstMapper {
       MySqlStatementKind kind,
       org.antlr.v4.runtime.ParserRuleContext context,
       ParseOptions options) {
-    return new MySqlRawStatement(
-        kind, context.getText(), span(context.start, context.stop, options));
+    var input = context.start == null ? null : context.start.getInputStream();
+    String sql =
+        input == null || context.stop == null
+            ? context.getText()
+            : input.getText(Interval.of(context.start.getStartIndex(), context.stop.getStopIndex()));
+    return new MySqlRawStatement(kind, sql, span(context.start, context.stop, options));
   }
 
   private static MySqlStatementKind kindForSimpleStatement(
@@ -1296,10 +1299,9 @@ final class MysqlAstMapper {
           span(compareContext.start, compareContext.stop, options));
     }
     if (context instanceof MySQLParser.PrimaryExprIsNullContext isNullContext) {
-      return new BinaryExpression(
+      return new IsNullExpression(
           mapBoolPri(isNullContext.boolPri(), options),
-          isNullContext.notRule() == null ? BinaryOperator.EQUAL : BinaryOperator.NOT_EQUAL,
-          new LiteralExpression("NULL", span(isNullContext.start, isNullContext.stop, options)),
+          isNullContext.notRule() != null,
           span(isNullContext.start, isNullContext.stop, options));
     }
     throw unsupportedFeature("MySQL MVP encountered an unsupported predicate form.", context.start);
@@ -1389,7 +1391,8 @@ final class MysqlAstMapper {
       case "+" -> BinaryOperator.PLUS;
       case "-" -> BinaryOperator.MINUS;
       case "*" -> BinaryOperator.MULTIPLY;
-      case "/", "DIV" -> BinaryOperator.DIVIDE;
+      case "/" -> BinaryOperator.DIVIDE;
+      case "DIV" -> BinaryOperator.INTEGER_DIVIDE;
       case "%", "MOD" -> BinaryOperator.MODULO;
       default ->
           throw unsupportedFeature(
