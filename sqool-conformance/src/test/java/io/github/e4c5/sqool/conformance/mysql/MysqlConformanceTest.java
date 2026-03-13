@@ -61,7 +61,8 @@ class MysqlConformanceTest {
     var success =
         assertInstanceOf(
             ParseSuccess.class, result, "Expected success for resource " + resourceCase.path());
-    assertTrue(success.diagnostics().isEmpty(), "Unexpected diagnostics for " + resourceCase.path());
+    assertTrue(
+        success.diagnostics().isEmpty(), "Unexpected diagnostics for " + resourceCase.path());
   }
 
   @Test
