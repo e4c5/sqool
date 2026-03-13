@@ -1098,7 +1098,8 @@ final class MysqlAstMapper {
     String sql =
         input == null || context.stop == null
             ? context.getText()
-            : input.getText(Interval.of(context.start.getStartIndex(), context.stop.getStopIndex()));
+            : input.getText(
+                Interval.of(context.start.getStartIndex(), context.stop.getStopIndex()));
     return new MySqlRawStatement(kind, sql, span(context.start, context.stop, options));
   }
 
