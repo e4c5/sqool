@@ -8,6 +8,8 @@ public enum BinaryOperator {
   EQUAL,
   GREATER_OR_EQUAL,
   GREATER_THAN,
+  IS,
+  IS_NOT,
   LESS_OR_EQUAL,
   LESS_THAN,
   MINUS,

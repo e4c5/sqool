@@ -18,7 +18,6 @@ import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
 import io.github.e4c5.sqool.ast.InExpression;
 import io.github.e4c5.sqool.ast.InsertStatement;
-import io.github.e4c5.sqool.ast.IsNullExpression;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
@@ -1300,9 +1299,10 @@ final class MysqlAstMapper {
           span(compareContext.start, compareContext.stop, options));
     }
     if (context instanceof MySQLParser.PrimaryExprIsNullContext isNullContext) {
-      return new IsNullExpression(
+      return new BinaryExpression(
           mapBoolPri(isNullContext.boolPri(), options),
-          isNullContext.notRule() != null,
+          isNullContext.notRule() != null ? BinaryOperator.IS_NOT : BinaryOperator.IS,
+          new LiteralExpression("NULL", null),
           span(isNullContext.start, isNullContext.stop, options));
     }
     throw unsupportedFeature("MySQL MVP encountered an unsupported predicate form.", context.start);

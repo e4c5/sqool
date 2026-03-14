@@ -22,7 +22,6 @@ import io.github.e4c5.sqool.ast.FunctionCallExpression;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
 import io.github.e4c5.sqool.ast.InExpression;
 import io.github.e4c5.sqool.ast.InsertStatement;
-import io.github.e4c5.sqool.ast.IsNullExpression;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LikeExpression;
@@ -559,16 +558,17 @@ class MysqlSqlParserTest {
   }
 
   @Test
-  void mapsIsNullToDedicatedExpression() {
+  void mapsIsNullToBinaryExpression() {
     var result =
         parser.parse(
             "select id from demo where id is not null", ParseOptions.defaults(SqlDialect.MYSQL));
 
     var success = assertInstanceOf(ParseSuccess.class, result);
     var statement = assertInstanceOf(SelectStatement.class, success.root());
-    var isNull = assertInstanceOf(IsNullExpression.class, statement.where());
-    assertTrue(isNull.negated());
-    assertEquals("id", assertInstanceOf(IdentifierExpression.class, isNull.expression()).text());
+    var isNull = assertInstanceOf(BinaryExpression.class, statement.where());
+    assertEquals(BinaryOperator.IS_NOT, isNull.operator());
+    assertEquals("id", assertInstanceOf(IdentifierExpression.class, isNull.left()).text());
+    assertEquals("NULL", assertInstanceOf(LiteralExpression.class, isNull.right()).text());
   }
 
   @Test

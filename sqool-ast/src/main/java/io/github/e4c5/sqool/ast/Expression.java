@@ -7,7 +7,6 @@ public sealed interface Expression extends AstNode
         FunctionCallExpression,
         IdentifierExpression,
         InExpression,
-        IsNullExpression,
         LikeExpression,
         LiteralExpression,
         UnaryExpression {}
