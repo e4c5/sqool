@@ -63,23 +63,16 @@ final class SqliteAstMapper {
 
   private static ParseResult mapSelectStmt(
       SQLiteParser.Select_stmtContext context, ParseOptions options) {
-    if (context.with_clause() != null) {
-      return rawSelect(context, options);
-    }
-    if (context.compound_operator() != null && !context.compound_operator().isEmpty()) {
+    if (hasUnsupportedSelectShape(context)) {
       return rawSelect(context, options);
     }
     SQLiteParser.Select_coreContext core = context.select_core(0);
-    if (core.values_clause() != null) {
-      return rawSelect(context, options);
-    }
-    if (core.WINDOW_() != null) {
-      return rawSelect(context, options);
-    }
 
     boolean distinct = core.DISTINCT_() != null;
-    List<SelectItem> selectItems = mapResultColumns(core.result_column(), options);
-    if (selectItems == null) {
+
+    MappingResult<List<SelectItem>> selectItemsResult =
+        mapResultColumns(core.result_column(), options);
+    if (!selectItemsResult.supported()) {
       return rawSelect(context, options);
     }
 
@@ -89,42 +82,30 @@ final class SqliteAstMapper {
       return rawSelect(context, options);
     }
 
-    Expression where = null;
-    if (core.where_expr != null) {
-      where = mapExpr(core.where_expr, options);
-      if (where == null) {
-        return rawSelect(context, options);
-      }
+    MappingResult<Expression> whereResult = mapWhereExpression(core, options);
+    if (!whereResult.supported()) {
+      return rawSelect(context, options);
     }
+    Expression where = whereResult.value();
 
-    List<Expression> groupBy = List.of();
-    if (core.group_by_expr != null && !core.group_by_expr.isEmpty()) {
-      var grouped = new ArrayList<Expression>();
-      for (SQLiteParser.ExprContext groupExpr : core.group_by_expr) {
-        Expression mapped = mapExpr(groupExpr, options);
-        if (mapped == null) {
-          return rawSelect(context, options);
-        }
-        grouped.add(mapped);
-      }
-      groupBy = List.copyOf(grouped);
+    MappingResult<List<Expression>> groupByResult = mapGroupByExpressions(core, options);
+    if (!groupByResult.supported()) {
+      return rawSelect(context, options);
     }
+    List<Expression> groupBy = groupByResult.value();
 
-    Expression having = null;
-    if (core.having_expr != null) {
-      having = mapExpr(core.having_expr, options);
-      if (having == null) {
-        return rawSelect(context, options);
-      }
+    MappingResult<Expression> havingResult = mapHavingExpression(core, options);
+    if (!havingResult.supported()) {
+      return rawSelect(context, options);
     }
+    Expression having = havingResult.value();
 
-    List<OrderByItem> orderBy = List.of();
-    if (context.order_clause() != null) {
-      orderBy = mapOrderClause(context.order_clause(), options);
-      if (orderBy == null) {
-        return rawSelect(context, options);
-      }
+    MappingResult<List<OrderByItem>> orderByResult =
+        mapOrderClause(context.order_clause(), options);
+    if (!orderByResult.supported()) {
+      return rawSelect(context, options);
     }
+    List<OrderByItem> orderBy = orderByResult.value();
 
     LimitClause limit = null;
     if (context.limit_clause() != null) {
@@ -138,7 +119,7 @@ final class SqliteAstMapper {
         SqlDialect.SQLITE,
         new SelectStatement(
             distinct,
-            selectItems,
+            selectItemsResult.value(),
             from,
             where,
             groupBy,
@@ -160,7 +141,7 @@ final class SqliteAstMapper {
         List.of());
   }
 
-  private static List<SelectItem> mapResultColumns(
+  private static MappingResult<List<SelectItem>> mapResultColumns(
       List<SQLiteParser.Result_columnContext> columns, ParseOptions options) {
     List<SelectItem> items = new ArrayList<>();
     for (SQLiteParser.Result_columnContext col : columns) {
@@ -178,7 +159,7 @@ final class SqliteAstMapper {
         Expression expr = mapExpr(col.expr(), options);
         if (expr == null) {
           // Projection expression is outside the supported subset.
-          return null;
+          return new MappingResult<>(false, List.of());
         }
         String alias = col.column_alias() != null ? col.column_alias().getText() : null;
         items.add(
@@ -186,7 +167,7 @@ final class SqliteAstMapper {
                 expr, alias, SourceSpans.fromTokens(col.start, col.stop, options)));
       }
     }
-    return items;
+    return new MappingResult<>(true, List.copyOf(items));
   }
 
   private static TableReference mapJoinClause(
@@ -372,21 +353,25 @@ final class SqliteAstMapper {
         context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
-  private static List<OrderByItem> mapOrderClause(
+  private static MappingResult<List<OrderByItem>> mapOrderClause(
       SQLiteParser.Order_clauseContext context, ParseOptions options) {
+    if (context == null) {
+      return new MappingResult<>(true, List.of());
+    }
     List<OrderByItem> items = new ArrayList<>();
     for (SQLiteParser.Ordering_termContext term : context.ordering_term()) {
       Expression expr = mapExpr(term.expr(), options);
       if (expr == null) {
-        return null;
+        return new MappingResult<>(false, List.of());
       }
       SortDirection dir = SortDirection.ASC;
       if (term.asc_desc() != null && term.asc_desc().DESC_() != null) {
         dir = SortDirection.DESC;
       }
-      items.add(new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
+      items.add(
+          new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
     }
-    return items;
+    return new MappingResult<>(true, List.copyOf(items));
   }
 
   private static LimitClause mapLimitClause(
@@ -441,6 +426,60 @@ final class SqliteAstMapper {
     }
   }
 
+  private static boolean hasUnsupportedSelectShape(SQLiteParser.Select_stmtContext context) {
+    if (context.with_clause() != null) {
+      return true;
+    }
+    if (context.compound_operator() != null && !context.compound_operator().isEmpty()) {
+      return true;
+    }
+    SQLiteParser.Select_coreContext core = context.select_core(0);
+    if (core.values_clause() != null) {
+      return true;
+    }
+    return core.WINDOW_() != null;
+  }
+
+  private static MappingResult<Expression> mapWhereExpression(
+      SQLiteParser.Select_coreContext core, ParseOptions options) {
+    if (core.where_expr == null) {
+      return new MappingResult<>(true, null);
+    }
+    Expression where = mapExpr(core.where_expr, options);
+    if (where == null) {
+      return new MappingResult<>(false, null);
+    }
+    return new MappingResult<>(true, where);
+  }
+
+  private static MappingResult<List<Expression>> mapGroupByExpressions(
+      SQLiteParser.Select_coreContext core, ParseOptions options) {
+    if (core.group_by_expr == null || core.group_by_expr.isEmpty()) {
+      return new MappingResult<>(true, List.of());
+    }
+    var grouped = new ArrayList<Expression>();
+    for (SQLiteParser.ExprContext groupExpr : core.group_by_expr) {
+      Expression mapped = mapExpr(groupExpr, options);
+      if (mapped == null) {
+        return new MappingResult<>(false, List.of());
+      }
+      grouped.add(mapped);
+    }
+    return new MappingResult<>(true, List.copyOf(grouped));
+  }
+
+  private static MappingResult<Expression> mapHavingExpression(
+      SQLiteParser.Select_coreContext core, ParseOptions options) {
+    if (core.having_expr == null) {
+      return new MappingResult<>(true, null);
+    }
+    Expression having = mapExpr(core.having_expr, options);
+    if (having == null) {
+      return new MappingResult<>(false, null);
+    }
+    return new MappingResult<>(true, having);
+  }
+
   private static SqliteStatementKind kindForSqlStmt(SQLiteParser.Sql_stmtContext stmt) {
     if (stmt.alter_table_stmt() != null) return SqliteStatementKind.ALTER_TABLE;
     if (stmt.analyze_stmt() != null) return SqliteStatementKind.ANALYZE;
@@ -481,4 +520,6 @@ final class SqliteAstMapper {
     }
     return values.get(0);
   }
+
+  private record MappingResult<T>(boolean supported, T value) {}
 }

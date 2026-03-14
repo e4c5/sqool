@@ -1142,6 +1142,15 @@ final class MysqlAstMapper {
 
   private static MySqlStatementKind kindForAdministrativeStatements(
       MySQLParser.SimpleStatementContext context) {
+    MySqlStatementKind primary = primaryAdministrativeKind(context);
+    if (primary != null) {
+      return primary;
+    }
+    return secondaryAdministrativeKind(context);
+  }
+
+  private static MySqlStatementKind primaryAdministrativeKind(
+      MySQLParser.SimpleStatementContext context) {
     if (context.alterStatement() != null) return MySqlStatementKind.ALTER;
     if (context.renameTableStatement() != null) return MySqlStatementKind.RENAME_TABLE;
     if (context.importStatement() != null) return MySqlStatementKind.IMPORT;
@@ -1154,6 +1163,11 @@ final class MysqlAstMapper {
     if (context.replicationStatement() != null) return MySqlStatementKind.REPLICATION;
     if (context.preparedStatement() != null) return MySqlStatementKind.PREPARED;
     if (context.cloneStatement() != null) return MySqlStatementKind.CLONE;
+    return null;
+  }
+
+  private static MySqlStatementKind secondaryAdministrativeKind(
+      MySQLParser.SimpleStatementContext context) {
     if (context.accountManagementStatement() != null) return MySqlStatementKind.ACCOUNT_MANAGEMENT;
     if (context.tableAdministrationStatement() != null)
       return MySqlStatementKind.TABLE_ADMINISTRATION;
