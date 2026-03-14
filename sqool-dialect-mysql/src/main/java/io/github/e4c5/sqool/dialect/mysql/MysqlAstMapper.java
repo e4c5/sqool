@@ -1146,8 +1146,7 @@ final class MysqlAstMapper {
     return null;
   }
 
-  private static MySqlStatementKind kindForDml(
-      MySQLParser.SimpleStatementContext context) {
+  private static MySqlStatementKind kindForDml(MySQLParser.SimpleStatementContext context) {
     if (context.selectStatement() != null) return MySqlStatementKind.SELECT;
     if (context.insertStatement() != null) return MySqlStatementKind.INSERT;
     if (context.updateStatement() != null) return MySqlStatementKind.UPDATE;
