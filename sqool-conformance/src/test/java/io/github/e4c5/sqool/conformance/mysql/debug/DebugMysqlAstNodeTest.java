@@ -9,7 +9,8 @@ public class DebugMysqlAstNodeTest {
   @Test
   public void testAst() {
     MysqlSqlParser parser = new MysqlSqlParser();
-    String sql = "create table if not exists users ( id bigint primary key auto_increment, name varchar(255) not null, created_at timestamp );";
+    String sql =
+        "create table if not exists users ( id bigint primary key auto_increment, name varchar(255) not null, created_at timestamp );";
     var result = parser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL).withScriptMode(true));
     System.out.println("Result: " + result);
   }
