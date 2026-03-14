@@ -221,7 +221,7 @@ IDENTIFIER:
  '"' (~'"' | '""')* '"'
  | '`' (~'`' | '``')* '`'
  | '[' ~']'* ']'
- | [A-Z_\u007F-\uFFFF] [A-Z_0-9\u007F-\uFFFF]*
+ | ID_START ID_CONTINUE*
 ;
 
 NUMERIC_LITERAL:
@@ -231,11 +231,12 @@ NUMERIC_LITERAL:
  | '0x' HEX_DIGIT+ ('_' HEX_DIGIT+)*
 ;
 
-BIND_PARAMETER: '?' DIGIT* | [:@$] IDENTIFIER;
+BIND_PARAMETER: '?' DIGIT* | [:@$] ID_START ID_CONTINUE*;
 
 STRING_LITERAL: '\'' ( ~'\'' | '\'\'')* '\'';
 
-BLOB_LITERAL: 'X' STRING_LITERAL;
+// Blob literal: X'AB12' (even number of hex digits only).
+BLOB_LITERAL: 'X' '\'' (HEX_DIGIT HEX_DIGIT)+ '\'';
 
 SINGLE_LINE_COMMENT: '--' ~[\r\n]* ('\r'? '\n' | EOF) -> channel(HIDDEN);
 
@@ -247,3 +248,5 @@ UNEXPECTED_CHAR: .;
 
 fragment HEX_DIGIT : [0-9A-F];
 fragment DIGIT : [0-9];
+fragment ID_START : [A-Z_\u007F-\uFFFF];
+fragment ID_CONTINUE : [A-Z_0-9\u007F-\uFFFF];

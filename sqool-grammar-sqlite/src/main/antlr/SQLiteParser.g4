@@ -456,7 +456,7 @@ table_or_subquery
         INDEXED_ BY_ index_name
         | NOT_ INDEXED_
     )?
-    | (schema_name DOT)? table_function_name OPEN_PAR expr (COMMA expr)* CLOSE_PAR (
+    | (schema_name DOT)? table_function_name OPEN_PAR (expr (COMMA expr)*)? CLOSE_PAR (
         AS_? table_alias
     )?
     | OPEN_PAR join_clause CLOSE_PAR
