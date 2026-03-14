@@ -71,8 +71,8 @@ final class MysqlAstMapper {
       Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)");
 
   private static boolean isSupportedIdentifier(String name) {
-    String[] parts = name.split("\\.", -1);
-    if (parts.length < 1 || parts.length > 3) {
+    List<String> parts = splitByDotRespectingBackticks(name);
+    if (parts == null || parts.size() < 1 || parts.size() > 3) {
       return false;
     }
     for (String part : parts) {
@@ -81,6 +81,40 @@ final class MysqlAstMapper {
       }
     }
     return true;
+  }
+
+  /**
+   * Splits {@code name} on {@code '.'} characters that are not inside backtick-quoted segments, so
+   * that identifiers like {@code `sales.2024`} are treated as a single segment rather than two.
+   * Returns {@code null} if the input contains an unclosed backtick.
+   */
+  private static List<String> splitByDotRespectingBackticks(String name) {
+    List<String> segments = new ArrayList<>();
+    StringBuilder current = new StringBuilder();
+    boolean inBacktick = false;
+    for (int i = 0; i < name.length(); i++) {
+      char c = name.charAt(i);
+      if (c == '`') {
+        // Handle escaped backtick inside a quoted segment (`` `` within backticks).
+        if (inBacktick && i + 1 < name.length() && name.charAt(i + 1) == '`') {
+          current.append("``");
+          i++;
+        } else {
+          inBacktick = !inBacktick;
+          current.append(c);
+        }
+      } else if (c == '.' && !inBacktick) {
+        segments.add(current.toString());
+        current = new StringBuilder();
+      } else {
+        current.append(c);
+      }
+    }
+    if (inBacktick) {
+      return null; // malformed: unclosed backtick
+    }
+    segments.add(current.toString());
+    return segments;
   }
 
   private MysqlAstMapper() {}
@@ -1119,8 +1153,7 @@ final class MysqlAstMapper {
     return null;
   }
 
-  private static MySqlStatementKind kindForDml(
-      MySQLParser.SimpleStatementContext context) {
+  private static MySqlStatementKind kindForDml(MySQLParser.SimpleStatementContext context) {
     if (context.selectStatement() != null) return MySqlStatementKind.SELECT;
     if (context.insertStatement() != null) return MySqlStatementKind.INSERT;
     if (context.updateStatement() != null) return MySqlStatementKind.UPDATE;

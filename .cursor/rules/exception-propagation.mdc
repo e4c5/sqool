@@ -6,24 +6,24 @@ alwaysApply: false
 
 # Exception propagation
 
-In parser and dialect code, **let exceptions propagate**. Do not catch an exception and:
+In parser and dialect code, **let exceptions propagate** in inner layers. Do not catch an exception in a helper, mapper, or intermediate layer and:
 
-1. **Rethrow a different exception type** — e.g. do not catch `NumberFormatException` and throw `UnsupportedFeatureException`. Let the original exception propagate so callers see the real failure.
-2. **Return a different kind of result** — e.g. do not catch `ParseCancellationException` or `UnsupportedFeatureException` and return `ParseFailure` (or another result type) instead of letting the exception bubble. Converting exceptions into a "success/failure" result hides the error nature and makes debugging and error handling harder.
+1. **Rethrow a different exception type** — e.g. do not catch `NumberFormatException` and throw `UnsupportedFeatureException` in a helper. Let the original exception propagate so callers see the real failure.
+2. **Return a different kind of result in inner layers** — e.g. do not catch `ParseCancellationException`, `UnsupportedFeatureException`, or `NumberFormatException` inside an AST mapper or parsing helper and return `ParseFailure` (or another result type). Converting exceptions into results in inner components hides the error nature and makes debugging harder.
 
 ## Correct approach
 
-- **Propagate**: Let the exception bubble to the caller. The public API can document that certain methods throw for parse or mapping failures if that is the chosen contract.
-- **Single translation at the boundary**: If the API must return a result type (e.g. `ParseResult`), translate to that result only at the outermost boundary (e.g. one place in the parser facade), and do not catch-and-convert in inner layers like the AST mapper or parsing helpers.
+- **Propagate in inner layers**: Let exceptions bubble from parsing helpers, AST mappers, and other intermediate components. These inner components (e.g. `SqliteAstMapper`, `MysqlAstMapper`, and any parsing helper method) must not catch and convert exceptions to result types.
+- **Single translation at the parser boundary**: The outermost parser facade (the public `parse()` entrypoint or its immediate private helper) is the one allowed place to catch `ParseCancellationException` / `InputMismatchException` and translate them into a `ParseAttempt.failure(...)` or `ParseFailure`. This single boundary translation is intentional and acceptable.
 
-## Avoid
+## Avoid in inner helpers and mappers
 
 ```java
-// BAD: catch and return a different result
+// BAD in inner helper: catch and return a different result
 try {
   return parseSimpleStatement(sql, PredictionMode.SLL, new BailErrorStrategy());
 } catch (ParseCancellationException | InputMismatchException e) {
-  return failureSimpleStatementAttempt(...);  // do not convert exception → result
+  return failureSimpleStatementAttempt(...);  // do not convert exception → result inside a helper
 }
 
 // BAD: catch and rethrow a different exception type
@@ -37,7 +37,21 @@ try {
 try {
   return new ParseSuccess(...);
 } catch (UnsupportedFeatureException e) {
-  return new ParseFailure(...);  // do not swallow exception as a result
+  return new ParseFailure(...);  // do not swallow exception as a result inside a mapper
+}
+```
+
+## Allowed at the parser boundary
+
+```java
+// OK: single exception→result translation at the outermost parser facade
+private ParseAttempt<ParseContext> parseRoot(String sql) {
+  try {
+    return parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy());
+  } catch (ParseCancellationException | InputMismatchException e) {
+    // Boundary-level translation: fall back to LL to collect real diagnostics
+    return parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
+  }
 }
 ```
 

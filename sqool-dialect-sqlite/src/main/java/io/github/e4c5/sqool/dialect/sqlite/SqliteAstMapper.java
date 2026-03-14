@@ -236,8 +236,7 @@ final class SqliteAstMapper {
     return current;
   }
 
-  private static Expression mapAnd(
-      SQLiteParser.Expr_andContext context, ParseOptions options) {
+  private static Expression mapAnd(SQLiteParser.Expr_andContext context, ParseOptions options) {
     if (context == null || context.expr_not().isEmpty()) {
       return null;
     }
@@ -263,8 +262,7 @@ final class SqliteAstMapper {
     return current;
   }
 
-  private static Expression mapNot(
-      SQLiteParser.Expr_notContext context, ParseOptions options) {
+  private static Expression mapNot(SQLiteParser.Expr_notContext context, ParseOptions options) {
     if (context == null) {
       return null;
     }
@@ -292,28 +290,23 @@ final class SqliteAstMapper {
     if (comp == null) {
       return null;
     }
-    SQLiteParser.Expr_bitwiseContext bit =
-        singleOrNull(comp, comp.expr_bitwise());
+    SQLiteParser.Expr_bitwiseContext bit = singleOrNull(comp, comp.expr_bitwise());
     if (bit == null) {
       return null;
     }
-    SQLiteParser.Expr_additionContext add =
-        singleOrNull(bit, bit.expr_addition());
+    SQLiteParser.Expr_additionContext add = singleOrNull(bit, bit.expr_addition());
     if (add == null) {
       return null;
     }
-    SQLiteParser.Expr_multiplicationContext mul =
-        singleOrNull(add, add.expr_multiplication());
+    SQLiteParser.Expr_multiplicationContext mul = singleOrNull(add, add.expr_multiplication());
     if (mul == null) {
       return null;
     }
-    SQLiteParser.Expr_stringContext str =
-        singleOrNull(mul, mul.expr_string());
+    SQLiteParser.Expr_stringContext str = singleOrNull(mul, mul.expr_string());
     if (str == null) {
       return null;
     }
-    SQLiteParser.Expr_collateContext coll =
-        singleOrNull(str, str.expr_collate());
+    SQLiteParser.Expr_collateContext coll = singleOrNull(str, str.expr_collate());
     if (coll == null) {
       return null;
     }
@@ -368,8 +361,7 @@ final class SqliteAstMapper {
       if (term.asc_desc() != null && term.asc_desc().DESC_() != null) {
         dir = SortDirection.DESC;
       }
-      items.add(
-          new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
+      items.add(new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
     }
     return new MappingResult<>(true, List.copyOf(items));
   }
@@ -481,26 +473,48 @@ final class SqliteAstMapper {
   }
 
   private static SqliteStatementKind kindForSqlStmt(SQLiteParser.Sql_stmtContext stmt) {
-    if (stmt.alter_table_stmt() != null) return SqliteStatementKind.ALTER_TABLE;
-    if (stmt.analyze_stmt() != null) return SqliteStatementKind.ANALYZE;
-    if (stmt.attach_stmt() != null) return SqliteStatementKind.ATTACH;
-    if (stmt.begin_stmt() != null) return SqliteStatementKind.BEGIN;
-    if (stmt.commit_stmt() != null) return SqliteStatementKind.COMMIT;
+    SqliteStatementKind kind = kindForCreateStmt(stmt);
+    if (kind != null) return kind;
+    kind = kindForDmlStmt(stmt);
+    if (kind != null) return kind;
+    kind = kindForTransactionStmt(stmt);
+    if (kind != null) return kind;
+    return kindForMiscStmt(stmt);
+  }
+
+  private static SqliteStatementKind kindForCreateStmt(SQLiteParser.Sql_stmtContext stmt) {
     if (stmt.create_index_stmt() != null) return SqliteStatementKind.CREATE_INDEX;
     if (stmt.create_table_stmt() != null) return SqliteStatementKind.CREATE_TABLE;
     if (stmt.create_trigger_stmt() != null) return SqliteStatementKind.CREATE_TRIGGER;
     if (stmt.create_view_stmt() != null) return SqliteStatementKind.CREATE_VIEW;
     if (stmt.create_virtual_table_stmt() != null) return SqliteStatementKind.CREATE_VIRTUAL_TABLE;
+    return null;
+  }
+
+  private static SqliteStatementKind kindForDmlStmt(SQLiteParser.Sql_stmtContext stmt) {
     if (stmt.delete_stmt() != null) return SqliteStatementKind.DELETE;
-    if (stmt.detach_stmt() != null) return SqliteStatementKind.DETACH;
-    if (stmt.drop_stmt() != null) return SqliteStatementKind.DROP;
     if (stmt.insert_stmt() != null) return SqliteStatementKind.INSERT;
-    if (stmt.pragma_stmt() != null) return SqliteStatementKind.PRAGMA;
-    if (stmt.reindex_stmt() != null) return SqliteStatementKind.REINDEX;
+    if (stmt.update_stmt() != null) return SqliteStatementKind.UPDATE;
+    return null;
+  }
+
+  private static SqliteStatementKind kindForTransactionStmt(SQLiteParser.Sql_stmtContext stmt) {
+    if (stmt.begin_stmt() != null) return SqliteStatementKind.BEGIN;
+    if (stmt.commit_stmt() != null) return SqliteStatementKind.COMMIT;
     if (stmt.release_stmt() != null) return SqliteStatementKind.RELEASE;
     if (stmt.rollback_stmt() != null) return SqliteStatementKind.ROLLBACK;
     if (stmt.savepoint_stmt() != null) return SqliteStatementKind.SAVEPOINT;
-    if (stmt.update_stmt() != null) return SqliteStatementKind.UPDATE;
+    return null;
+  }
+
+  private static SqliteStatementKind kindForMiscStmt(SQLiteParser.Sql_stmtContext stmt) {
+    if (stmt.alter_table_stmt() != null) return SqliteStatementKind.ALTER_TABLE;
+    if (stmt.analyze_stmt() != null) return SqliteStatementKind.ANALYZE;
+    if (stmt.attach_stmt() != null) return SqliteStatementKind.ATTACH;
+    if (stmt.detach_stmt() != null) return SqliteStatementKind.DETACH;
+    if (stmt.drop_stmt() != null) return SqliteStatementKind.DROP;
+    if (stmt.pragma_stmt() != null) return SqliteStatementKind.PRAGMA;
+    if (stmt.reindex_stmt() != null) return SqliteStatementKind.REINDEX;
     if (stmt.vacuum_stmt() != null) return SqliteStatementKind.VACUUM;
     return SqliteStatementKind.OTHER;
   }

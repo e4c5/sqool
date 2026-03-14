@@ -1,6 +1,7 @@
 package io.github.e4c5.sqool.dialect.sqlite;
 
 import static org.junit.jupiter.api.Assertions.assertEquals;
+import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
@@ -11,6 +12,7 @@ import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.SelectStatement;
 import io.github.e4c5.sqool.ast.SqliteRawStatement;
 import io.github.e4c5.sqool.ast.Statement;
+import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
@@ -71,5 +73,18 @@ class SqliteSqlParserTest {
   void rejectsWrongDialectOption() {
     ParseResult result = PARSER.parse("SELECT 1", ParseOptions.defaults(SqlDialect.MYSQL));
     assertTrue(result instanceof io.github.e4c5.sqool.core.ParseFailure);
+  }
+
+  @Test
+  void invalidSqlReturnsRealDiagnosticsWhenFallbackDisabled() {
+    ParseOptions noFallback =
+        new ParseOptions(SqlDialect.SQLITE, false, false, false);
+    ParseResult result = PARSER.parse("SELECT FROM", noFallback);
+    ParseFailure failure = assertInstanceOf(ParseFailure.class, result);
+    // Real syntax diagnostics from the LL pass, not a generic placeholder message.
+    assertFalse(failure.diagnostics().isEmpty());
+    assertFalse(
+        failure.diagnostics().get(0).message().equals("Fast-path SQLite parse failed."),
+        "Expected a real syntax diagnostic, not the generic placeholder");
   }
 }

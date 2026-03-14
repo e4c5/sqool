@@ -18,19 +18,37 @@ public final class SourceSpans {
       return null;
     }
     int startColumn = start.getCharPositionInLine();
-    int stopColumn = stop.getCharPositionInLine();
-    if (stop.getText() != null && !stop.getText().isEmpty()) {
-      stopColumn += stop.getText().length() - 1;
+    String stopText = stop.getText() != null ? stop.getText() : "";
+    int lastNewline = stopText.lastIndexOf('\n');
+    int endLine;
+    int endColumn;
+    if (lastNewline >= 0) {
+      // Multiline token: the end position is on a different line.
+      int newlineCount = 0;
+      for (int i = 0; i < stopText.length(); i++) {
+        if (stopText.charAt(i) == '\n') {
+          newlineCount++;
+        }
+      }
+      endLine = stop.getLine() + newlineCount;
+      // endColumn is the 0-based index of the last character on the final line.
+      endColumn = Math.max(0, stopText.length() - lastNewline - 2);
+    } else {
+      endLine = stop.getLine();
+      endColumn =
+          stopText.isEmpty()
+              ? stop.getCharPositionInLine()
+              : stop.getCharPositionInLine() + stopText.length() - 1;
     }
-    if (start.getLine() == stop.getLine()) {
-      stopColumn = Math.max(stopColumn, startColumn);
+    if (start.getLine() == endLine) {
+      endColumn = Math.max(endColumn, startColumn);
     }
     return new SourceSpan(
         start.getStartIndex(),
         stop.getStopIndex(),
         start.getLine(),
         startColumn,
-        stop.getLine(),
-        stopColumn);
+        endLine,
+        endColumn);
   }
 }

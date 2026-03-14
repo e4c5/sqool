@@ -664,4 +664,17 @@ class MysqlSqlParserTest {
         MySqlStatementKind.BEGIN_WORK,
         assertInstanceOf(MySqlRawStatement.class, script.statements().get(0)).kind());
   }
+
+  @Test
+  void parsesBacktickIdentifierWithDotAsOneSegment() {
+    // Backtick-quoted identifiers may contain dots; `sales.2024` is one identifier, not two.
+    var result =
+        parser.parse(
+            "SELECT * FROM `sales.2024`", ParseOptions.defaults(SqlDialect.MYSQL));
+
+    var success = assertInstanceOf(ParseSuccess.class, result);
+    var statement = assertInstanceOf(SelectStatement.class, success.root());
+    var from = assertInstanceOf(NamedTableReference.class, statement.from());
+    assertEquals("`sales.2024`", from.name());
+  }
 }
