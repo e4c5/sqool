@@ -139,6 +139,7 @@ configure(javaModules.map(::project)) {
 project(":sqool-core") {
     dependencies {
         "api"(project(":sqool-ast"))
+        "api"(libsCatalog.findLibrary("antlr-runtime").get())
     }
 }
 
@@ -166,10 +167,33 @@ project(":sqool-grammar-mysql") {
     }
 }
 
+project(":sqool-grammar-sqlite") {
+    apply(plugin = "antlr")
+
+    dependencies {
+        "antlr"(libsCatalog.findLibrary("antlr-tool").get())
+        "api"(libsCatalog.findLibrary("antlr-runtime").get())
+    }
+
+    tasks.withType<AntlrTask>().configureEach {
+        arguments = arguments + listOf(
+            "-visitor",
+            "-long-messages",
+        )
+    }
+
+    tasks.named<Checkstyle>("checkstyleMain") {
+        source = files().asFileTree
+    }
+
+    tasks.named<Javadoc>("javadoc") {
+        source = files().asFileTree
+    }
+}
+
 listOf(
     "sqool-grammar-postgresql",
     "sqool-grammar-oracle",
-    "sqool-grammar-sqlite",
 ).forEach { moduleName ->
     project(":$moduleName") {
         dependencies {

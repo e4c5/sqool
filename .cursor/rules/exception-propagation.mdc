@@ -1,0 +1,40 @@
+---
+description: Exception handling — let exceptions propagate; do not catch to rethrow or return a different result
+globs: sqool-core/**/*.java, sqool-dialect-*/**/*.java
+alwaysApply: false
+---
+
+# Exception propagation
+
+In parser and dialect code, **let exceptions propagate**. Do not catch an exception and:
+
+1. **Rethrow a different exception type** — e.g. do not catch `NumberFormatException` and throw `UnsupportedFeatureException`. Let the original exception propagate so callers see the real failure.
+2. **Return a different kind of result in inner layers** — e.g. do not catch `ParseCancellationException` or `UnsupportedFeatureException` inside helpers or AST mapper classes and return `ParseFailure` (or another result type) instead of letting the exception bubble. Converting exceptions into a "success/failure" result in inner layers hides the error nature and makes debugging and error handling harder.
+
+## Correct approach
+
+- **Propagate in inner layers**: Let the exception bubble from helpers and AST mappers to the caller. The public API can document that certain methods throw for parse or mapping failures if that is the chosen contract.
+- **Single translation at the boundary**: If the API must return a result type (e.g. `ParseResult`), translate to that result only at the outermost boundary (i.e. one place in the parser facade such as `MysqlSqlParser` or `SqliteSqlParser`), and do not catch-and-convert in inner layers like the AST mapper or parsing helpers. For example, the parser facade may catch `ParseCancellationException` / `InputMismatchException` and return `ParseAttempt.failure(...)` — that single translation at the facade boundary is intentional and correct.
+
+## Avoid in inner layers (helpers, AST mappers)
+
+```java
+// BAD in a helper or mapper: catch and rethrow a different exception type
+try {
+  return Long.parseLong(context.getText());
+} catch (NumberFormatException e) {
+  throw unsupportedFeature("...", context.start);  // do not replace with another exception
+}
+
+// BAD in a mapper: catch and return ParseFailure instead of propagating
+try {
+  return new ParseSuccess(...);
+} catch (UnsupportedFeatureException e) {
+  return new ParseFailure(...);  // do not swallow exception as a result inside a mapper
+}
+```
+
+## Prefer
+
+- Let the exception propagate from the parsing/mapping layer so callers can handle it (or the top-level `parse()` facade can translate once if the API requires a `ParseResult`).
+- If you need to add context, use the exception's cause: `throw new SomeException("context", originalException)` and document that the cause is the real failure, rather than catching and throwing a wholly different exception type without preserving the cause.
