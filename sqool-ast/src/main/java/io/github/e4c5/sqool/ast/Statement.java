@@ -13,5 +13,6 @@ public sealed interface Statement extends AstNode
         SelectStatement,
         SetOperationStatement,
         ShowStatement,
+        SqliteRawStatement,
         TruncateTableStatement,
         UpdateStatement {}

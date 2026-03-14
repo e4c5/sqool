@@ -1,7 +1,5 @@
-package io.github.e4c5.sqool.dialect.mysql;
+package io.github.e4c5.sqool.core;
 
-import io.github.e4c5.sqool.core.DiagnosticSeverity;
-import io.github.e4c5.sqool.core.SyntaxDiagnostic;
 import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.BaseErrorListener;
@@ -9,7 +7,12 @@ import org.antlr.v4.runtime.RecognitionException;
 import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 
-final class MysqlSyntaxErrorListener extends BaseErrorListener {
+/**
+ * Shared ANTLR error listener that collects syntax diagnostics. Dialects use this to avoid
+ * duplicating listener logic.
+ */
+public final class AntlrSyntaxErrorListener extends BaseErrorListener {
+
   private final List<SyntaxDiagnostic> diagnostics = new ArrayList<>();
 
   @Override
@@ -29,11 +32,11 @@ final class MysqlSyntaxErrorListener extends BaseErrorListener {
             DiagnosticSeverity.ERROR, message, line, charPositionInLine, offendingToken));
   }
 
-  List<SyntaxDiagnostic> diagnostics() {
+  public List<SyntaxDiagnostic> diagnostics() {
     return List.copyOf(diagnostics);
   }
 
-  boolean hasDiagnostics() {
+  public boolean hasDiagnostics() {
     return !diagnostics.isEmpty();
   }
 }
