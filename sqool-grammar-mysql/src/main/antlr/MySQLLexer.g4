@@ -3221,39 +3221,39 @@ MASTER_COMPRESSION_ALGORITHM_SYMBOL
     ;                                                                                     // MYSQL
 
 MASTER_ZSTD_COMPRESSION_LEVEL_SYMBOL
-    : M A S T E R '_' Z S T D '_' C O M P R E S S I O N '_' L E V E L                     {this.serverVersion >= 80018}?
+    : M A S T E R '_' Z S T D '_' C O M P R E S S I O N '_' L E V E L                     {this.getServerVersion() >= 80018}?
     ;                                                                                     // MYSQL
 
 PRIVILEGE_CHECKS_USER_SYMBOL
-    : P R I V I L E G E '_' C H E C K S '_' U S E R                                       {this.serverVersion >= 80018}?
+    : P R I V I L E G E '_' C H E C K S '_' U S E R                                       {this.getServerVersion() >= 80018}?
     ;                                                                                     // MYSQL
 
 MASTER_TLS_CIPHERSUITES_SYMBOL
-    : M A S T E R '_' T L S '_' C I P H E R S U I T E S                                   {this.serverVersion >= 80018}?
+    : M A S T E R '_' T L S '_' C I P H E R S U I T E S                                   {this.getServerVersion() >= 80018}?
     ;                                                                                     // MYSQL
 
 REQUIRE_ROW_FORMAT_SYMBOL
-    : R E Q U I R E '_' R O W '_' F O R M A T                                             {this.serverVersion >= 80019}?
+    : R E Q U I R E '_' R O W '_' F O R M A T                                             {this.getServerVersion() >= 80019}?
     ;                                                                                     // MYSQL
 
 PASSWORD_LOCK_TIME_SYMBOL
-    : P A S S W O R D '_' L O C K '_' T I M E                                             {this.serverVersion >= 80019}?
+    : P A S S W O R D '_' L O C K '_' T I M E                                             {this.getServerVersion() >= 80019}?
     ;                                                                                     // MYSQL
 
 FAILED_LOGIN_ATTEMPTS_SYMBOL
-    : F A I L E D '_' L O G I N '_' A T T E M P T S                                       {this.serverVersion >= 80019}?
+    : F A I L E D '_' L O G I N '_' A T T E M P T S                                       {this.getServerVersion() >= 80019}?
     ;                                                                                     // MYSQL
 
 REQUIRE_TABLE_PRIMARY_KEY_CHECK_SYMBOL
-    : R E Q U I R E '_' T A B L E '_' P R I M A R Y '_' K E Y '_' C H E C K               {this.serverVersion >= 80019}?
+    : R E Q U I R E '_' T A B L E '_' P R I M A R Y '_' K E Y '_' C H E C K               {this.getServerVersion() >= 80019}?
     ;                                                                                     // MYSQL
 
 STREAM_SYMBOL
-    : S T R E A M                                                                         {this.serverVersion >= 80020}?
+    : S T R E A M                                                                         {this.getServerVersion() >= 80020}?
     ;                                                                                     // MYSQL
 
 OFF_SYMBOL
-    : O F F                                                                               {this.serverVersion >= 80019}?
+    : O F F                                                                               {this.getServerVersion() >= 80019}?
     ;                                                                                     // SQL-1999-R
 
 RETURNING_SYMBOL
@@ -3413,103 +3413,103 @@ SOURCE_ZSTD_COMPRESSION_LEVEL_SYMBOL
     ;                                                                                     // MYSQL
 
 ST_COLLECT_SYMBOL
-    : S T '_' C O L L E C T                                                               {this.serverVersion >= 80025}?
+    : S T '_' C O L L E C T                                                               {this.getServerVersion() >= 80025}?
     ;                                                                                     // MYSQL
 
 KEYRING_SYMBOL
-    : K E Y R I N G                                                                       {this.serverVersion >= 80025}?
+    : K E Y R I N G                                                                       {this.getServerVersion() >= 80025}?
     ;                                                                                     // MYSQL
 
 AUTHENTICATION_SYMBOL
-    : A U T H E N T I C A T I O N                                                         {this.serverVersion >= 80027}?
+    : A U T H E N T I C A T I O N                                                         {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 FACTOR_SYMBOL
-    : F A C T O R                                                                         {this.serverVersion >= 80027}?
+    : F A C T O R                                                                         {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 FINISH_SYMBOL
-    : F I N I S H                                                                         {this.serverVersion >= 80027}?
+    : F I N I S H                                                                         {this.getServerVersion() >= 80027}?
     ;                                                                                     // SQL-2016-N
 
 INITIATE_SYMBOL
-    : I N I T I A T E                                                                     {this.serverVersion >= 80027}?
+    : I N I T I A T E                                                                     {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 REGISTRATION_SYMBOL
-    : R E G I S T R A T I O N                                                             {this.serverVersion >= 80027}?
+    : R E G I S T R A T I O N                                                             {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 UNREGISTER_SYMBOL
-    : U N R E G I S T E R                                                                 {this.serverVersion >= 80027}?
+    : U N R E G I S T E R                                                                 {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 INITIAL_SYMBOL
-    : I N I T I A L                                                                       {this.serverVersion >= 80027}?
+    : I N I T I A L                                                                       {this.getServerVersion() >= 80027}?
     ;                                                                                     // SQL-2016-R
 
 CHALLENGE_RESPONSE_SYMBOL
-    : C H A L L E N G E '_' R E S P O N S E                                               {this.serverVersion >= 80027}?
+    : C H A L L E N G E '_' R E S P O N S E                                               {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 GTID_ONLY_SYMBOL
-    : G T I D '_' O N L Y                                                                 {this.serverVersion >= 80027}?
+    : G T I D '_' O N L Y                                                                 {this.getServerVersion() >= 80027}?
     ;                                                                                     // MYSQL
 
 INTERSECT_SYMBOL
-    : I N T E R S E C T '_' S Y M B O L                                                   {this.serverVersion >= 80031}?
+    : I N T E R S E C T '_' S Y M B O L                                                   {this.getServerVersion() >= 80031}?
     ;                                                                                     // SQL-1992-R
 
 BULK_SYMBOL
-    : B U L K                                                                             {this.serverVersion >= 80032}?
+    : B U L K                                                                             {this.getServerVersion() >= 80032}?
     ;                                                                                     // MYSQL
 
 URL_SYMBOL
-    : U R L                                                                               {this.serverVersion >= 80032}?
+    : U R L                                                                               {this.getServerVersion() >= 80032}?
     ;                                                                                     // MYSQL
 
 GENERATE_SYMBOL
-    : G E N E R A T E                                                                     {this.serverVersion >= 80032}?
+    : G E N E R A T E                                                                     {this.getServerVersion() >= 80032}?
     ;                                                                                     // MYSQL
 
 PARSE_TREE_SYMBOL
-    : P A R S E '_' T R E E                                                               {this.serverVersion >= 80100}?
+    : P A R S E '_' T R E E                                                               {this.getServerVersion() >= 80100}?
     ;                                                                                     // MYSQL
 
 LOG_SYMBOL
-    : L O G                                                                               {this.serverVersion >= 80032}?
+    : L O G                                                                               {this.getServerVersion() >= 80032}?
     ;                                                                                     // MYSQL
 
 GTIDS_SYMBOL
-    : G T I D S                                                                           {this.serverVersion >= 80032}?
+    : G T I D S                                                                           {this.getServerVersion() >= 80032}?
     ;                                                                                     // MYSQL
 
 PARALLEL_SYMBOL
-    : P A R A L L E L                                                                     {this.serverVersion >= 80200}?
+    : P A R A L L E L                                                                     {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 S3_SYMBOL
-    : S '3'                                                                               {this.serverVersion >= 80200}?
+    : S '3'                                                                               {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 QUALIFY_SYMBOL
-    : Q U A L I F Y                                                                       {this.serverVersion >= 80200}?
+    : Q U A L I F Y                                                                       {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 AUTO_SYMBOL
-    : A U T O                                                                             {this.serverVersion >= 80200}?
+    : A U T O                                                                             {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 MANUAL_SYMBOL
-    : M A N U A L                                                                         {this.serverVersion >= 80200}?
+    : M A N U A L                                                                         {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 BERNOULLI_SYMBOL
-    : B E R N O U L L I                                                                   {this.serverVersion >= 80200}?
+    : B E R N O U L L I                                                                   {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 TABLESAMPLE_SYMBOL
-    : T A B L E S A M P L E                                                               {this.serverVersion >= 80200}?
+    : T A B L E S A M P L E                                                               {this.getServerVersion() >= 80200}?
     ;                                                                                     // MYSQL
 
 // $antlr-format groupedAlignments on, alignTrailers off, alignLexerCommands on

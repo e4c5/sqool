@@ -1283,7 +1283,8 @@ final class MysqlAstMapper {
           throw unsupportedFeature(
               "MySQL MVP does not support arithmetic operator '"
                   + operatorToken.getText()
-                  + "'" + YET,
+                  + "'"
+                  + YET,
               operatorToken);
     };
   }
@@ -1390,7 +1391,8 @@ final class MysqlAstMapper {
     throw unsupportedFeature(
         "MySQL MVP does not support built-in runtime function '"
             + context.getStart().getText()
-            + "'" + YET,
+            + "'"
+            + YET,
         context.start);
   }
 

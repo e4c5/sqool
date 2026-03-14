@@ -29,26 +29,26 @@ public class SqlModes {
         case "MSSQL":
         case "ORACLE":
         case "POSTGRESQL":
-          result.add(SqlMode.AnsiQuotes);
-          result.add(SqlMode.PipesAsConcat);
-          result.add(SqlMode.IgnoreSpace);
+          result.add(SqlMode.ANSI_QUOTES);
+          result.add(SqlMode.PIPES_AS_CONCAT);
+          result.add(SqlMode.IGNORE_SPACE);
           break;
         case "ANSI_QUOTES":
-          result.add(SqlMode.AnsiQuotes);
+          result.add(SqlMode.ANSI_QUOTES);
           break;
         case "PIPES_AS_CONCAT":
-          result.add(SqlMode.PipesAsConcat);
+          result.add(SqlMode.PIPES_AS_CONCAT);
           break;
         case "NO_BACKSLASH_ESCAPES":
-          result.add(SqlMode.NoBackslashEscapes);
+          result.add(SqlMode.NO_BACKSLASH_ESCAPES);
           break;
         case "IGNORE_SPACE":
-          result.add(SqlMode.IgnoreSpace);
+          result.add(SqlMode.IGNORE_SPACE);
           break;
         case "HIGH_NOT_PRECEDENCE":
         case "MYSQL323":
         case "MYSQL40":
-          result.add(SqlMode.HighNotPrecedence);
+          result.add(SqlMode.HIGH_NOT_PRECEDENCE);
           break;
       }
     }

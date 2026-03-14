@@ -11,11 +11,11 @@ import org.antlr.v4.runtime.*;
 public abstract class MySQLParserBase extends Parser {
 
   // To parameterize the parsing process.
-  public int serverVersion = 0;
-  public Set<SqlMode> sqlModes = new HashSet<>();
+  private int serverVersion = 0;
+  private Set<SqlMode> sqlModes = new HashSet<>();
 
   /** Enable Multi Language Extension support. */
-  public boolean supportMle = true;
+  private boolean supportMle = true;
 
   protected MySQLParserBase(TokenStream input) {
     super(input);
@@ -23,16 +23,40 @@ public abstract class MySQLParserBase extends Parser {
     this.sqlModes = SqlModes.sqlModeFromString("ANSI_QUOTES");
   }
 
+  public int getServerVersion() {
+    return serverVersion;
+  }
+
+  public void setServerVersion(int serverVersion) {
+    this.serverVersion = serverVersion;
+  }
+
+  public Set<SqlMode> getSqlModes() {
+    return sqlModes;
+  }
+
+  public void setSqlModes(Set<SqlMode> sqlModes) {
+    this.sqlModes = sqlModes;
+  }
+
+  public boolean isSupportMle() {
+    return supportMle;
+  }
+
+  public void setSupportMle(boolean supportMle) {
+    this.supportMle = supportMle;
+  }
+
   public boolean isSqlModeActive(SqlMode mode) {
-    return this.sqlModes.contains(mode);
+    return this.getSqlModes().contains(mode);
   }
 
   public boolean isPureIdentifier() {
-    return this.isSqlModeActive(SqlMode.AnsiQuotes);
+    return this.isSqlModeActive(SqlMode.ANSI_QUOTES);
   }
 
   public boolean isTextStringLiteral() {
-    return !this.isSqlModeActive(SqlMode.AnsiQuotes);
+    return !this.isSqlModeActive(SqlMode.ANSI_QUOTES);
   }
 
   public boolean isStoredRoutineBody() {
