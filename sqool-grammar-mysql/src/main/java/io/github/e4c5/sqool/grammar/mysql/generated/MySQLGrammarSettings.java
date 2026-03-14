@@ -22,7 +22,7 @@ public final class MySQLGrammarSettings {
   }
 
   public void setSqlModes(Set<SqlMode> sqlModes) {
-    this.sqlModes = sqlModes;
+    this.sqlModes = sqlModes == null ? new HashSet<>() : new HashSet<>(sqlModes);
   }
 
   public boolean isSupportMle() {
@@ -38,6 +38,6 @@ public final class MySQLGrammarSettings {
   }
 
   public void setCharSets(Set<String> charSets) {
-    this.charSets = charSets;
+    this.charSets = charSets == null ? new HashSet<>() : new HashSet<>(charSets);
   }
 }

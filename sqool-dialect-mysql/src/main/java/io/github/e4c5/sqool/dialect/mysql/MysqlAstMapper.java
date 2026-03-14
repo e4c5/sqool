@@ -224,6 +224,9 @@ final class MysqlAstMapper {
     if (context.showCreateTableStatement() != null) {
       return mapShowCreateTableStatement(context.showCreateTableStatement(), options);
     }
+    if (isOtherShowStatement(context)) {
+      return rawStatement(MySqlStatementKind.SHOW_OTHER, context, options);
+    }
     return null;
   }
 
@@ -1054,6 +1057,10 @@ final class MysqlAstMapper {
     if (context.getDiagnosticsStatement() != null) return MySqlStatementKind.GET_DIAGNOSTICS;
     if (context.signalStatement() != null) return MySqlStatementKind.SIGNAL;
     if (context.resignalStatement() != null) return MySqlStatementKind.RESIGNAL;
+
+    if (isOtherShowStatement(context)) {
+      return MySqlStatementKind.SHOW_OTHER;
+    }
 
     return MySqlStatementKind.SHOW_OTHER;
   }

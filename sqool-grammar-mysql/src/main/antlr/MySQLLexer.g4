@@ -3457,7 +3457,7 @@ GTID_ONLY_SYMBOL
     ;                                                                                     // MYSQL
 
 INTERSECT_SYMBOL
-    : I N T E R S E C T '_' S Y M B O L                                                   {this.getServerVersion() >= 80031}?
+    : I N T E R S E C T                                                                   {this.getServerVersion() >= 80031}?
     ;                                                                                     // SQL-1992-R
 
 BULK_SYMBOL
