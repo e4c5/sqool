@@ -1,0 +1,34 @@
+---
+description: When adding a new dialect (Phase 2+), generalize and reuse Phase 1 (MySQL) code instead of duplicating
+globs: sqool-core/**/*.java, sqool-dialect-*/**/*.java, docs/**/*
+alwaysApply: false
+---
+
+# Dialect generalization (Phase 2+)
+
+When implementing **Phase 2** (SQLite) or any later dialect (PostgreSQL, Oracle), do not copy or reimplement logic that already exists in **Phase 1 (MySQL)**. Instead:
+
+1. **Identify reusable patterns** — Before or while adding the new dialect, review the MySQL implementation (`sqool-dialect-mysql`, and any helpers in `sqool-core` / `sqool-ast`) for:
+   - Parser setup (lexer, token stream, error strategy, prediction mode, error listeners)
+   - Parse flow (SLL fast path, LL fallback, single-statement vs script)
+   - AST mapping patterns (visitors, node construction, dialect extension handling)
+   - Diagnostics and source-span handling
+   - Shared SQL constructs (SELECT, expressions, literals, etc.)
+
+2. **Generalize first, then reuse** — Extract such code into shared modules so the new dialect consumes the same abstractions:
+   - **sqool-core**: Parser contract, parse options, result types, diagnostic model, and any shared parser/mapper utilities.
+   - **sqool-ast**: Normalized AST and any common visitor or builder helpers.
+   - New shared utilities or base classes only when they are clearly cross-dialect (e.g. `AntlrParserFacade`, `SyntaxErrorListener` base, common mapping helpers).
+
+3. **MySQL as reference, not copy-paste** — Treat the MySQL implementation as the reference. When adding SQLite (or another dialect), refactor MySQL to use the new shared pieces so both dialects stay in sync and duplication does not creep in.
+
+## Checklist when starting a new dialect
+
+- [ ] List parser/mapper steps in the MySQL implementation that have direct analogues in the new dialect.
+- [ ] For each, decide: move to core/shared, or keep dialect-specific. Prefer moving to shared.
+- [ ] Implement the new dialect by depending on shared modules and filling in only dialect-specific grammar and AST mapping.
+- [ ] Avoid duplicate “attempt” types, error-listener patterns, or mapping boilerplate; factor those once and reuse.
+
+## Outcome
+
+Phase 2 (and later) dialects should **reuse** generalized Phase 1 code. New dialect modules should be thin: grammar integration + dialect-specific AST mapping, with parsing flow, diagnostics, and common AST building living in shared code.
