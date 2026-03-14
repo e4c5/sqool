@@ -176,7 +176,7 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 - [ ] Build a vendor-documentation-based SQL corpus
 - [ ] Add malformed SQL coverage per dialect
-- [ ] Add regression tests for every grammar or AST bug fixed
+- [x] Add regression tests for every grammar or AST bug fixed
 - [ ] Add differential tests where practical
 - [ ] Define quality gates for adding new syntax coverage
 

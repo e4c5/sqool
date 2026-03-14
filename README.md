@@ -14,18 +14,19 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
   - real upstream grammar vendored from `antlr/grammars-v4`
   - parser facade implemented with SLL-first parsing and LL fallback
   - normalized AST currently supports:
-    - `CREATE TABLE`
+    - `CREATE TABLE` (including advanced options)
     - `CREATE DATABASE`
     - `DISTINCT`
-    - `DELETE`
-    - `DROP TABLE`
+    - `DELETE` (with `ORDER BY` and `LIMIT`)
+    - `DROP TABLE` / `DROP DATABASE`
     - derived tables
     - `GROUP BY`
     - `HAVING`
-    - `IN` / `BETWEEN` / `LIKE`
-    - `INSERT`
+    - `IN` / `BETWEEN` / `LIKE` / `IS [NOT] NULL`
+    - `INSERT` / `INSERT ... SELECT`
+    - `REPLACE` / `REPLACE ... SELECT`
     - aliases
-    - arithmetic expressions
+    - arithmetic expressions (including `DIV`)
     - aggregate and generic function calls
     - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
     - qualified references
@@ -36,15 +37,14 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
     - `SHOW TABLES`
     - `TRUNCATE TABLE`
     - `UNION` / `UNION ALL`
-    - `UPDATE`
-    - `REPLACE`
+    - `UPDATE` (with `ORDER BY` and `LIMIT`)
     - joins with `USING`
     - `WHERE`
     - explicit joins with `ON`
     - `ORDER BY`
     - numeric `LIMIT`
   - valid but not-yet-normalized MySQL statement kinds fall back to a typed `MySqlRawStatement` node
-  - resource-backed conformance/regression suite for supported and unsupported MySQL corpus cases
+  - comprehensive conformance/regression suite (>80% instruction coverage for key mapper logic)
   - JMH benchmark includes a first comparison against JSqlParser
 - PostgreSQL, Oracle, SQLite:
   - planned, not yet implemented

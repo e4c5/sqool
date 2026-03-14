@@ -139,8 +139,8 @@ Create the project structure needed for clean separation between API, AST, gramm
 
 - [x] Add module declarations to the root build
 - [x] Create directory structure for each planned module
-- [ ] Add placeholder source sets for main and test code
-- [ ] Add placeholder package structure
+- [x] Add placeholder source sets for main and test code
+- [x] Add placeholder package structure
 - [x] Add minimal per-module build files where needed
 - [x] Verify inter-module dependency wiring
 
@@ -229,7 +229,7 @@ Establish the minimal automated test platform used by all later modules.
 ### Tasks
 
 - [x] Add JUnit configuration
-- [ ] Add one smoke test per core bootstrap module
+- [x] Add one smoke test per core bootstrap module
 - [x] Add shared test utility conventions if needed
 - [x] Confirm test discovery works from the root build
 - [x] Confirm CI can run tests without custom local setup

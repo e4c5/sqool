@@ -28,7 +28,7 @@ final class MysqlSyntaxErrorListener extends BaseErrorListener {
         new SyntaxDiagnostic(
             DiagnosticSeverity.ERROR,
             message,
-            Math.max(1, line),
+            line,
             charPositionInLine,
             offendingToken));
   }

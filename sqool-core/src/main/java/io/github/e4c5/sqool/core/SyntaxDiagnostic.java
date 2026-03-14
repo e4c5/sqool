@@ -12,11 +12,7 @@ public record SyntaxDiagnostic(
     if (message.isBlank()) {
       throw new IllegalArgumentException("message must not be blank.");
     }
-    if (line < 1) {
-      throw new IllegalArgumentException("Line numbers are 1-based.");
-    }
-    if (column < 0) {
-      throw new IllegalArgumentException("Column numbers are 0-based.");
-    }
+    line = Math.max(1, line);
+    column = Math.max(0, column);
   }
 }

@@ -46,8 +46,14 @@ class MysqlConformanceTest {
 
     private static final List<ResourceExpectation> UNSUPPORTED_CASES =
             List.of(
-                    new ResourceExpectation("mysql/unsupported/invalid-select.sql", false, ""),
-                    new ResourceExpectation("mysql/unsupported/invalid-create-table.sql", false, ""));
+                    new ResourceExpectation(
+                            "mysql/unsupported/invalid-select.sql",
+                            false,
+                            "no viable alternative at input 'select from'"),
+                    new ResourceExpectation(
+                            "mysql/unsupported/invalid-create-table.sql",
+                            false,
+                            "no viable alternative at input '(\\n'"));
 
     private final MysqlSqlParser parser = new MysqlSqlParser();
 
@@ -84,6 +90,7 @@ class MysqlConformanceTest {
                             ParseFailure.class, result, "Expected failure for resource " + resourceCase.path());
             assertFalse(
                     failure.diagnostics().isEmpty(), "Expected diagnostics for " + resourceCase.path());
+
             if (!resourceCase.messageFragment().isBlank()) {
                 assertTrue(
                         failure.diagnostics().getFirst().message().contains(resourceCase.messageFragment()),
