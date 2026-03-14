@@ -201,7 +201,7 @@ Prove that ANTLR code generation works within the chosen multi-module layout.
 - [x] Validate Java target generation
 - [x] Add a trivial smoke grammar or seed one real grammar module
 - [x] Verify generated sources compile through the normal build
-- [ ] Document the grammar generation workflow
+- [x] Document the grammar generation workflow
 
 ### Deliverables
 
@@ -264,7 +264,7 @@ Stand up the performance harness before parser logic is implemented.
 - [x] Add a minimal benchmark class
 - [x] Confirm benchmark packaging and execution
 - [x] Document how to run benchmarks locally and in CI
-- [ ] Decide whether benchmark results are stored as artifacts only or also committed as reports
+- [x] Decide whether benchmark results are stored as artifacts only or also committed as reports
 
 ### Deliverables
 
@@ -295,8 +295,8 @@ Prevent toolchain drift and make upgrades deliberate.
 - [x] Pin ANTLR tool and runtime versions
 - [x] Pin JUnit and JMH versions
 - [x] Pin plugin versions
-- [ ] Document the upgrade policy for build-critical dependencies
-- [ ] Add dependency locking or an equivalent reproducibility mechanism if appropriate
+- [x] Document the upgrade policy for build-critical dependencies
+- [x] Add dependency locking or an equivalent reproducibility mechanism if appropriate
 
 ### Deliverables
 
@@ -325,7 +325,7 @@ Set the minimum repository quality bar for follow-on implementation work.
 - [x] Add CI workflow for build and test verification
 - [x] Add CI workflow for benchmark smoke execution if lightweight enough
 - [x] Define the expected pre-merge verification commands
-- [ ] Document contributor expectations in the repository
+- [x] Document contributor expectations in the repository
 
 ### Deliverables
 

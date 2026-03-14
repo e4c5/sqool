@@ -46,6 +46,9 @@ val javaModules = listOf(
 allprojects {
     group = rootProject.group
     version = rootProject.version
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
 
 configure(javaModules.map(::project)) {
