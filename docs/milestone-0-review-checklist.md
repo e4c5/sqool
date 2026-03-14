@@ -24,9 +24,9 @@ This review should not spend much time on:
 
 At the end of the review, classify Milestone 0 as one of:
 
-- **Approved**: foundation is good enough to start MySQL MVP
-- [x] **Approved with follow-ups**: foundation is acceptable, but a few non-blocking issues should be fixed soon
-- **Changes required**: one or more structural decisions should be corrected before starting Milestone 1
+- [x] **Approved**: foundation is good enough to start MySQL MVP
+- [ ] **Approved with follow-ups**: foundation is acceptable, but a few non-blocking issues should be fixed soon
+- [ ] **Changes required**: one or more structural decisions should be corrected before starting Milestone 1
 
 ## 1. Build system and repository structure
 

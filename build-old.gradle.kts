@@ -21,7 +21,6 @@ plugins {
     base
     alias(libs.plugins.spotless) apply false
     alias(libs.plugins.jmh) apply false
-    jacoco
 }
 
 group = "io.github.e4c5"
@@ -56,7 +55,6 @@ configure(javaModules.map(::project)) {
     apply(plugin = "java-library")
     apply(plugin = "checkstyle")
     apply(plugin = "com.diffplug.spotless")
-    apply(plugin = "jacoco")
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
@@ -106,15 +104,6 @@ configure(javaModules.map(::project)) {
                 }
             }
         })
-        finalizedBy(tasks.named("jacocoTestReport"))
-    }
-
-    tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
-        dependsOn(tasks.named("test"))
-        reports {
-            xml.required.set(true)
-            html.required.set(true)
-        }
     }
 
     tasks.named("check") {
@@ -221,14 +210,6 @@ project(":sqool-conformance") {
         "implementation"(project(":sqool-core"))
         "implementation"(project(":sqool-ast"))
         "testImplementation"(project(":sqool-dialect-mysql"))
-    }
-
-    tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
-        dependsOn(tasks.named("test"))
-        val mysqlDialect = project(":sqool-dialect-mysql")
-        val javaExt = mysqlDialect.extensions.getByType<JavaPluginExtension>()
-        sourceDirectories.from(javaExt.sourceSets.getByName("main").allSource.srcDirs)
-        classDirectories.from(javaExt.sourceSets.getByName("main").output)
     }
 }
 
