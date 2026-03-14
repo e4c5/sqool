@@ -24,19 +24,19 @@ This review should not spend much time on:
 
 At the end of the review, classify Milestone 0 as one of:
 
-- **Approved**: foundation is good enough to start MySQL MVP
-- **Approved with follow-ups**: foundation is acceptable, but a few non-blocking issues should be fixed soon
-- **Changes required**: one or more structural decisions should be corrected before starting Milestone 1
+- [x] **Approved**: foundation is good enough to start MySQL MVP
+- [ ] **Approved with follow-ups**: foundation is acceptable, but a few non-blocking issues should be fixed soon
+- [ ] **Changes required**: one or more structural decisions should be corrected before starting Milestone 1
 
 ## 1. Build system and repository structure
 
-- [ ] Gradle is a reasonable build choice for this project
-- [ ] The wrapper is committed and usable from a clean checkout
-- [ ] The root build is easy to understand
-- [ ] The version catalog and shared build configuration are centralized appropriately
-- [ ] The multi-module layout matches the intended long-term architecture
-- [ ] Module names are clear and consistent
-- [ ] The current skeleton does not create obvious future coupling problems
+- [x] Gradle is a reasonable build choice for this project
+- [x] The wrapper is committed and usable from a clean checkout
+- [x] The root build is easy to understand
+- [x] The version catalog and shared build configuration are centralized appropriately
+- [x] The multi-module layout matches the intended long-term architecture
+- [x] Module names are clear and consistent
+- [x] The current skeleton does not create obvious future coupling problems
 
 ### Evidence to review
 
@@ -54,11 +54,11 @@ At the end of the review, classify Milestone 0 as one of:
 
 ## 2. Java 25 baseline and toolchain strategy
 
-- [ ] Java 25 is configured as the intended project baseline
-- [ ] The toolchain configuration is explicit and reproducible
-- [ ] The build can provision the required JDK without relying on a manually prepared machine
-- [ ] The current setup avoids preview-feature dependence
-- [ ] The Java version strategy is appropriate for CI and contributor workflows
+- [x] Java 25 is configured as the intended project baseline
+- [x] The toolchain configuration is explicit and reproducible
+- [x] The build can provision the required JDK without relying on a manually prepared machine
+- [x] The current setup avoids preview-feature dependence
+- [x] The Java version strategy is appropriate for CI and contributor workflows
 
 ### Evidence to review
 
@@ -75,11 +75,11 @@ At the end of the review, classify Milestone 0 as one of:
 
 ## 3. ANTLR integration baseline
 
-- [ ] The repository demonstrates a working ANTLR generation path
-- [ ] Generated sources are produced by the build, not edited by hand
-- [ ] The ANTLR wiring is understandable and maintainable
-- [ ] The grammar module structure will scale to real vendored grammars
-- [ ] Generated source handling is compatible with formatting and static analysis rules
+- [x] The repository demonstrates a working ANTLR generation path
+- [x] Generated sources are produced by the build, not edited by hand
+- [x] The ANTLR wiring is understandable and maintainable
+- [x] The grammar module structure will scale to real vendored grammars
+- [x] Generated source handling is compatible with formatting and static analysis rules
 
 ### Evidence to review
 
@@ -95,10 +95,10 @@ At the end of the review, classify Milestone 0 as one of:
 
 ## 4. Testing baseline
 
-- [ ] JUnit is wired correctly at the root build level
-- [ ] Smoke tests prove the build and module wiring, not just trivial assertions
-- [ ] The testing setup is simple enough for early development
-- [ ] The test conventions are acceptable for later expansion into conformance suites
+- [x] JUnit is wired correctly at the root build level
+- [x] Smoke tests prove the build and module wiring, not just trivial assertions
+- [x] The testing setup is simple enough for early development
+- [x] The test conventions are acceptable for later expansion into conformance suites
 
 ### Evidence to review
 
@@ -114,10 +114,10 @@ At the end of the review, classify Milestone 0 as one of:
 
 ## 5. Benchmark baseline
 
-- [ ] JMH is integrated successfully
-- [ ] The benchmark module layout is appropriate
-- [ ] The benchmark configuration is light enough for bootstrap verification
-- [ ] The repository is now ready for later parser-vs-parser benchmark work
+- [x] JMH is integrated successfully
+- [x] The benchmark module layout is appropriate
+- [x] The benchmark configuration is light enough for bootstrap verification
+- [x] The repository is now ready for later parser-vs-parser benchmark work
 
 ### Evidence to review
 
@@ -132,11 +132,11 @@ At the end of the review, classify Milestone 0 as one of:
 
 ## 6. Formatting, static analysis, and CI
 
-- [ ] Formatting is easy to run locally
-- [ ] Static analysis is present without being excessively heavy for bootstrap work
-- [ ] CI covers the most important verification steps
-- [ ] CI assumptions are compatible with Java 25 and Gradle toolchains
-- [ ] The quality bar is appropriate for early-stage parser development
+- [x] Formatting is easy to run locally
+- [x] Static analysis is present without being excessively heavy for bootstrap work
+- [x] CI covers the most important verification steps
+- [x] CI assumptions are compatible with Java 25 and Gradle toolchains
+- [x] The quality bar is appropriate for early-stage parser development
 
 ### Evidence to review
 
@@ -152,9 +152,9 @@ At the end of the review, classify Milestone 0 as one of:
 
 ## 7. Documentation and onboarding
 
-- [ ] The repository explains how to build and verify the baseline
-- [ ] The planning documents and implemented baseline are still aligned
-- [ ] The next implementation step is clear from the documentation
+- [x] The repository explains how to build and verify the baseline
+- [x] The planning documents and implemented baseline are still aligned
+- [x] The next implementation step is clear from the documentation
 
 ### Evidence to review
 

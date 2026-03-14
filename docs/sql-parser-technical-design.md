@@ -273,9 +273,30 @@ At the highest level:
 ```java
 public sealed interface AstNode permits Statement, Expression, TableReference, OrderItem, SelectItem {}
 
-public sealed interface Statement extends AstNode permits SelectStatement, InsertStatement, UpdateStatement, DeleteStatement, CreateTableStatement, DialectStatementExtension {}
+public sealed interface Statement extends AstNode
+    permits CreateDatabaseStatement,
+        CreateTableStatement,
+        DeleteStatement,
+        DropDatabaseStatement,
+        DropTableStatement,
+        InsertStatement,
+        MySqlRawStatement,
+        ReplaceStatement,
+        SelectStatement,
+        SetOperationStatement,
+        ShowStatement,
+        TruncateTableStatement,
+        UpdateStatement {}
 
-public sealed interface Expression extends AstNode permits LiteralExpression, ColumnReference, BinaryExpression, FunctionCall, CaseExpression, DialectExpressionExtension {}
+public sealed interface Expression extends AstNode
+    permits BetweenExpression,
+        BinaryExpression,
+        FunctionCallExpression,
+        IdentifierExpression,
+        InExpression,
+        LikeExpression,
+        LiteralExpression,
+        UnaryExpression {}
 ```
 
 ### 8.3 Node style

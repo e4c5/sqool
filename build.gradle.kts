@@ -21,6 +21,7 @@ plugins {
     base
     alias(libs.plugins.spotless) apply false
     alias(libs.plugins.jmh) apply false
+    jacoco
 }
 
 group = "io.github.e4c5"
@@ -46,12 +47,16 @@ val javaModules = listOf(
 allprojects {
     group = rootProject.group
     version = rootProject.version
+    dependencyLocking {
+        lockAllConfigurations()
+    }
 }
 
 configure(javaModules.map(::project)) {
     apply(plugin = "java-library")
     apply(plugin = "checkstyle")
     apply(plugin = "com.diffplug.spotless")
+    apply(plugin = "jacoco")
 
     extensions.configure<JavaPluginExtension> {
         toolchain {
@@ -90,6 +95,25 @@ configure(javaModules.map(::project)) {
         testLogging {
             events = setOf(TestLogEvent.FAILED, TestLogEvent.SKIPPED)
             exceptionFormat = TestExceptionFormat.FULL
+        }
+        addTestListener(object : TestListener {
+            override fun beforeSuite(suite: TestDescriptor) {}
+            override fun beforeTest(testDescriptor: TestDescriptor) {}
+            override fun afterTest(testDescriptor: TestDescriptor, result: TestResult) {}
+            override fun afterSuite(suite: TestDescriptor, result: TestResult) {
+                if (suite.parent == null) { // root suite
+                    println("\nResults: ${result.resultType} (${result.testCount} tests, ${result.successfulTestCount} successes, ${result.failedTestCount} failures, ${result.skippedTestCount} skipped)")
+                }
+            }
+        })
+        finalizedBy(tasks.named("jacocoTestReport"))
+    }
+
+    tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
+        dependsOn(tasks.named("test"))
+        reports {
+            xml.required.set(true)
+            html.required.set(true)
         }
     }
 
@@ -130,18 +154,15 @@ project(":sqool-grammar-mysql") {
         arguments = arguments + listOf(
             "-visitor",
             "-long-messages",
-            "-package",
-            "io.github.e4c5.sqool.grammar.mysql.generated",
         )
     }
 
-    tasks.withType<Checkstyle>().configureEach {
-        exclude("**/generated-src/antlr/**")
-        exclude("**/BootstrapSql*.java")
+    tasks.named<Checkstyle>("checkstyleMain") {
+        source = files().asFileTree
     }
 
-    tasks.withType<Javadoc>().configureEach {
-        exclude("**/generated-src/antlr/**")
+    tasks.named<Javadoc>("javadoc") {
+        source = files().asFileTree
     }
 }
 
@@ -201,6 +222,14 @@ project(":sqool-conformance") {
         "implementation"(project(":sqool-ast"))
         "testImplementation"(project(":sqool-dialect-mysql"))
     }
+
+    tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
+        dependsOn(tasks.named("test"))
+        val mysqlDialect = project(":sqool-dialect-mysql")
+        val javaExt = mysqlDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(javaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(javaExt.sourceSets.getByName("main").output)
+    }
 }
 
 project(":sqool-bench") {
@@ -216,6 +245,8 @@ project(":sqool-bench") {
 
     dependencies {
         "implementation"(project(":sqool-core"))
+        "implementation"(project(":sqool-dialect-mysql"))
+        "implementation"(libsCatalog.findLibrary("jsqlparser").get())
     }
 
     tasks.withType<JavaCompile>().configureEach {
