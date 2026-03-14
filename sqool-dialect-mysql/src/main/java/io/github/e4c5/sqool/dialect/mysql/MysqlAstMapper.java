@@ -71,8 +71,40 @@ final class MysqlAstMapper {
       Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)");
 
   private static boolean isSupportedIdentifier(String name) {
-    String[] parts = name.split("\\.", -1);
-    if (parts.length < 1 || parts.length > 3) {
+    // Parse segments in one pass, respecting backtick boundaries so that quoted identifiers
+    // like `sales.2024` are treated as a single segment rather than being split on the dot.
+    List<String> parts = new ArrayList<>();
+    boolean inBacktick = false;
+    StringBuilder segment = new StringBuilder();
+    for (int i = 0; i < name.length(); i++) {
+      char c = name.charAt(i);
+      if (c == '`') {
+        if (inBacktick) {
+          // Check for escaped backtick (``)
+          if (i + 1 < name.length() && name.charAt(i + 1) == '`') {
+            segment.append("``"); // preserve both backticks; pattern won't normalize them
+            i++;
+          } else {
+            inBacktick = false;
+            segment.append(c);
+          }
+        } else {
+          inBacktick = true;
+          segment.append(c);
+        }
+      } else if (c == '.' && !inBacktick) {
+        parts.add(segment.toString());
+        segment.setLength(0);
+      } else {
+        segment.append(c);
+      }
+    }
+    if (inBacktick) {
+      // Unclosed backtick — invalid
+      return false;
+    }
+    parts.add(segment.toString());
+    if (parts.size() < 1 || parts.size() > 3) {
       return false;
     }
     for (String part : parts) {
