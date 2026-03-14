@@ -120,50 +120,64 @@ public abstract class MySQLLexerBase extends Lexer implements MySQLGrammarConfig
   }
 
   private int determineTypeByRange(String text, int index, int length, boolean negative) {
-    String cmp;
-    int smaller;
-    int bigger;
-    if (negative) {
-      if (length < MySQLLexerBase.signedLongLongLength) {
-        if (length == MySQLLexerBase.longLength) {
-          cmp = MySQLLexerBase.signedLongString.substring(1);
-          smaller = MySQLLexer.INT_NUMBER;
-          bigger = MySQLLexer.LONG_NUMBER;
-        } else {
-          return MySQLLexer.LONG_NUMBER;
-        }
-      } else if (length > MySQLLexerBase.signedLongLongLength) {
-        return MySQLLexer.DECIMAL_NUMBER;
-      } else {
-        cmp = MySQLLexerBase.signedLongLongString.substring(1);
-        smaller = MySQLLexer.LONG_NUMBER;
-        bigger = MySQLLexer.DECIMAL_NUMBER;
-      }
-    } else {
-      if (length < MySQLLexerBase.longLongLength) {
-        if (length == MySQLLexerBase.longLength) {
-          cmp = MySQLLexerBase.longString;
-          smaller = MySQLLexer.INT_NUMBER;
-          bigger = MySQLLexer.LONG_NUMBER;
-        } else {
-          return MySQLLexer.LONG_NUMBER;
-        }
-      } else if (length > MySQLLexerBase.longLongLength) {
-        if (length > MySQLLexerBase.unsignedLongLongLength) {
-          return MySQLLexer.DECIMAL_NUMBER;
-        }
-        cmp = MySQLLexerBase.unsignedLongLongString;
-        smaller = MySQLLexer.ULONGLONG_NUMBER;
-        bigger = MySQLLexer.DECIMAL_NUMBER;
-      } else {
-        cmp = MySQLLexerBase.longLongString;
-        smaller = MySQLLexer.LONG_NUMBER;
-        bigger = MySQLLexer.ULONGLONG_NUMBER;
-      }
+    Integer early = negative ? negativeEarlyReturn(length) : positiveEarlyReturn(length);
+    if (early != null) {
+      return early;
     }
-
-    return compareWithLimit(text, index, cmp, smaller, bigger);
+    CompareLimit limit = negative ? negativeCompareLimit(length) : positiveCompareLimit(length);
+    return compareWithLimit(text, index, limit.cmp, limit.smaller, limit.bigger);
   }
+
+  /** Returns token type for early exit, or null if comparison is needed. */
+  private Integer negativeEarlyReturn(int length) {
+    if (length < MySQLLexerBase.signedLongLongLength) {
+      return length == MySQLLexerBase.longLength ? null : MySQLLexer.LONG_NUMBER;
+    }
+    return length > MySQLLexerBase.signedLongLongLength ? MySQLLexer.DECIMAL_NUMBER : null;
+  }
+
+  private CompareLimit negativeCompareLimit(int length) {
+    if (length == MySQLLexerBase.longLength) {
+      return new CompareLimit(
+          MySQLLexerBase.signedLongString.substring(1),
+          MySQLLexer.INT_NUMBER,
+          MySQLLexer.LONG_NUMBER);
+    }
+    return new CompareLimit(
+        MySQLLexerBase.signedLongLongString.substring(1),
+        MySQLLexer.LONG_NUMBER,
+        MySQLLexer.DECIMAL_NUMBER);
+  }
+
+  /** Returns token type for early exit, or null if comparison is needed. */
+  private Integer positiveEarlyReturn(int length) {
+    if (length < MySQLLexerBase.longLongLength) {
+      return length == MySQLLexerBase.longLength ? null : MySQLLexer.LONG_NUMBER;
+    }
+    if (length > MySQLLexerBase.longLongLength) {
+      return length > MySQLLexerBase.unsignedLongLongLength
+          ? MySQLLexer.DECIMAL_NUMBER
+          : null;
+    }
+    return null;
+  }
+
+  private CompareLimit positiveCompareLimit(int length) {
+    if (length == MySQLLexerBase.longLength) {
+      return new CompareLimit(
+          MySQLLexerBase.longString, MySQLLexer.INT_NUMBER, MySQLLexer.LONG_NUMBER);
+    }
+    if (length > MySQLLexerBase.longLongLength) {
+      return new CompareLimit(
+          MySQLLexerBase.unsignedLongLongString,
+          MySQLLexer.ULONGLONG_NUMBER,
+          MySQLLexer.DECIMAL_NUMBER);
+    }
+    return new CompareLimit(
+        MySQLLexerBase.longLongString, MySQLLexer.LONG_NUMBER, MySQLLexer.ULONGLONG_NUMBER);
+  }
+
+  private record CompareLimit(String cmp, int smaller, int bigger) {}
 
   private int compareWithLimit(String text, int index, String cmp, int smaller, int bigger) {
     int otherIndex = 0;
