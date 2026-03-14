@@ -1,6 +1,6 @@
 ---
 description: When adding a new dialect (Phase 2+), generalize and reuse Phase 1 (MySQL) code instead of duplicating
-globs: sqool-core/**/*.java, sqool-dialect-*/**/*.java, docs/**/*
+globs: sqool-core/**/*.java, sqool-ast/**/*.java, sqool-dialect-*/**/*.java, docs/**/*
 alwaysApply: false
 ---
 
