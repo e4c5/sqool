@@ -1,6 +1,8 @@
 package io.github.e4c5.sqool.dialect.mysql;
 
+import io.github.e4c5.sqool.core.AntlrSyntaxErrorListener;
 import io.github.e4c5.sqool.core.DiagnosticSeverity;
+import io.github.e4c5.sqool.core.ParseAttempt;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
@@ -45,16 +47,16 @@ public final class MysqlSqlParser implements SqlParser {
     if (!attempt.diagnostics().isEmpty()) {
       return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
     }
-
     return MysqlAstMapper.mapSimpleStatement(attempt.context(), effectiveOptions);
   }
 
-  private SimpleStatementAttempt parseSimpleStatement(String sql, boolean enableFallback) {
+  private ParseAttempt<MySQLParser.SimpleStatementContext> parseSimpleStatement(
+      String sql, boolean enableFallback) {
     try {
       return parseSimpleStatement(sql, PredictionMode.SLL, new BailErrorStrategy());
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
-        return failureSimpleStatementAttempt(
+        return ParseAttempt.failure(
             List.of(
                 new SyntaxDiagnostic(
                     DiagnosticSeverity.ERROR, "Fast-path MySQL parse failed.", 1, 0, null)));
@@ -63,36 +65,28 @@ public final class MysqlSqlParser implements SqlParser {
     }
   }
 
-  private SimpleStatementAttempt parseSimpleStatement(
+  private ParseAttempt<MySQLParser.SimpleStatementContext> parseSimpleStatement(
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
-    var syntaxErrors = new MysqlSyntaxErrorListener();
-    var lexer = new MySQLLexer(CharStreams.fromString(sql));
-    lexer.removeErrorListeners();
-    lexer.addErrorListener(syntaxErrors);
-
-    var tokens = new CommonTokenStream(lexer);
-    var parser = new MySQLParser(tokens);
-    parser.removeErrorListeners();
-    parser.addErrorListener(syntaxErrors);
-    parser.setBuildParseTree(true);
-    parser.setErrorHandler(errorStrategy);
-    parser.getInterpreter().setPredictionMode(predictionMode);
-
-    var context = parser.simpleStatement();
-    requireEndOfInput(tokens, syntaxErrors);
-    return syntaxErrors.hasDiagnostics()
-        ? failureSimpleStatementAttempt(syntaxErrors.diagnostics())
-        : new SimpleStatementAttempt(context, List.of());
+    return parseWith(
+        sql,
+        predictionMode,
+        errorStrategy,
+        (parser, tokens, syntaxErrors) -> {
+          var context = parser.simpleStatement();
+          requireEndOfInput(tokens, syntaxErrors);
+          return context;
+        });
   }
 
-  private QueriesAttempt parseQueries(String sql, boolean enableFallback) {
+  private ParseAttempt<MySQLParser.QueriesContext> parseQueries(
+      String sql, boolean enableFallback) {
     try {
       return parseQueries(sql, PredictionMode.SLL, new BailErrorStrategy());
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
-        return failureQueriesAttempt(
+        return ParseAttempt.failure(
             List.of(
                 new SyntaxDiagnostic(
                     DiagnosticSeverity.ERROR, "Fast-path MySQL script parse failed.", 1, 0, null)));
@@ -101,11 +95,20 @@ public final class MysqlSqlParser implements SqlParser {
     }
   }
 
-  private QueriesAttempt parseQueries(
+  private ParseAttempt<MySQLParser.QueriesContext> parseQueries(
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
-    var syntaxErrors = new MysqlSyntaxErrorListener();
+    return parseWith(
+        sql, predictionMode, errorStrategy, (parser, tokens, syntaxErrors) -> parser.queries());
+  }
+
+  private <C> ParseAttempt<C> parseWith(
+      String sql,
+      PredictionMode predictionMode,
+      org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy,
+      ParserRunner<C> runner) {
+    var syntaxErrors = new AntlrSyntaxErrorListener();
     var lexer = new MySQLLexer(CharStreams.fromString(sql));
     lexer.removeErrorListeners();
     lexer.addErrorListener(syntaxErrors);
@@ -118,13 +121,17 @@ public final class MysqlSqlParser implements SqlParser {
     parser.setErrorHandler(errorStrategy);
     parser.getInterpreter().setPredictionMode(predictionMode);
 
-    var context = parser.queries();
+    var context = runner.run(parser, tokens, syntaxErrors);
     return syntaxErrors.hasDiagnostics()
-        ? failureQueriesAttempt(syntaxErrors.diagnostics())
-        : new QueriesAttempt(context, List.of());
+        ? ParseAttempt.failure(syntaxErrors.diagnostics())
+        : new ParseAttempt<>(context, List.of());
   }
 
-  private void requireEndOfInput(CommonTokenStream tokens, MysqlSyntaxErrorListener syntaxErrors) {
+  private interface ParserRunner<C> {
+    C run(MySQLParser parser, CommonTokenStream tokens, AntlrSyntaxErrorListener syntaxErrors);
+  }
+
+  private void requireEndOfInput(CommonTokenStream tokens, AntlrSyntaxErrorListener syntaxErrors) {
     if (tokens.LA(1) == MySQLLexer.SEMICOLON_SYMBOL) {
       tokens.consume();
     }
@@ -147,19 +154,4 @@ public final class MysqlSqlParser implements SqlParser {
         List.of(
             new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
   }
-
-  private static SimpleStatementAttempt failureSimpleStatementAttempt(
-      List<SyntaxDiagnostic> diagnostics) {
-    return new SimpleStatementAttempt(null, diagnostics);
-  }
-
-  private static QueriesAttempt failureQueriesAttempt(List<SyntaxDiagnostic> diagnostics) {
-    return new QueriesAttempt(null, diagnostics);
-  }
-
-  private record SimpleStatementAttempt(
-      MySQLParser.SimpleStatementContext context, List<SyntaxDiagnostic> diagnostics) {}
-
-  private record QueriesAttempt(
-      MySQLParser.QueriesContext context, List<SyntaxDiagnostic> diagnostics) {}
 }

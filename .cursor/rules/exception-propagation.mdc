@@ -1,0 +1,47 @@
+---
+description: Exception handling — let exceptions propagate; do not catch to rethrow or return a different result
+globs: sqool-core/**/*.java, sqool-dialect-*/**/*.java
+alwaysApply: false
+---
+
+# Exception propagation
+
+In parser and dialect code, **let exceptions propagate**. Do not catch an exception and:
+
+1. **Rethrow a different exception type** — e.g. do not catch `NumberFormatException` and throw `UnsupportedFeatureException`. Let the original exception propagate so callers see the real failure.
+2. **Return a different kind of result** — e.g. do not catch `ParseCancellationException` or `UnsupportedFeatureException` and return `ParseFailure` (or another result type) instead of letting the exception bubble. Converting exceptions into a "success/failure" result hides the error nature and makes debugging and error handling harder.
+
+## Correct approach
+
+- **Propagate**: Let the exception bubble to the caller. The public API can document that certain methods throw for parse or mapping failures if that is the chosen contract.
+- **Single translation at the boundary**: If the API must return a result type (e.g. `ParseResult`), translate to that result only at the outermost boundary (e.g. one place in the parser facade), and do not catch-and-convert in inner layers like the AST mapper or parsing helpers.
+
+## Avoid
+
+```java
+// BAD: catch and return a different result
+try {
+  return parseSimpleStatement(sql, PredictionMode.SLL, new BailErrorStrategy());
+} catch (ParseCancellationException | InputMismatchException e) {
+  return failureSimpleStatementAttempt(...);  // do not convert exception → result
+}
+
+// BAD: catch and rethrow a different exception type
+try {
+  return Long.parseLong(context.getText());
+} catch (NumberFormatException e) {
+  throw unsupportedFeature("...", context.start);  // do not replace with another exception
+}
+
+// BAD: catch in mapper and return ParseFailure
+try {
+  return new ParseSuccess(...);
+} catch (UnsupportedFeatureException e) {
+  return new ParseFailure(...);  // do not swallow exception as a result
+}
+```
+
+## Prefer
+
+- Let the exception propagate from the parsing/mapping layer so callers can handle it (or the top-level `parse()` can translate once if the API requires a `ParseResult`).
+- If you need to add context, use the exception's cause: `throw new SomeException("context", originalException)` and document that the cause is the real failure, rather than catching and throwing a wholly different exception type without preserving the cause.
