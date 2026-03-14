@@ -1,1 +1,0 @@
-ParseSuccess[dialect=MYSQL, root=SqlScript[statements=[ShowStatement[kind=SHOW_DATABASES, targetName=null, schemaName=null, modifier=null, filter=null, sourceSpan=SourceSpan[startIndex=0, stopIndex=13, startLine=1, startColumn=0, stopLine=1, stopColumn=13]]], sourceSpan=SourceSpan[startIndex=0, stopIndex=14, startLine=1, startColumn=0, stopLine=1, stopColumn=14]], diagnostics=[]]
