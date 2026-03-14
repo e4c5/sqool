@@ -1104,16 +1104,44 @@ final class MysqlAstMapper {
 
   private static MySqlStatementKind kindForSimpleStatementMapping(
       MySQLParser.SimpleStatementContext context) {
+    MySqlStatementKind kind = kindForDml(context);
+    if (kind != null) {
+      return kind;
+    }
+    kind = kindForShowStatements(context);
+    if (kind != null) {
+      return kind;
+    }
+    kind = kindForAdministrativeStatements(context);
+    if (kind != null) {
+      return kind;
+    }
+    return null;
+  }
+
+  private static MySqlStatementKind kindForDml(
+      MySQLParser.SimpleStatementContext context) {
     if (context.selectStatement() != null) return MySqlStatementKind.SELECT;
     if (context.insertStatement() != null) return MySqlStatementKind.INSERT;
     if (context.updateStatement() != null) return MySqlStatementKind.UPDATE;
     if (context.deleteStatement() != null) return MySqlStatementKind.DELETE;
     if (context.replaceStatement() != null) return MySqlStatementKind.REPLACE;
     if (context.truncateTableStatement() != null) return MySqlStatementKind.TRUNCATE_TABLE;
+    return null;
+  }
+
+  private static MySqlStatementKind kindForShowStatements(
+      MySQLParser.SimpleStatementContext context) {
     if (context.showDatabasesStatement() != null) return MySqlStatementKind.SHOW_DATABASES;
     if (context.showTablesStatement() != null) return MySqlStatementKind.SHOW_TABLES;
     if (context.showColumnsStatement() != null) return MySqlStatementKind.SHOW_COLUMNS;
     if (context.showCreateTableStatement() != null) return MySqlStatementKind.SHOW_CREATE_TABLE;
+    if (isOtherShowStatement(context)) return MySqlStatementKind.SHOW_OTHER;
+    return null;
+  }
+
+  private static MySqlStatementKind kindForAdministrativeStatements(
+      MySQLParser.SimpleStatementContext context) {
     if (context.alterStatement() != null) return MySqlStatementKind.ALTER;
     if (context.renameTableStatement() != null) return MySqlStatementKind.RENAME_TABLE;
     if (context.importStatement() != null) return MySqlStatementKind.IMPORT;
@@ -1139,7 +1167,6 @@ final class MysqlAstMapper {
     if (context.getDiagnosticsStatement() != null) return MySqlStatementKind.GET_DIAGNOSTICS;
     if (context.signalStatement() != null) return MySqlStatementKind.SIGNAL;
     if (context.resignalStatement() != null) return MySqlStatementKind.RESIGNAL;
-    if (isOtherShowStatement(context)) return MySqlStatementKind.SHOW_OTHER;
     return null;
   }
 

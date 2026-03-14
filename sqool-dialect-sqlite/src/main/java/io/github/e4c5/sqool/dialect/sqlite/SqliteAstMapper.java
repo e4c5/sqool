@@ -306,34 +306,36 @@ final class SqliteAstMapper {
 
   private static Expression mapExprFromBinary(
       SQLiteParser.Expr_binaryContext context, ParseOptions options) {
-    if (context == null || context.expr_comparison().isEmpty()) {
+    SQLiteParser.Expr_comparisonContext comp =
+        singleOrNull(context, context == null ? null : context.expr_comparison());
+    if (comp == null) {
       return null;
     }
-    // Only the simple comparison chain is supported; anything more complex causes a fallback.
-    if (context.expr_comparison().size() != 1) {
+    SQLiteParser.Expr_bitwiseContext bit =
+        singleOrNull(comp, comp.expr_bitwise());
+    if (bit == null) {
       return null;
     }
-    SQLiteParser.Expr_comparisonContext comp = context.expr_comparison(0);
-    if (comp.expr_bitwise().isEmpty() || comp.expr_bitwise().size() != 1) {
+    SQLiteParser.Expr_additionContext add =
+        singleOrNull(bit, bit.expr_addition());
+    if (add == null) {
       return null;
     }
-    SQLiteParser.Expr_bitwiseContext bit = comp.expr_bitwise(0);
-    if (bit.expr_addition().isEmpty() || bit.expr_addition().size() != 1) {
+    SQLiteParser.Expr_multiplicationContext mul =
+        singleOrNull(add, add.expr_multiplication());
+    if (mul == null) {
       return null;
     }
-    SQLiteParser.Expr_additionContext add = bit.expr_addition(0);
-    if (add.expr_multiplication().isEmpty() || add.expr_multiplication().size() != 1) {
+    SQLiteParser.Expr_stringContext str =
+        singleOrNull(mul, mul.expr_string());
+    if (str == null) {
       return null;
     }
-    SQLiteParser.Expr_multiplicationContext mul = add.expr_multiplication(0);
-    if (mul.expr_string().isEmpty() || mul.expr_string().size() != 1) {
+    SQLiteParser.Expr_collateContext coll =
+        singleOrNull(str, str.expr_collate());
+    if (coll == null) {
       return null;
     }
-    SQLiteParser.Expr_stringContext str = mul.expr_string(0);
-    if (str.expr_collate().isEmpty() || str.expr_collate().size() != 1) {
-      return null;
-    }
-    SQLiteParser.Expr_collateContext coll = str.expr_collate(0);
     SQLiteParser.Expr_unaryContext un = coll.expr_unary();
     if (un == null) {
       return null;
@@ -470,5 +472,13 @@ final class SqliteAstMapper {
     }
     Interval interval = Interval.of(context.start.getStartIndex(), context.stop.getStopIndex());
     return context.start.getInputStream().getText(interval);
+  }
+
+  private static <T> T singleOrNull(
+      org.antlr.v4.runtime.ParserRuleContext owner, java.util.List<T> values) {
+    if (owner == null || values == null || values.isEmpty() || values.size() != 1) {
+      return null;
+    }
+    return values.get(0);
   }
 }
