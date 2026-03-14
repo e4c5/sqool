@@ -26,11 +26,7 @@ final class MysqlSyntaxErrorListener extends BaseErrorListener {
     }
     diagnostics.add(
         new SyntaxDiagnostic(
-            DiagnosticSeverity.ERROR,
-            message,
-            line,
-            charPositionInLine,
-            offendingToken));
+            DiagnosticSeverity.ERROR, message, line, charPositionInLine, offendingToken));
   }
 
   List<SyntaxDiagnostic> diagnostics() {
