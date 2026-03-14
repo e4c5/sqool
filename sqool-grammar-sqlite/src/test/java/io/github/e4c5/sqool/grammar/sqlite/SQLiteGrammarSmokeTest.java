@@ -39,9 +39,7 @@ class SQLiteGrammarSmokeTest {
     parser.setBuildParseTree(true);
     SQLiteParser.ParseContext context = parser.parse();
     assertEquals(
-        Token.EOF,
-        parser.getCurrentToken().getType(),
-        "Parser did not consume the full SQL input");
+        Token.EOF, parser.getCurrentToken().getType(), "Parser did not consume the full SQL input");
     return new Parsed(parser, context);
   }
 

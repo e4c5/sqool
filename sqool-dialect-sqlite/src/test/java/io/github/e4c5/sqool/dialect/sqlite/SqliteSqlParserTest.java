@@ -23,8 +23,7 @@ class SqliteSqlParserTest {
 
   @Test
   void parseSimpleSelectLiteral() {
-    ParseResult result =
-        PARSER.parse("SELECT 1", ParseOptions.defaults(SqlDialect.SQLITE));
+    ParseResult result = PARSER.parse("SELECT 1", ParseOptions.defaults(SqlDialect.SQLITE));
     assertInstanceOf(ParseSuccess.class, result);
     Statement stmt = (Statement) ((ParseSuccess) result).root();
     assertInstanceOf(SelectStatement.class, stmt);
@@ -32,8 +31,7 @@ class SqliteSqlParserTest {
     assertEquals(1, select.selectItems().size());
     assertInstanceOf(ExpressionSelectItem.class, select.selectItems().get(0));
     assertInstanceOf(
-        LiteralExpression.class,
-        ((ExpressionSelectItem) select.selectItems().get(0)).expression());
+        LiteralExpression.class, ((ExpressionSelectItem) select.selectItems().get(0)).expression());
     assertEquals(
         "1",
         ((LiteralExpression) ((ExpressionSelectItem) select.selectItems().get(0)).expression())
@@ -42,8 +40,7 @@ class SqliteSqlParserTest {
 
   @Test
   void parseSelectStarFromTable() {
-    ParseResult result =
-        PARSER.parse("SELECT * FROM t", ParseOptions.defaults(SqlDialect.SQLITE));
+    ParseResult result = PARSER.parse("SELECT * FROM t", ParseOptions.defaults(SqlDialect.SQLITE));
     assertInstanceOf(ParseSuccess.class, result);
     Statement stmt = (Statement) ((ParseSuccess) result).root();
     assertInstanceOf(SelectStatement.class, stmt);
@@ -72,8 +69,7 @@ class SqliteSqlParserTest {
 
   @Test
   void rejectsWrongDialectOption() {
-    ParseResult result =
-        PARSER.parse("SELECT 1", ParseOptions.defaults(SqlDialect.MYSQL));
+    ParseResult result = PARSER.parse("SELECT 1", ParseOptions.defaults(SqlDialect.MYSQL));
     assertTrue(result instanceof io.github.e4c5.sqool.core.ParseFailure);
   }
 }

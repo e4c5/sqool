@@ -24,7 +24,6 @@ import io.github.e4c5.sqool.core.SqlDialect;
 import io.github.e4c5.sqool.grammar.sqlite.generated.SQLiteParser;
 import java.util.ArrayList;
 import java.util.List;
-import org.antlr.v4.runtime.Token;
 import org.antlr.v4.runtime.misc.Interval;
 
 final class SqliteAstMapper {
@@ -45,11 +44,8 @@ final class SqliteAstMapper {
         statements.isEmpty()
             ? null
             : SourceSpans.fromTokens(
-                stmtList.sql_stmt(0).start,
-                stmtList.sql_stmt(statements.size() - 1).stop,
-                options);
-    return new ParseSuccess(
-        SqlDialect.SQLITE, new SqlScript(statements, scriptSpan), List.of());
+                stmtList.sql_stmt(0).start, stmtList.sql_stmt(statements.size() - 1).stop, options);
+    return new ParseSuccess(SqlDialect.SQLITE, new SqlScript(statements, scriptSpan), List.of());
   }
 
   static ParseResult mapSqlStmt(SQLiteParser.Sql_stmtContext stmt, ParseOptions options) {
@@ -60,7 +56,8 @@ final class SqliteAstMapper {
     String sqlText = textOf(stmt);
     return new ParseSuccess(
         SqlDialect.SQLITE,
-        new SqliteRawStatement(kind, sqlText, SourceSpans.fromTokens(stmt.start, stmt.stop, options)),
+        new SqliteRawStatement(
+            kind, sqlText, SourceSpans.fromTokens(stmt.start, stmt.stop, options)),
         List.of());
   }
 
@@ -83,15 +80,16 @@ final class SqliteAstMapper {
     boolean distinct = core.DISTINCT_() != null;
     List<SelectItem> selectItems = mapResultColumns(core.result_column(), options);
     TableReference from = core.FROM_() != null ? mapJoinClause(core.join_clause(), options) : null;
-    Expression where =
-        core.where_expr != null ? mapExpr(core.where_expr, options) : null;
+    Expression where = core.where_expr != null ? mapExpr(core.where_expr, options) : null;
     List<Expression> groupBy =
         core.group_by_expr != null && !core.group_by_expr.isEmpty()
             ? core.group_by_expr.stream().map(e -> mapExpr(e, options)).toList()
             : List.of();
     Expression having = core.having_expr != null ? mapExpr(core.having_expr, options) : null;
     List<OrderByItem> orderBy =
-        context.order_clause() != null ? mapOrderClause(context.order_clause(), options) : List.of();
+        context.order_clause() != null
+            ? mapOrderClause(context.order_clause(), options)
+            : List.of();
     LimitClause limit =
         context.limit_clause() != null ? mapLimitClause(context.limit_clause(), options) : null;
 
@@ -115,7 +113,9 @@ final class SqliteAstMapper {
     return new ParseSuccess(
         SqlDialect.SQLITE,
         new SqliteRawStatement(
-            SqliteStatementKind.SELECT, textOf(context), SourceSpans.fromTokens(context.start, context.stop, options)),
+            SqliteStatementKind.SELECT,
+            textOf(context),
+            SourceSpans.fromTokens(context.start, context.stop, options)),
         List.of());
   }
 
@@ -127,14 +127,18 @@ final class SqliteAstMapper {
         if (col.table_name() != null) {
           items.add(
               new AllColumnsSelectItem(
-                  col.table_name().getText(), SourceSpans.fromTokens(col.start, col.stop, options)));
+                  col.table_name().getText(),
+                  SourceSpans.fromTokens(col.start, col.stop, options)));
         } else {
-          items.add(new AllColumnsSelectItem(null, SourceSpans.fromTokens(col.start, col.stop, options)));
+          items.add(
+              new AllColumnsSelectItem(null, SourceSpans.fromTokens(col.start, col.stop, options)));
         }
       } else {
         Expression expr = mapExpr(col.expr(), options);
         String alias = col.column_alias() != null ? col.column_alias().getText() : null;
-        items.add(new ExpressionSelectItem(expr, alias, SourceSpans.fromTokens(col.start, col.stop, options)));
+        items.add(
+            new ExpressionSelectItem(
+                expr, alias, SourceSpans.fromTokens(col.start, col.stop, options)));
       }
     }
     return items;
@@ -160,8 +164,7 @@ final class SqliteAstMapper {
     if (tableName == null) {
       return null;
     }
-    String alias =
-        first.table_alias() != null ? first.table_alias().getText() : null;
+    String alias = first.table_alias() != null ? first.table_alias().getText() : null;
     return new NamedTableReference(
         tableName, alias, SourceSpans.fromTokens(first.start, first.stop, options));
   }
@@ -213,11 +216,13 @@ final class SqliteAstMapper {
       return mapLiteralValue(base.literal_value(), options);
     }
     if (base.BIND_PARAMETER() != null) {
-      return new LiteralExpression(base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
+      return new LiteralExpression(
+          base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
     }
     if (base.column_name_excluding_string() != null) {
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          base.column_name_excluding_string().getText(), SourceSpans.fromTokens(base.start, base.stop, options));
+          base.column_name_excluding_string().getText(),
+          SourceSpans.fromTokens(base.start, base.stop, options));
     }
     if (base.table_name() != null && base.DOT() != null && base.column_name() != null) {
       String table = base.table_name().getText();
@@ -225,7 +230,8 @@ final class SqliteAstMapper {
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
           table + "." + column, SourceSpans.fromTokens(base.start, base.stop, options));
     }
-    return new LiteralExpression(base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
+    return new LiteralExpression(
+        base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
   }
 
   private static Expression mapLiteralValue(
@@ -253,7 +259,8 @@ final class SqliteAstMapper {
     List<SQLiteParser.ExprContext> exprs = context.expr();
     long rowCount = parseLimitExpr(exprs.get(0));
     Long offset = exprs.size() > 1 ? parseLimitExpr(exprs.get(1)) : null;
-    return new LimitClause(rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
+    return new LimitClause(
+        rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static long parseLimitExpr(SQLiteParser.ExprContext expr) {
@@ -297,5 +304,4 @@ final class SqliteAstMapper {
     Interval interval = Interval.of(context.start.getStartIndex(), context.stop.getStopIndex());
     return context.start.getInputStream().getText(interval);
   }
-
 }

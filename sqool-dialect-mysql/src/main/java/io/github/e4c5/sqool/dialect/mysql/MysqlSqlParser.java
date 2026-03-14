@@ -80,7 +80,8 @@ public final class MysqlSqlParser implements SqlParser {
         });
   }
 
-  private ParseAttempt<MySQLParser.QueriesContext> parseQueries(String sql, boolean enableFallback) {
+  private ParseAttempt<MySQLParser.QueriesContext> parseQueries(
+      String sql, boolean enableFallback) {
     try {
       return parseQueries(sql, PredictionMode.SLL, new BailErrorStrategy());
     } catch (ParseCancellationException | InputMismatchException exception) {
@@ -127,14 +128,10 @@ public final class MysqlSqlParser implements SqlParser {
   }
 
   private interface ParserRunner<C> {
-    C run(
-        MySQLParser parser,
-        CommonTokenStream tokens,
-        AntlrSyntaxErrorListener syntaxErrors);
+    C run(MySQLParser parser, CommonTokenStream tokens, AntlrSyntaxErrorListener syntaxErrors);
   }
 
-  private void requireEndOfInput(
-      CommonTokenStream tokens, AntlrSyntaxErrorListener syntaxErrors) {
+  private void requireEndOfInput(CommonTokenStream tokens, AntlrSyntaxErrorListener syntaxErrors) {
     if (tokens.LA(1) == MySQLLexer.SEMICOLON_SYMBOL) {
       tokens.consume();
     }

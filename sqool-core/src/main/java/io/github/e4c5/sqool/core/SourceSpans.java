@@ -9,8 +9,9 @@ public final class SourceSpans {
   private SourceSpans() {}
 
   /**
-   * Builds a source span from ANTLR start/stop tokens when {@link ParseOptions#includeSourceSpans()}
-   * is true; otherwise returns null. Used by dialect AST mappers to avoid duplicating span logic.
+   * Builds a source span from ANTLR start/stop tokens when {@link
+   * ParseOptions#includeSourceSpans()} is true; otherwise returns null. Used by dialect AST mappers
+   * to avoid duplicating span logic.
    */
   public static SourceSpan fromTokens(Token start, Token stop, ParseOptions options) {
     if (!options.includeSourceSpans() || start == null || stop == null) {

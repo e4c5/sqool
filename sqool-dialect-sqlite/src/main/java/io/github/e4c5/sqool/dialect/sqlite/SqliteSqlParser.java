@@ -97,7 +97,6 @@ public final class SqliteSqlParser implements SqlParser {
     return new ParseFailure(
         SqlDialect.SQLITE,
         List.of(
-            new SyntaxDiagnostic(
-                DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
+            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
   }
 }

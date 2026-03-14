@@ -155,9 +155,7 @@ public abstract class MySQLLexerBase extends Lexer implements MySQLGrammarConfig
       return length == MySQLLexerBase.longLength ? null : MySQLLexer.LONG_NUMBER;
     }
     if (length > MySQLLexerBase.longLongLength) {
-      return length > MySQLLexerBase.unsignedLongLongLength
-          ? MySQLLexer.DECIMAL_NUMBER
-          : null;
+      return length > MySQLLexerBase.unsignedLongLongLength ? MySQLLexer.DECIMAL_NUMBER : null;
     }
     return null;
   }

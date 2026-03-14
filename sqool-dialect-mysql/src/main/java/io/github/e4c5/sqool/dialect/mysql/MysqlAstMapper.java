@@ -62,7 +62,11 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 final class MysqlAstMapper {
   private static final String YET = " yet.";
-  /** One identifier segment: backtick-quoted or unquoted. Kept simple to satisfy Sonar regex complexity. */
+
+  /**
+   * One identifier segment: backtick-quoted or unquoted. Kept simple to satisfy Sonar regex
+   * complexity.
+   */
   private static final Pattern IDENTIFIER_SEGMENT =
       Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)");
 
@@ -90,7 +94,8 @@ final class MysqlAstMapper {
       SourceSpan sourceSpan =
           statements.isEmpty()
               ? null
-              : SourceSpans.fromTokens(context.query().getFirst().start, context.query().getLast().stop, options);
+              : SourceSpans.fromTokens(
+                  context.query().getFirst().start, context.query().getLast().stop, options);
       return new ParseSuccess(SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
@@ -535,8 +540,7 @@ final class MysqlAstMapper {
     boolean skippedBase = false;
     for (var child : context.children) {
       var result =
-          processSetOperationChild(
-              child, context, current, pendingOperator, skippedBase, options);
+          processSetOperationChild(child, context, current, pendingOperator, skippedBase, options);
       if (result != null) {
         current = result.current();
         pendingOperator = result.pendingOperator();
@@ -726,7 +730,8 @@ final class MysqlAstMapper {
       return new NamedTableReference(
           context.DUAL_SYMBOL().getText(),
           null,
-          SourceSpans.fromTokens(context.DUAL_SYMBOL().getSymbol(), context.DUAL_SYMBOL().getSymbol(), options));
+          SourceSpans.fromTokens(
+              context.DUAL_SYMBOL().getSymbol(), context.DUAL_SYMBOL().getSymbol(), options));
     }
 
     if (context.tableReferenceList() == null
@@ -787,7 +792,9 @@ final class MysqlAstMapper {
     }
 
     return new NamedTableReference(
-        tableName, aliasText(context.tableAlias()), SourceSpans.fromTokens(context.start, context.stop, options));
+        tableName,
+        aliasText(context.tableAlias()),
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static JoinTableReference mapJoinedTable(
@@ -900,7 +907,9 @@ final class MysqlAstMapper {
           && terminalNode.getSymbol().getType() == MySQLParser.DEFAULT_SYMBOL) {
         values.add(
             new LiteralExpression(
-                "DEFAULT", SourceSpans.fromTokens(terminalNode.getSymbol(), terminalNode.getSymbol(), options)));
+                "DEFAULT",
+                SourceSpans.fromTokens(
+                    terminalNode.getSymbol(), terminalNode.getSymbol(), options)));
       }
     }
     return List.copyOf(values);
@@ -932,7 +941,9 @@ final class MysqlAstMapper {
       return null;
     }
     return new LimitClause(
-        numericLimit(context.limitOption()), null, SourceSpans.fromTokens(context.start, context.stop, options));
+        numericLimit(context.limitOption()),
+        null,
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static List<Expression> mapGroupBy(
@@ -1042,7 +1053,8 @@ final class MysqlAstMapper {
             ? context.getText()
             : input.getText(
                 Interval.of(context.start.getStartIndex(), context.stop.getStopIndex()));
-    return new MySqlRawStatement(kind, sql, SourceSpans.fromTokens(context.start, context.stop, options));
+    return new MySqlRawStatement(
+        kind, sql, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static MySqlStatementKind kindForSimpleStatement(
@@ -1189,13 +1201,15 @@ final class MysqlAstMapper {
 
     long first = numericLimit(limitOptions.getFirst());
     if (limitOptions.size() == 1) {
-      return new LimitClause(first, null, SourceSpans.fromTokens(context.start, context.stop, options));
+      return new LimitClause(
+          first, null, SourceSpans.fromTokens(context.start, context.stop, options));
     }
 
     long second = numericLimit(limitOptions.get(1));
     Long offset = context.limitOptions().OFFSET_SYMBOL() != null ? second : first;
     long rowCount = context.limitOptions().OFFSET_SYMBOL() != null ? first : second;
-    return new LimitClause(rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
+    return new LimitClause(
+        rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static long numericLimit(MySQLParser.LimitOptionContext context) {
@@ -1456,10 +1470,12 @@ final class MysqlAstMapper {
           SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.CURDATE_SYMBOL() != null) {
-      return functionCall("CURDATE", List.of(), SourceSpans.fromTokens(context.start, context.stop, options));
+      return functionCall(
+          "CURDATE", List.of(), SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.CURRENT_USER_SYMBOL() != null) {
-      return functionCall("CURRENT_USER", List.of(), SourceSpans.fromTokens(context.start, context.stop, options));
+      return functionCall(
+          "CURRENT_USER", List.of(), SourceSpans.fromTokens(context.start, context.stop, options));
     }
     throw unsupportedFeature(
         "MySQL MVP does not support built-in runtime function '"
@@ -1484,7 +1500,11 @@ final class MysqlAstMapper {
       arguments = List.of();
     }
     return new FunctionCallExpression(
-        name, arguments, false, false, SourceSpans.fromTokens(context.start, context.stop, options));
+        name,
+        arguments,
+        false,
+        false,
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static List<Expression> mapUdfExprList(
@@ -1531,7 +1551,11 @@ final class MysqlAstMapper {
     }
 
     return new FunctionCallExpression(
-        name, arguments, distinct, starArgument, SourceSpans.fromTokens(context.start, context.stop, options));
+        name,
+        arguments,
+        distinct,
+        starArgument,
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static FunctionCallExpression functionCall(
