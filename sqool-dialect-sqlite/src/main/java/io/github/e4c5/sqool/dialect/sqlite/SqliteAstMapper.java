@@ -79,19 +79,60 @@ final class SqliteAstMapper {
 
     boolean distinct = core.DISTINCT_() != null;
     List<SelectItem> selectItems = mapResultColumns(core.result_column(), options);
+    if (selectItems == null) {
+      return rawSelect(context, options);
+    }
+
     TableReference from = core.FROM_() != null ? mapJoinClause(core.join_clause(), options) : null;
-    Expression where = core.where_expr != null ? mapExpr(core.where_expr, options) : null;
-    List<Expression> groupBy =
-        core.group_by_expr != null && !core.group_by_expr.isEmpty()
-            ? core.group_by_expr.stream().map(e -> mapExpr(e, options)).toList()
-            : List.of();
-    Expression having = core.having_expr != null ? mapExpr(core.having_expr, options) : null;
-    List<OrderByItem> orderBy =
-        context.order_clause() != null
-            ? mapOrderClause(context.order_clause(), options)
-            : List.of();
-    LimitClause limit =
-        context.limit_clause() != null ? mapLimitClause(context.limit_clause(), options) : null;
+    if (core.FROM_() != null && from == null) {
+      // FROM clause present but not representable in the current AST slice.
+      return rawSelect(context, options);
+    }
+
+    Expression where = null;
+    if (core.where_expr != null) {
+      where = mapExpr(core.where_expr, options);
+      if (where == null) {
+        return rawSelect(context, options);
+      }
+    }
+
+    List<Expression> groupBy = List.of();
+    if (core.group_by_expr != null && !core.group_by_expr.isEmpty()) {
+      var grouped = new ArrayList<Expression>();
+      for (SQLiteParser.ExprContext groupExpr : core.group_by_expr) {
+        Expression mapped = mapExpr(groupExpr, options);
+        if (mapped == null) {
+          return rawSelect(context, options);
+        }
+        grouped.add(mapped);
+      }
+      groupBy = List.copyOf(grouped);
+    }
+
+    Expression having = null;
+    if (core.having_expr != null) {
+      having = mapExpr(core.having_expr, options);
+      if (having == null) {
+        return rawSelect(context, options);
+      }
+    }
+
+    List<OrderByItem> orderBy = List.of();
+    if (context.order_clause() != null) {
+      orderBy = mapOrderClause(context.order_clause(), options);
+      if (orderBy == null) {
+        return rawSelect(context, options);
+      }
+    }
+
+    LimitClause limit = null;
+    if (context.limit_clause() != null) {
+      limit = mapLimitClause(context.limit_clause(), options);
+      if (limit == null) {
+        return rawSelect(context, options);
+      }
+    }
 
     return new ParseSuccess(
         SqlDialect.SQLITE,
@@ -135,6 +176,10 @@ final class SqliteAstMapper {
         }
       } else {
         Expression expr = mapExpr(col.expr(), options);
+        if (expr == null) {
+          // Projection expression is outside the supported subset.
+          return null;
+        }
         String alias = col.column_alias() != null ? col.column_alias().getText() : null;
         items.add(
             new ExpressionSelectItem(
@@ -174,36 +219,108 @@ final class SqliteAstMapper {
     if (or == null || or.expr_and().isEmpty()) {
       return null;
     }
-    SQLiteParser.Expr_binaryContext binary = or.expr_and(0).expr_not(0).expr_binary();
-    return mapExprFromBinary(binary, options);
+
+    // Build a left-associative OR chain of AND expressions.
+    Expression current = mapAnd(or.expr_and(0), options);
+    if (current == null) {
+      return null;
+    }
+
+    for (int i = 1; i < or.expr_and().size(); i++) {
+      Expression rhs = mapAnd(or.expr_and(i), options);
+      if (rhs == null) {
+        return null;
+      }
+      current =
+          new io.github.e4c5.sqool.ast.BinaryExpression(
+              current,
+              io.github.e4c5.sqool.ast.BinaryOperator.OR,
+              rhs,
+              SourceSpans.fromTokens(context.start, context.stop, options));
+    }
+
+    return current;
+  }
+
+  private static Expression mapAnd(
+      SQLiteParser.Expr_andContext context, ParseOptions options) {
+    if (context == null || context.expr_not().isEmpty()) {
+      return null;
+    }
+
+    Expression current = mapNot(context.expr_not(0), options);
+    if (current == null) {
+      return null;
+    }
+
+    for (int i = 1; i < context.expr_not().size(); i++) {
+      Expression rhs = mapNot(context.expr_not(i), options);
+      if (rhs == null) {
+        return null;
+      }
+      current =
+          new io.github.e4c5.sqool.ast.BinaryExpression(
+              current,
+              io.github.e4c5.sqool.ast.BinaryOperator.AND,
+              rhs,
+              SourceSpans.fromTokens(context.start, context.stop, options));
+    }
+
+    return current;
+  }
+
+  private static Expression mapNot(
+      SQLiteParser.Expr_notContext context, ParseOptions options) {
+    if (context == null) {
+      return null;
+    }
+
+    Expression base = mapExprFromBinary(context.expr_binary(), options);
+    if (base == null) {
+      return null;
+    }
+
+    int notCount = context.NOT_() == null ? 0 : context.NOT_().size();
+    if (notCount % 2 == 0) {
+      return base;
+    }
+
+    return new io.github.e4c5.sqool.ast.UnaryExpression(
+        io.github.e4c5.sqool.ast.UnaryOperator.NOT,
+        base,
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Expression mapExprFromBinary(
       SQLiteParser.Expr_binaryContext context, ParseOptions options) {
+    if (context == null || context.expr_comparison().isEmpty()) {
+      return null;
+    }
+    // Only the simple comparison chain is supported; anything more complex causes a fallback.
+    if (context.expr_comparison().size() != 1) {
+      return null;
+    }
     SQLiteParser.Expr_comparisonContext comp = context.expr_comparison(0);
-    if (comp == null) {
+    if (comp.expr_bitwise().isEmpty() || comp.expr_bitwise().size() != 1) {
       return null;
     }
     SQLiteParser.Expr_bitwiseContext bit = comp.expr_bitwise(0);
-    if (bit == null) {
+    if (bit.expr_addition().isEmpty() || bit.expr_addition().size() != 1) {
       return null;
     }
     SQLiteParser.Expr_additionContext add = bit.expr_addition(0);
-    if (add == null) {
+    if (add.expr_multiplication().isEmpty() || add.expr_multiplication().size() != 1) {
       return null;
     }
     SQLiteParser.Expr_multiplicationContext mul = add.expr_multiplication(0);
-    if (mul == null) {
+    if (mul.expr_string().isEmpty() || mul.expr_string().size() != 1) {
       return null;
     }
     SQLiteParser.Expr_stringContext str = mul.expr_string(0);
-    if (str == null) {
+    if (str.expr_collate().isEmpty() || str.expr_collate().size() != 1) {
       return null;
     }
     SQLiteParser.Expr_collateContext coll = str.expr_collate(0);
-    if (coll == null) {
-      return null;
-    }
     SQLiteParser.Expr_unaryContext un = coll.expr_unary();
     if (un == null) {
       return null;
@@ -245,6 +362,9 @@ final class SqliteAstMapper {
     List<OrderByItem> items = new ArrayList<>();
     for (SQLiteParser.Ordering_termContext term : context.ordering_term()) {
       Expression expr = mapExpr(term.expr(), options);
+      if (expr == null) {
+        return null;
+      }
       SortDirection dir = SortDirection.ASC;
       if (term.asc_desc() != null && term.asc_desc().DESC_() != null) {
         dir = SortDirection.DESC;
@@ -257,18 +377,27 @@ final class SqliteAstMapper {
   private static LimitClause mapLimitClause(
       SQLiteParser.Limit_clauseContext context, ParseOptions options) {
     List<SQLiteParser.ExprContext> exprs = context.expr();
-    long rowCount = parseLimitExpr(exprs.get(0));
-    Long offset = exprs.size() > 1 ? parseLimitExpr(exprs.get(1)) : null;
+    Long rowCount = parseLimitExpr(exprs.get(0));
+    if (rowCount == null) {
+      return null;
+    }
+    Long offset = null;
+    if (exprs.size() > 1) {
+      offset = parseLimitExpr(exprs.get(1));
+      if (offset == null) {
+        return null;
+      }
+    }
     return new LimitClause(
         rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
-  private static long parseLimitExpr(SQLiteParser.ExprContext expr) {
+  private static Long parseLimitExpr(SQLiteParser.ExprContext expr) {
     String text = expr.getText();
     try {
       return Long.parseLong(text);
     } catch (NumberFormatException e) {
-      return 0;
+      return null;
     }
   }
 
