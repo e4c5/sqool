@@ -302,94 +302,107 @@ final class PostgresqlAstMapper {
     if (ctx == null) {
       return null;
     }
-
     if (ctx instanceof PostgreSQLParser.LiteralExprContext literalCtx) {
       return mapLiteral(literalCtx.literal(), options);
     }
-
     if (ctx instanceof PostgreSQLParser.NameExprContext nameCtx) {
       return new IdentifierExpression(
           nameCtx.qualifiedName().getText(), SourceSpans.fromTokens(ctx.start, ctx.stop, options));
     }
-
     if (ctx instanceof PostgreSQLParser.ParenExprContext parenCtx) {
       return mapExpr(parenCtx.expr(), options);
     }
-
     if (ctx instanceof PostgreSQLParser.UnaryExprContext unaryCtx) {
-      int opType = unaryCtx.op.getType();
-      UnaryOperator op;
-      if (opType == PostgreSQLParser.MINUS) {
-        op = UnaryOperator.MINUS;
-      } else if (opType == PostgreSQLParser.PLUS) {
-        op = UnaryOperator.PLUS;
-      } else {
-        return null;
-      }
-      Expression operand = mapExpr(unaryCtx.expr(), options);
-      if (operand == null) {
-        return null;
-      }
-      return new UnaryExpression(op, operand, SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+      return mapUnaryExpr(unaryCtx, options);
     }
-
     if (ctx instanceof PostgreSQLParser.NotExprContext notCtx) {
-      Expression operand = mapExpr(notCtx.expr(), options);
-      if (operand == null) {
-        return null;
-      }
-      return new UnaryExpression(
-          UnaryOperator.NOT, operand, SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+      return mapNotExpr(notCtx, options);
     }
-
     if (ctx instanceof PostgreSQLParser.AndExprContext andCtx) {
       return mapBinaryExpr(andCtx.expr(0), andCtx.expr(1), BinaryOperator.AND, options);
     }
-
     if (ctx instanceof PostgreSQLParser.OrExprContext orCtx) {
       return mapBinaryExpr(orCtx.expr(0), orCtx.expr(1), BinaryOperator.OR, options);
     }
-
     if (ctx instanceof PostgreSQLParser.AddExprContext addCtx) {
-      int opType = addCtx.op.getType();
-      BinaryOperator op =
-          opType == PostgreSQLParser.PLUS ? BinaryOperator.PLUS : BinaryOperator.MINUS;
-      return mapBinaryExpr(addCtx.expr(0), addCtx.expr(1), op, options);
+      return mapAddExpr(addCtx, options);
     }
-
     if (ctx instanceof PostgreSQLParser.MulExprContext mulCtx) {
-      int opType = mulCtx.op.getType();
-      BinaryOperator op;
-      if (opType == PostgreSQLParser.STAR) {
-        op = BinaryOperator.MULTIPLY;
-      } else if (opType == PostgreSQLParser.SLASH) {
-        op = BinaryOperator.DIVIDE;
-      } else {
-        op = BinaryOperator.MODULO;
-      }
-      return mapBinaryExpr(mulCtx.expr(0), mulCtx.expr(1), op, options);
+      return mapMulExpr(mulCtx, options);
     }
-
     if (ctx instanceof PostgreSQLParser.CompExprContext compCtx) {
-      BinaryOperator op = mapCompOp(compCtx.op.getType());
-      if (op == null) {
-        return null;
-      }
-      return mapBinaryExpr(compCtx.expr(0), compCtx.expr(1), op, options);
+      return mapCompExpr(compCtx, options);
     }
-
     if (ctx instanceof PostgreSQLParser.IsNullExprContext isNullCtx) {
-      Expression operand = mapExpr(isNullCtx.expr(), options);
-      if (operand == null) {
-        return null;
-      }
-      // IS NULL → use literal text as fallback expression
-      return new LiteralExpression(
-          textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+      return mapIsNullExpr(isNullCtx, options);
     }
-
     // For any other expression shape, return a raw literal with the full text as fallback.
     // This lets simple expressions work correctly while complex ones fall through.
+    return new LiteralExpression(textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+  }
+
+  private static Expression mapUnaryExpr(
+      PostgreSQLParser.UnaryExprContext ctx, ParseOptions options) {
+    int opType = ctx.op.getType();
+    UnaryOperator op;
+    if (opType == PostgreSQLParser.MINUS) {
+      op = UnaryOperator.MINUS;
+    } else if (opType == PostgreSQLParser.PLUS) {
+      op = UnaryOperator.PLUS;
+    } else {
+      return null;
+    }
+    Expression operand = mapExpr(ctx.expr(), options);
+    if (operand == null) {
+      return null;
+    }
+    return new UnaryExpression(op, operand, SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+  }
+
+  private static Expression mapNotExpr(PostgreSQLParser.NotExprContext ctx, ParseOptions options) {
+    Expression operand = mapExpr(ctx.expr(), options);
+    if (operand == null) {
+      return null;
+    }
+    return new UnaryExpression(
+        UnaryOperator.NOT, operand, SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+  }
+
+  private static Expression mapAddExpr(PostgreSQLParser.AddExprContext ctx, ParseOptions options) {
+    BinaryOperator op =
+        ctx.op.getType() == PostgreSQLParser.PLUS ? BinaryOperator.PLUS : BinaryOperator.MINUS;
+    return mapBinaryExpr(ctx.expr(0), ctx.expr(1), op, options);
+  }
+
+  private static Expression mapMulExpr(PostgreSQLParser.MulExprContext ctx, ParseOptions options) {
+    int opType = ctx.op.getType();
+    BinaryOperator op;
+    if (opType == PostgreSQLParser.STAR) {
+      op = BinaryOperator.MULTIPLY;
+    } else if (opType == PostgreSQLParser.SLASH) {
+      op = BinaryOperator.DIVIDE;
+    } else {
+      op = BinaryOperator.MODULO;
+    }
+    return mapBinaryExpr(ctx.expr(0), ctx.expr(1), op, options);
+  }
+
+  private static Expression mapCompExpr(
+      PostgreSQLParser.CompExprContext ctx, ParseOptions options) {
+    BinaryOperator op = mapCompOp(ctx.op.getType());
+    if (op == null) {
+      return null;
+    }
+    return mapBinaryExpr(ctx.expr(0), ctx.expr(1), op, options);
+  }
+
+  private static Expression mapIsNullExpr(
+      PostgreSQLParser.IsNullExprContext ctx, ParseOptions options) {
+    Expression operand = mapExpr(ctx.expr(), options);
+    if (operand == null) {
+      return null;
+    }
+    // IS NULL → use literal text as fallback expression
     return new LiteralExpression(textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options));
   }
 
@@ -472,13 +485,12 @@ final class PostgresqlAstMapper {
   }
 
   private static Long parseLongLiteral(PostgreSQLParser.ExprContext ctx) {
-    if (ctx instanceof PostgreSQLParser.LiteralExprContext litCtx) {
-      if (litCtx.literal() instanceof PostgreSQLParser.IntLiteralContext) {
-        try {
-          return Long.parseLong(litCtx.literal().getText());
-        } catch (NumberFormatException e) {
-          return null;
-        }
+    if (ctx instanceof PostgreSQLParser.LiteralExprContext litCtx
+        && litCtx.literal() instanceof PostgreSQLParser.IntLiteralContext) {
+      try {
+        return Long.parseLong(litCtx.literal().getText());
+      } catch (NumberFormatException e) {
+        return null;
       }
     }
     return null;
