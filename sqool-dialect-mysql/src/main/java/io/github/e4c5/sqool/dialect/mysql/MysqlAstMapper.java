@@ -48,6 +48,7 @@ import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
+import io.github.e4c5.sqool.core.SourceSpans;
 import io.github.e4c5.sqool.core.SqlDialect;
 import io.github.e4c5.sqool.core.SyntaxDiagnostic;
 import io.github.e4c5.sqool.grammar.mysql.generated.MySQLParser;
@@ -61,8 +62,22 @@ import org.antlr.v4.runtime.tree.TerminalNode;
 
 final class MysqlAstMapper {
   private static final String YET = " yet.";
-  private static final Pattern SUPPORTED_IDENTIFIER =
-      Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)(?:\\.(`[^`]+`|[a-z_][a-z0-9_$]*)){0,2}");
+  /** One identifier segment: backtick-quoted or unquoted. Kept simple to satisfy Sonar regex complexity. */
+  private static final Pattern IDENTIFIER_SEGMENT =
+      Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)");
+
+  private static boolean isSupportedIdentifier(String name) {
+    String[] parts = name.split("\\.", -1);
+    if (parts.length < 1 || parts.length > 3) {
+      return false;
+    }
+    for (String part : parts) {
+      if (!IDENTIFIER_SEGMENT.matcher(part).matches()) {
+        return false;
+      }
+    }
+    return true;
+  }
 
   private MysqlAstMapper() {}
 
@@ -75,7 +90,7 @@ final class MysqlAstMapper {
       SourceSpan sourceSpan =
           statements.isEmpty()
               ? null
-              : span(context.query().getFirst().start, context.query().getLast().stop, options);
+              : SourceSpans.fromTokens(context.query().getFirst().start, context.query().getLast().stop, options);
       return new ParseSuccess(SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
@@ -291,7 +306,7 @@ final class MysqlAstMapper {
             ? List.of()
             : mapUpdateList(context.insertUpdateList().updateList(), options),
         ignore,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapUpdateStatement(
@@ -313,7 +328,7 @@ final class MysqlAstMapper {
         mapOrderBy(context.orderClause(), options),
         mapSimpleLimitClause(context.simpleLimitClause(), options),
         context.IGNORE_SYMBOL() != null,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapDeleteStatement(
@@ -335,11 +350,11 @@ final class MysqlAstMapper {
         new NamedTableReference(
             context.tableRef().getText(),
             aliasText(context.tableAlias()),
-            span(context.tableRef().start, context.tableRef().stop, options)),
+            SourceSpans.fromTokens(context.tableRef().start, context.tableRef().stop, options)),
         context.whereClause() == null ? null : mapExpr(context.whereClause().expr(), options),
         mapOrderBy(context.orderClause(), options),
         mapSimpleLimitClause(context.simpleLimitClause(), options),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapReplaceStatement(
@@ -376,13 +391,13 @@ final class MysqlAstMapper {
         rows,
         assignments,
         sourceQuery,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapTruncateTableStatement(
       MySQLParser.TruncateTableStatementContext context, ParseOptions options) {
     return new TruncateTableStatement(
-        context.tableRef().getText(), span(context.start, context.stop, options));
+        context.tableRef().getText(), SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapCreateTableStatement(
@@ -399,7 +414,7 @@ final class MysqlAstMapper {
           List.of(),
           context.tableRef().getText(),
           null,
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
 
     if (context.tableElementList() == null) {
@@ -414,7 +429,7 @@ final class MysqlAstMapper {
         mapCreateTableColumns(context, options),
         null,
         context.createTableOptionsEtc() == null ? null : context.createTableOptionsEtc().getText(),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static List<ColumnDefinition> mapCreateTableColumns(
@@ -440,7 +455,7 @@ final class MysqlAstMapper {
     return new CreateDatabaseStatement(
         context.schemaName().getText(),
         context.ifNotExists() != null,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapDropStatement(
@@ -469,7 +484,7 @@ final class MysqlAstMapper {
         tableNames,
         context.ifExists() != null,
         context.TEMPORARY_SYMBOL() != null,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapDropDatabaseStatement(
@@ -477,7 +492,7 @@ final class MysqlAstMapper {
     return new DropDatabaseStatement(
         context.schemaRef().getText(),
         context.ifExists() != null,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapQueryExpressionInternal(
@@ -494,7 +509,7 @@ final class MysqlAstMapper {
               statement,
               mapOrderBy(context.orderClause(), options),
               mapLimitClause(context.limitClause(), options),
-              span(context.start, context.stop, options));
+              SourceSpans.fromTokens(context.start, context.stop, options));
     }
     return statement;
   }
@@ -519,37 +534,68 @@ final class MysqlAstMapper {
     SetOperator pendingOperator = null;
     boolean skippedBase = false;
     for (var child : context.children) {
-      if (!skippedBase
-          && (child == context.queryPrimary() || child == context.queryExpressionParens())) {
-        skippedBase = true;
-      } else if (child instanceof TerminalNode terminalNode) {
-        int tokenType = terminalNode.getSymbol().getType();
-        if (tokenType == MySQLParser.UNION_SYMBOL) {
-          pendingOperator = SetOperator.UNION_DISTINCT;
-        } else if (tokenType == MySQLParser.EXCEPT_SYMBOL
-            || tokenType == MySQLParser.INTERSECT_SYMBOL) {
-          throw unsupportedFeature(
-              "MySQL MVP does not support EXCEPT or INTERSECT" + YET, terminalNode.getSymbol());
-        }
-      } else if (child instanceof MySQLParser.UnionOptionContext unionOptionContext) {
-        pendingOperator =
-            "ALL".equalsIgnoreCase(unionOptionContext.getText())
-                ? SetOperator.UNION_ALL
-                : SetOperator.UNION_DISTINCT;
-      } else if (child instanceof MySQLParser.QueryExpressionBodyContext rhsBody) {
-        current =
-            new SetOperationStatement(
-                current,
-                pendingOperator == null ? SetOperator.UNION_DISTINCT : pendingOperator,
-                mapQueryExpressionBody(rhsBody, options),
-                List.of(),
-                null,
-                span(context.start, context.stop, options));
-        pendingOperator = null;
+      var result =
+          processSetOperationChild(
+              child, context, current, pendingOperator, skippedBase, options);
+      if (result != null) {
+        current = result.current();
+        pendingOperator = result.pendingOperator();
+        skippedBase = result.skippedBase();
       }
     }
     return current;
   }
+
+  private static SetOperationLoopResult processSetOperationChild(
+      Object child,
+      MySQLParser.QueryExpressionBodyContext context,
+      Statement current,
+      SetOperator pendingOperator,
+      boolean skippedBase,
+      ParseOptions options) {
+    if (!skippedBase
+        && (child == context.queryPrimary() || child == context.queryExpressionParens())) {
+      return new SetOperationLoopResult(current, pendingOperator, true);
+    }
+    if (child instanceof TerminalNode terminalNode) {
+      SetOperator next = pendingOperatorForTerminal(terminalNode);
+      return next != null ? new SetOperationLoopResult(current, next, skippedBase) : null;
+    }
+    if (child instanceof MySQLParser.UnionOptionContext unionOptionContext) {
+      SetOperator next =
+          "ALL".equalsIgnoreCase(unionOptionContext.getText())
+              ? SetOperator.UNION_ALL
+              : SetOperator.UNION_DISTINCT;
+      return new SetOperationLoopResult(current, next, skippedBase);
+    }
+    if (child instanceof MySQLParser.QueryExpressionBodyContext rhsBody) {
+      Statement nextCurrent =
+          new SetOperationStatement(
+              current,
+              pendingOperator == null ? SetOperator.UNION_DISTINCT : pendingOperator,
+              mapQueryExpressionBody(rhsBody, options),
+              List.of(),
+              null,
+              SourceSpans.fromTokens(context.start, context.stop, options));
+      return new SetOperationLoopResult(nextCurrent, null, skippedBase);
+    }
+    return null;
+  }
+
+  private static SetOperator pendingOperatorForTerminal(TerminalNode terminalNode) {
+    int tokenType = terminalNode.getSymbol().getType();
+    if (tokenType == MySQLParser.UNION_SYMBOL) {
+      return SetOperator.UNION_DISTINCT;
+    }
+    if (tokenType == MySQLParser.EXCEPT_SYMBOL || tokenType == MySQLParser.INTERSECT_SYMBOL) {
+      throw unsupportedFeature(
+          "MySQL MVP does not support EXCEPT or INTERSECT" + YET, terminalNode.getSymbol());
+    }
+    return null;
+  }
+
+  private record SetOperationLoopResult(
+      Statement current, SetOperator pendingOperator, boolean skippedBase) {}
 
   private static Statement mapQueryPrimary(
       MySQLParser.QueryPrimaryContext context, ParseOptions options) {
@@ -564,7 +610,7 @@ final class MysqlAstMapper {
           mappedBody.having(),
           List.of(),
           null,
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     throw unsupportedFeature(
         "MySQL MVP currently supports only SELECT query primaries.", context.start);
@@ -643,7 +689,7 @@ final class MysqlAstMapper {
       result.add(
           new AllColumnsSelectItem(
               null,
-              span(
+              SourceSpans.fromTokens(
                   context.MULT_OPERATOR().getSymbol(),
                   context.MULT_OPERATOR().getSymbol(),
                   options)));
@@ -655,7 +701,7 @@ final class MysqlAstMapper {
         result.add(
             new AllColumnsSelectItem(
                 tableWildText.substring(0, tableWildText.length() - 2),
-                span(selectItem.start, selectItem.stop, options)));
+                SourceSpans.fromTokens(selectItem.start, selectItem.stop, options)));
         continue;
       }
 
@@ -668,7 +714,7 @@ final class MysqlAstMapper {
           new ExpressionSelectItem(
               mapExpr(selectItem.expr(), options),
               aliasText(selectItem.selectAlias()),
-              span(selectItem.start, selectItem.stop, options)));
+              SourceSpans.fromTokens(selectItem.start, selectItem.stop, options)));
     }
 
     return List.copyOf(result);
@@ -680,7 +726,7 @@ final class MysqlAstMapper {
       return new NamedTableReference(
           context.DUAL_SYMBOL().getText(),
           null,
-          span(context.DUAL_SYMBOL().getSymbol(), context.DUAL_SYMBOL().getSymbol(), options));
+          SourceSpans.fromTokens(context.DUAL_SYMBOL().getSymbol(), context.DUAL_SYMBOL().getSymbol(), options));
     }
 
     if (context.tableReferenceList() == null
@@ -735,13 +781,13 @@ final class MysqlAstMapper {
     }
 
     var tableName = context.tableRef().getText();
-    if (!SUPPORTED_IDENTIFIER.matcher(tableName).matches()) {
+    if (!isSupportedIdentifier(tableName)) {
       throw unsupportedFeature(
           "MySQL MVP encountered an unsupported table reference.", context.start);
     }
 
     return new NamedTableReference(
-        tableName, aliasText(context.tableAlias()), span(context.start, context.stop, options));
+        tableName, aliasText(context.tableAlias()), SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static JoinTableReference mapJoinedTable(
@@ -753,7 +799,7 @@ final class MysqlAstMapper {
           mapTableReference(context.tableReference(), options),
           null,
           mapIdentifierListWithParentheses(context.identifierListWithParentheses()),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.naturalJoinType() != null || context.tableFactor() != null) {
       throw unsupportedFeature("MySQL MVP does not support NATURAL joins" + YET, context.start);
@@ -768,7 +814,7 @@ final class MysqlAstMapper {
         mapTableReference(context.tableReference(), options),
         context.expr() == null ? null : mapExpr(context.expr(), options),
         List.of(),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static JoinType mapJoinType(MySQLParser.JoinedTableContext context) {
@@ -809,7 +855,7 @@ final class MysqlAstMapper {
                       && "DESC".equalsIgnoreCase(orderExpression.direction().getText())
                   ? SortDirection.DESC
                   : SortDirection.ASC,
-              span(orderExpression.start, orderExpression.stop, options)));
+              SourceSpans.fromTokens(orderExpression.start, orderExpression.stop, options)));
     }
     return List.copyOf(result);
   }
@@ -854,7 +900,7 @@ final class MysqlAstMapper {
           && terminalNode.getSymbol().getType() == MySQLParser.DEFAULT_SYMBOL) {
         values.add(
             new LiteralExpression(
-                "DEFAULT", span(terminalNode.getSymbol(), terminalNode.getSymbol(), options)));
+                "DEFAULT", SourceSpans.fromTokens(terminalNode.getSymbol(), terminalNode.getSymbol(), options)));
       }
     }
     return List.copyOf(values);
@@ -870,12 +916,12 @@ final class MysqlAstMapper {
               updateElement.DEFAULT_SYMBOL() != null
                   ? new LiteralExpression(
                       "DEFAULT",
-                      span(
+                      SourceSpans.fromTokens(
                           updateElement.DEFAULT_SYMBOL().getSymbol(),
                           updateElement.DEFAULT_SYMBOL().getSymbol(),
                           options))
                   : mapExpr(updateElement.expr(), options),
-              span(updateElement.start, updateElement.stop, options)));
+              SourceSpans.fromTokens(updateElement.start, updateElement.stop, options)));
     }
     return List.copyOf(assignments);
   }
@@ -886,7 +932,7 @@ final class MysqlAstMapper {
       return null;
     }
     return new LimitClause(
-        numericLimit(context.limitOption()), null, span(context.start, context.stop, options));
+        numericLimit(context.limitOption()), null, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static List<Expression> mapGroupBy(
@@ -941,7 +987,7 @@ final class MysqlAstMapper {
         null,
         null,
         context.likeOrWhere() == null ? null : context.likeOrWhere().getText(),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapShowTablesStatement(
@@ -954,7 +1000,7 @@ final class MysqlAstMapper {
             ? null
             : context.showCommandType().getText().toUpperCase(Locale.ROOT),
         context.likeOrWhere() == null ? null : context.likeOrWhere().getText(),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapShowColumnsStatement(
@@ -967,7 +1013,7 @@ final class MysqlAstMapper {
             ? null
             : context.showCommandType().getText().toUpperCase(Locale.ROOT),
         context.likeOrWhere() == null ? null : context.likeOrWhere().getText(),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement mapShowCreateTableStatement(
@@ -978,7 +1024,7 @@ final class MysqlAstMapper {
         null,
         null,
         null,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static Statement rawSimpleStatement(
@@ -996,10 +1042,55 @@ final class MysqlAstMapper {
             ? context.getText()
             : input.getText(
                 Interval.of(context.start.getStartIndex(), context.stop.getStopIndex()));
-    return new MySqlRawStatement(kind, sql, span(context.start, context.stop, options));
+    return new MySqlRawStatement(kind, sql, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static MySqlStatementKind kindForSimpleStatement(
+      MySQLParser.SimpleStatementContext context) {
+    MySqlStatementKind kind = kindForCreateStatement(context);
+    if (kind != null) {
+      return kind;
+    }
+    kind = kindForDropStatement(context);
+    if (kind != null) {
+      return kind;
+    }
+    kind = kindForSimpleStatementMapping(context);
+    if (kind != null) {
+      return kind;
+    }
+    return MySqlStatementKind.SHOW_OTHER;
+  }
+
+  private static MySqlStatementKind kindForCreateStatement(
+      MySQLParser.SimpleStatementContext context) {
+    if (context.createStatement() == null) {
+      return null;
+    }
+    if (context.createStatement().createTable() != null) {
+      return MySqlStatementKind.CREATE_TABLE;
+    }
+    if (context.createStatement().createDatabase() != null) {
+      return MySqlStatementKind.CREATE_DATABASE;
+    }
+    return MySqlStatementKind.CREATE_OTHER;
+  }
+
+  private static MySqlStatementKind kindForDropStatement(
+      MySQLParser.SimpleStatementContext context) {
+    if (context.dropStatement() == null) {
+      return null;
+    }
+    if (context.dropStatement().dropTable() != null) {
+      return MySqlStatementKind.DROP_TABLE;
+    }
+    if (context.dropStatement().dropDatabase() != null) {
+      return MySqlStatementKind.DROP_DATABASE;
+    }
+    return MySqlStatementKind.DROP_OTHER;
+  }
+
+  private static MySqlStatementKind kindForSimpleStatementMapping(
       MySQLParser.SimpleStatementContext context) {
     if (context.selectStatement() != null) return MySqlStatementKind.SELECT;
     if (context.insertStatement() != null) return MySqlStatementKind.INSERT;
@@ -1007,31 +1098,10 @@ final class MysqlAstMapper {
     if (context.deleteStatement() != null) return MySqlStatementKind.DELETE;
     if (context.replaceStatement() != null) return MySqlStatementKind.REPLACE;
     if (context.truncateTableStatement() != null) return MySqlStatementKind.TRUNCATE_TABLE;
-
-    if (context.createStatement() != null) {
-      if (context.createStatement().createTable() != null) {
-        return MySqlStatementKind.CREATE_TABLE;
-      }
-      if (context.createStatement().createDatabase() != null) {
-        return MySqlStatementKind.CREATE_DATABASE;
-      }
-      return MySqlStatementKind.CREATE_OTHER;
-    }
-    if (context.dropStatement() != null) {
-      if (context.dropStatement().dropTable() != null) {
-        return MySqlStatementKind.DROP_TABLE;
-      }
-      if (context.dropStatement().dropDatabase() != null) {
-        return MySqlStatementKind.DROP_DATABASE;
-      }
-      return MySqlStatementKind.DROP_OTHER;
-    }
-
     if (context.showDatabasesStatement() != null) return MySqlStatementKind.SHOW_DATABASES;
     if (context.showTablesStatement() != null) return MySqlStatementKind.SHOW_TABLES;
     if (context.showColumnsStatement() != null) return MySqlStatementKind.SHOW_COLUMNS;
     if (context.showCreateTableStatement() != null) return MySqlStatementKind.SHOW_CREATE_TABLE;
-
     if (context.alterStatement() != null) return MySqlStatementKind.ALTER;
     if (context.renameTableStatement() != null) return MySqlStatementKind.RENAME_TABLE;
     if (context.importStatement() != null) return MySqlStatementKind.IMPORT;
@@ -1057,12 +1127,8 @@ final class MysqlAstMapper {
     if (context.getDiagnosticsStatement() != null) return MySqlStatementKind.GET_DIAGNOSTICS;
     if (context.signalStatement() != null) return MySqlStatementKind.SIGNAL;
     if (context.resignalStatement() != null) return MySqlStatementKind.RESIGNAL;
-
-    if (isOtherShowStatement(context)) {
-      return MySqlStatementKind.SHOW_OTHER;
-    }
-
-    return MySqlStatementKind.SHOW_OTHER;
+    if (isOtherShowStatement(context)) return MySqlStatementKind.SHOW_OTHER;
+    return null;
   }
 
   private static boolean isOtherShowStatement(MySQLParser.SimpleStatementContext context) {
@@ -1123,13 +1189,13 @@ final class MysqlAstMapper {
 
     long first = numericLimit(limitOptions.getFirst());
     if (limitOptions.size() == 1) {
-      return new LimitClause(first, null, span(context.start, context.stop, options));
+      return new LimitClause(first, null, SourceSpans.fromTokens(context.start, context.stop, options));
     }
 
     long second = numericLimit(limitOptions.get(1));
     Long offset = context.limitOptions().OFFSET_SYMBOL() != null ? second : first;
     long rowCount = context.limitOptions().OFFSET_SYMBOL() != null ? first : second;
-    return new LimitClause(rowCount, offset, span(context.start, context.stop, options));
+    return new LimitClause(rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static long numericLimit(MySQLParser.LimitOptionContext context) {
@@ -1152,20 +1218,20 @@ final class MysqlAstMapper {
           mapExpr(andContext.expr(0), options),
           BinaryOperator.AND,
           mapExpr(andContext.expr(1), options),
-          span(andContext.start, andContext.stop, options));
+          SourceSpans.fromTokens(andContext.start, andContext.stop, options));
     }
     if (context instanceof MySQLParser.ExprOrContext orContext) {
       return new BinaryExpression(
           mapExpr(orContext.expr(0), options),
           BinaryOperator.OR,
           mapExpr(orContext.expr(1), options),
-          span(orContext.start, orContext.stop, options));
+          SourceSpans.fromTokens(orContext.start, orContext.stop, options));
     }
     if (context instanceof MySQLParser.ExprNotContext notContext) {
       return new UnaryExpression(
           UnaryOperator.NOT,
           mapExpr(notContext.expr(), options),
-          span(notContext.start, notContext.stop, options));
+          SourceSpans.fromTokens(notContext.start, notContext.stop, options));
     }
     if (context instanceof MySQLParser.ExprIsContext isContext) {
       if (isContext.type != null || isContext.notRule() != null) {
@@ -1187,14 +1253,14 @@ final class MysqlAstMapper {
           mapBoolPri(compareContext.boolPri(), options),
           mapComparisonOperator(compareContext.compOp()),
           mapPredicate(compareContext.predicate(), options),
-          span(compareContext.start, compareContext.stop, options));
+          SourceSpans.fromTokens(compareContext.start, compareContext.stop, options));
     }
     if (context instanceof MySQLParser.PrimaryExprIsNullContext isNullContext) {
       return new BinaryExpression(
           mapBoolPri(isNullContext.boolPri(), options),
           isNullContext.notRule() != null ? BinaryOperator.IS_NOT : BinaryOperator.IS,
           new LiteralExpression("NULL", null),
-          span(isNullContext.start, isNullContext.stop, options));
+          SourceSpans.fromTokens(isNullContext.start, isNullContext.stop, options));
     }
     throw unsupportedFeature("MySQL MVP encountered an unsupported predicate form.", context.start);
   }
@@ -1233,7 +1299,7 @@ final class MysqlAstMapper {
           left,
           mapExprList(inContext.exprList(), options),
           negated,
-          span(inContext.start, inContext.stop, options));
+          SourceSpans.fromTokens(inContext.start, inContext.stop, options));
     }
     if (context.predicateOperations()
         instanceof MySQLParser.PredicateExprBetweenContext betweenContext) {
@@ -1242,7 +1308,7 @@ final class MysqlAstMapper {
           mapBitExpr(betweenContext.bitExpr(), options),
           mapPredicate(betweenContext.predicate(), options),
           negated,
-          span(betweenContext.start, betweenContext.stop, options));
+          SourceSpans.fromTokens(betweenContext.start, betweenContext.stop, options));
     }
     if (context.predicateOperations() instanceof MySQLParser.PredicateExprLikeContext likeContext) {
       return new LikeExpression(
@@ -1252,7 +1318,7 @@ final class MysqlAstMapper {
               ? mapSimpleExpr(likeContext.simpleExpr(1), options)
               : null,
           negated,
-          span(likeContext.start, likeContext.stop, options));
+          SourceSpans.fromTokens(likeContext.start, likeContext.stop, options));
     }
     throw unsupportedFeature(
         "MySQL MVP does not support this predicate operation" + YET,
@@ -1273,7 +1339,7 @@ final class MysqlAstMapper {
           mapBitExpr(context.bitExpr(0), options),
           mapArithmeticOperator(context.op),
           mapBitExpr(context.bitExpr(1), options),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     return mapSimpleExpr(context.simpleExpr(), options);
   }
@@ -1305,12 +1371,12 @@ final class MysqlAstMapper {
       }
       return new IdentifierExpression(
           columnRefContext.columnRef().getText(),
-          span(columnRefContext.start, columnRefContext.stop, options));
+          SourceSpans.fromTokens(columnRefContext.start, columnRefContext.stop, options));
     }
     if (context instanceof MySQLParser.SimpleExprLiteralContext literalContext) {
       return new LiteralExpression(
           literalContext.literalOrNull().getText(),
-          span(literalContext.start, literalContext.stop, options));
+          SourceSpans.fromTokens(literalContext.start, literalContext.stop, options));
     }
     if (context instanceof MySQLParser.SimpleExprFunctionContext functionContext) {
       return mapFunctionCall(functionContext.functionCall(), options);
@@ -1334,13 +1400,13 @@ final class MysqlAstMapper {
       return new UnaryExpression(
           unaryContext.MINUS_OPERATOR() != null ? UnaryOperator.MINUS : UnaryOperator.PLUS,
           mapSimpleExpr(unaryContext.simpleExpr(), options),
-          span(unaryContext.start, unaryContext.stop, options));
+          SourceSpans.fromTokens(unaryContext.start, unaryContext.stop, options));
     }
     if (context instanceof MySQLParser.SimpleExprNotContext notContext) {
       return new UnaryExpression(
           UnaryOperator.NOT,
           mapSimpleExpr(notContext.simpleExpr(), options),
-          span(notContext.start, notContext.stop, options));
+          SourceSpans.fromTokens(notContext.start, notContext.stop, options));
     }
     if (context instanceof MySQLParser.SimpleExprListContext listContext) {
       if (listContext.ROW_SYMBOL() != null || listContext.exprList().expr().size() != 1) {
@@ -1360,7 +1426,7 @@ final class MysqlAstMapper {
       return functionCall(
           "COALESCE",
           mapExprList(context.exprListWithParentheses().exprList(), options),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.IF_SYMBOL() != null && context.expr().size() == 3) {
       return functionCall(
@@ -1369,31 +1435,31 @@ final class MysqlAstMapper {
               mapExpr(context.expr(0), options),
               mapExpr(context.expr(1), options),
               mapExpr(context.expr(2), options)),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.MOD_SYMBOL() != null && context.expr().size() == 2) {
       return functionCall(
           "MOD",
           List.of(mapExpr(context.expr(0), options), mapExpr(context.expr(1), options)),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.DATE_SYMBOL() != null && context.exprWithParentheses() != null) {
       return functionCall(
           "DATE",
           List.of(mapExpr(context.exprWithParentheses().expr(), options)),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.NOW_SYMBOL() != null) {
       return functionCall(
           "NOW",
           mapTimeFunctionArguments(context.timeFunctionParameters(), options),
-          span(context.start, context.stop, options));
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.CURDATE_SYMBOL() != null) {
-      return functionCall("CURDATE", List.of(), span(context.start, context.stop, options));
+      return functionCall("CURDATE", List.of(), SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.CURRENT_USER_SYMBOL() != null) {
-      return functionCall("CURRENT_USER", List.of(), span(context.start, context.stop, options));
+      return functionCall("CURRENT_USER", List.of(), SourceSpans.fromTokens(context.start, context.stop, options));
     }
     throw unsupportedFeature(
         "MySQL MVP does not support built-in runtime function '"
@@ -1418,7 +1484,7 @@ final class MysqlAstMapper {
       arguments = List.of();
     }
     return new FunctionCallExpression(
-        name, arguments, false, false, span(context.start, context.stop, options));
+        name, arguments, false, false, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static List<Expression> mapUdfExprList(
@@ -1465,7 +1531,7 @@ final class MysqlAstMapper {
     }
 
     return new FunctionCallExpression(
-        name, arguments, distinct, starArgument, span(context.start, context.stop, options));
+        name, arguments, distinct, starArgument, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static FunctionCallExpression functionCall(
@@ -1490,7 +1556,7 @@ final class MysqlAstMapper {
     return List.of(
         new LiteralExpression(
             context.fractionalPrecision().getText(),
-            span(
+            SourceSpans.fromTokens(
                 context.fractionalPrecision().start, context.fractionalPrecision().stop, options)));
   }
 
@@ -1515,7 +1581,7 @@ final class MysqlAstMapper {
         context.columnName().getText(),
         context.fieldDefinition().dataType().getText(),
         attributes,
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static DerivedTableReference mapDerivedTable(
@@ -1533,7 +1599,7 @@ final class MysqlAstMapper {
         mapQueryExpressionParens(context.subquery().queryExpressionParens(), options),
         aliasText(context.tableAlias()),
         mapColumnAliases(context.columnInternalRefList()),
-        span(context.start, context.stop, options));
+        SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static TableReference mapTableReferenceListParens(
@@ -1589,29 +1655,6 @@ final class MysqlAstMapper {
 
   private static UnsupportedFeatureException unsupportedFeature(String message, Token token) {
     return new UnsupportedFeatureException(message, token);
-  }
-
-  private static SourceSpan span(Token start, Token stop, ParseOptions options) {
-    if (!options.includeSourceSpans() || start == null || stop == null) {
-      return null;
-    }
-
-    int startColumn = start.getCharPositionInLine();
-    int stopColumn = stop.getCharPositionInLine();
-    if (stop.getText() != null && !stop.getText().isEmpty()) {
-      stopColumn += stop.getText().length() - 1;
-    }
-    if (start.getLine() == stop.getLine()) {
-      stopColumn = Math.max(stopColumn, startColumn);
-    }
-
-    return new SourceSpan(
-        start.getStartIndex(),
-        stop.getStopIndex(),
-        start.getLine(),
-        startColumn,
-        stop.getLine(),
-        stopColumn);
   }
 
   private record QuerySpecificationMapping(

@@ -19,6 +19,7 @@ import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
+import io.github.e4c5.sqool.core.SourceSpans;
 import io.github.e4c5.sqool.core.SqlDialect;
 import io.github.e4c5.sqool.grammar.sqlite.generated.SQLiteParser;
 import java.util.ArrayList;
@@ -43,7 +44,7 @@ final class SqliteAstMapper {
     SourceSpan scriptSpan =
         statements.isEmpty()
             ? null
-            : span(
+            : SourceSpans.fromTokens(
                 stmtList.sql_stmt(0).start,
                 stmtList.sql_stmt(statements.size() - 1).stop,
                 options);
@@ -59,7 +60,7 @@ final class SqliteAstMapper {
     String sqlText = textOf(stmt);
     return new ParseSuccess(
         SqlDialect.SQLITE,
-        new SqliteRawStatement(kind, sqlText, span(stmt.start, stmt.stop, options)),
+        new SqliteRawStatement(kind, sqlText, SourceSpans.fromTokens(stmt.start, stmt.stop, options)),
         List.of());
   }
 
@@ -105,7 +106,7 @@ final class SqliteAstMapper {
             having,
             orderBy,
             limit,
-            span(context.start, context.stop, options)),
+            SourceSpans.fromTokens(context.start, context.stop, options)),
         List.of());
   }
 
@@ -114,7 +115,7 @@ final class SqliteAstMapper {
     return new ParseSuccess(
         SqlDialect.SQLITE,
         new SqliteRawStatement(
-            SqliteStatementKind.SELECT, textOf(context), span(context.start, context.stop, options)),
+            SqliteStatementKind.SELECT, textOf(context), SourceSpans.fromTokens(context.start, context.stop, options)),
         List.of());
   }
 
@@ -126,14 +127,14 @@ final class SqliteAstMapper {
         if (col.table_name() != null) {
           items.add(
               new AllColumnsSelectItem(
-                  col.table_name().getText(), span(col.start, col.stop, options)));
+                  col.table_name().getText(), SourceSpans.fromTokens(col.start, col.stop, options)));
         } else {
-          items.add(new AllColumnsSelectItem(null, span(col.start, col.stop, options)));
+          items.add(new AllColumnsSelectItem(null, SourceSpans.fromTokens(col.start, col.stop, options)));
         }
       } else {
         Expression expr = mapExpr(col.expr(), options);
         String alias = col.column_alias() != null ? col.column_alias().getText() : null;
-        items.add(new ExpressionSelectItem(expr, alias, span(col.start, col.stop, options)));
+        items.add(new ExpressionSelectItem(expr, alias, SourceSpans.fromTokens(col.start, col.stop, options)));
       }
     }
     return items;
@@ -162,7 +163,7 @@ final class SqliteAstMapper {
     String alias =
         first.table_alias() != null ? first.table_alias().getText() : null;
     return new NamedTableReference(
-        tableName, alias, span(first.start, first.stop, options));
+        tableName, alias, SourceSpans.fromTokens(first.start, first.stop, options));
   }
 
   private static Expression mapExpr(SQLiteParser.ExprContext context, ParseOptions options) {
@@ -212,25 +213,25 @@ final class SqliteAstMapper {
       return mapLiteralValue(base.literal_value(), options);
     }
     if (base.BIND_PARAMETER() != null) {
-      return new LiteralExpression(base.getText(), span(base.start, base.stop, options));
+      return new LiteralExpression(base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
     }
     if (base.column_name_excluding_string() != null) {
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          base.column_name_excluding_string().getText(), span(base.start, base.stop, options));
+          base.column_name_excluding_string().getText(), SourceSpans.fromTokens(base.start, base.stop, options));
     }
     if (base.table_name() != null && base.DOT() != null && base.column_name() != null) {
       String table = base.table_name().getText();
       String column = base.column_name().getText();
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          table + "." + column, span(base.start, base.stop, options));
+          table + "." + column, SourceSpans.fromTokens(base.start, base.stop, options));
     }
-    return new LiteralExpression(base.getText(), span(base.start, base.stop, options));
+    return new LiteralExpression(base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
   }
 
   private static Expression mapLiteralValue(
       SQLiteParser.Literal_valueContext context, ParseOptions options) {
     return new LiteralExpression(
-        context.getText(), span(context.start, context.stop, options));
+        context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static List<OrderByItem> mapOrderClause(
@@ -242,7 +243,7 @@ final class SqliteAstMapper {
       if (term.asc_desc() != null && term.asc_desc().DESC_() != null) {
         dir = SortDirection.DESC;
       }
-      items.add(new OrderByItem(expr, dir, span(term.start, term.stop, options)));
+      items.add(new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
     }
     return items;
   }
@@ -252,7 +253,7 @@ final class SqliteAstMapper {
     List<SQLiteParser.ExprContext> exprs = context.expr();
     long rowCount = parseLimitExpr(exprs.get(0));
     Long offset = exprs.size() > 1 ? parseLimitExpr(exprs.get(1)) : null;
-    return new LimitClause(rowCount, offset, span(context.start, context.stop, options));
+    return new LimitClause(rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
   private static long parseLimitExpr(SQLiteParser.ExprContext expr) {
@@ -297,24 +298,4 @@ final class SqliteAstMapper {
     return context.start.getInputStream().getText(interval);
   }
 
-  private static SourceSpan span(Token start, Token stop, ParseOptions options) {
-    if (!options.includeSourceSpans() || start == null || stop == null) {
-      return null;
-    }
-    int startColumn = start.getCharPositionInLine();
-    int stopColumn = stop.getCharPositionInLine();
-    if (stop.getText() != null && !stop.getText().isEmpty()) {
-      stopColumn += stop.getText().length() - 1;
-    }
-    if (start.getLine() == stop.getLine()) {
-      stopColumn = Math.max(stopColumn, startColumn);
-    }
-    return new SourceSpan(
-        start.getStartIndex(),
-        stop.getStopIndex(),
-        start.getLine(),
-        startColumn,
-        stop.getLine(),
-        stopColumn);
-  }
 }

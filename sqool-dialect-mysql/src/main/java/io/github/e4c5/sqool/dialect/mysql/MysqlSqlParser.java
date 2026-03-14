@@ -69,24 +69,15 @@ public final class MysqlSqlParser implements SqlParser {
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
-    var syntaxErrors = new AntlrSyntaxErrorListener();
-    var lexer = new MySQLLexer(CharStreams.fromString(sql));
-    lexer.removeErrorListeners();
-    lexer.addErrorListener(syntaxErrors);
-
-    var tokens = new CommonTokenStream(lexer);
-    var parser = new MySQLParser(tokens);
-    parser.removeErrorListeners();
-    parser.addErrorListener(syntaxErrors);
-    parser.setBuildParseTree(true);
-    parser.setErrorHandler(errorStrategy);
-    parser.getInterpreter().setPredictionMode(predictionMode);
-
-    var context = parser.simpleStatement();
-    requireEndOfInput(tokens, syntaxErrors);
-    return syntaxErrors.hasDiagnostics()
-        ? ParseAttempt.failure(syntaxErrors.diagnostics())
-        : new ParseAttempt<>(context, List.of());
+    return parseWith(
+        sql,
+        predictionMode,
+        errorStrategy,
+        (parser, tokens, syntaxErrors) -> {
+          var context = parser.simpleStatement();
+          requireEndOfInput(tokens, syntaxErrors);
+          return context;
+        });
   }
 
   private ParseAttempt<MySQLParser.QueriesContext> parseQueries(String sql, boolean enableFallback) {
@@ -107,6 +98,15 @@ public final class MysqlSqlParser implements SqlParser {
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
+    return parseWith(
+        sql, predictionMode, errorStrategy, (parser, tokens, syntaxErrors) -> parser.queries());
+  }
+
+  private <C> ParseAttempt<C> parseWith(
+      String sql,
+      PredictionMode predictionMode,
+      org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy,
+      ParserRunner<C> runner) {
     var syntaxErrors = new AntlrSyntaxErrorListener();
     var lexer = new MySQLLexer(CharStreams.fromString(sql));
     lexer.removeErrorListeners();
@@ -120,10 +120,17 @@ public final class MysqlSqlParser implements SqlParser {
     parser.setErrorHandler(errorStrategy);
     parser.getInterpreter().setPredictionMode(predictionMode);
 
-    var context = parser.queries();
+    var context = runner.run(parser, tokens, syntaxErrors);
     return syntaxErrors.hasDiagnostics()
         ? ParseAttempt.failure(syntaxErrors.diagnostics())
         : new ParseAttempt<>(context, List.of());
+  }
+
+  private interface ParserRunner<C> {
+    C run(
+        MySQLParser parser,
+        CommonTokenStream tokens,
+        AntlrSyntaxErrorListener syntaxErrors);
   }
 
   private void requireEndOfInput(
