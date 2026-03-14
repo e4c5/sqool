@@ -236,8 +236,7 @@ final class SqliteAstMapper {
     return current;
   }
 
-  private static Expression mapAnd(
-      SQLiteParser.Expr_andContext context, ParseOptions options) {
+  private static Expression mapAnd(SQLiteParser.Expr_andContext context, ParseOptions options) {
     if (context == null || context.expr_not().isEmpty()) {
       return null;
     }
@@ -263,8 +262,7 @@ final class SqliteAstMapper {
     return current;
   }
 
-  private static Expression mapNot(
-      SQLiteParser.Expr_notContext context, ParseOptions options) {
+  private static Expression mapNot(SQLiteParser.Expr_notContext context, ParseOptions options) {
     if (context == null) {
       return null;
     }
@@ -292,28 +290,23 @@ final class SqliteAstMapper {
     if (comp == null) {
       return null;
     }
-    SQLiteParser.Expr_bitwiseContext bit =
-        singleOrNull(comp, comp.expr_bitwise());
+    SQLiteParser.Expr_bitwiseContext bit = singleOrNull(comp, comp.expr_bitwise());
     if (bit == null) {
       return null;
     }
-    SQLiteParser.Expr_additionContext add =
-        singleOrNull(bit, bit.expr_addition());
+    SQLiteParser.Expr_additionContext add = singleOrNull(bit, bit.expr_addition());
     if (add == null) {
       return null;
     }
-    SQLiteParser.Expr_multiplicationContext mul =
-        singleOrNull(add, add.expr_multiplication());
+    SQLiteParser.Expr_multiplicationContext mul = singleOrNull(add, add.expr_multiplication());
     if (mul == null) {
       return null;
     }
-    SQLiteParser.Expr_stringContext str =
-        singleOrNull(mul, mul.expr_string());
+    SQLiteParser.Expr_stringContext str = singleOrNull(mul, mul.expr_string());
     if (str == null) {
       return null;
     }
-    SQLiteParser.Expr_collateContext coll =
-        singleOrNull(str, str.expr_collate());
+    SQLiteParser.Expr_collateContext coll = singleOrNull(str, str.expr_collate());
     if (coll == null) {
       return null;
     }
@@ -368,8 +361,7 @@ final class SqliteAstMapper {
       if (term.asc_desc() != null && term.asc_desc().DESC_() != null) {
         dir = SortDirection.DESC;
       }
-      items.add(
-          new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
+      items.add(new OrderByItem(expr, dir, SourceSpans.fromTokens(term.start, term.stop, options)));
     }
     return new MappingResult<>(true, List.copyOf(items));
   }
