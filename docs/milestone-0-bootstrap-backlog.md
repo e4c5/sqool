@@ -106,12 +106,12 @@ Choose and install the build baseline that all other work depends on.
 
 ### Tasks
 
-- [ ] Decide and record the build tool choice
-- [ ] Add the build wrapper to the repository
-- [ ] Create root build files
-- [ ] Create shared version and plugin management
-- [ ] Define repository naming and module naming conventions
-- [ ] Document root build commands for developers and CI
+- [x] Decide and record the build tool choice
+- [x] Add the build wrapper to the repository
+- [x] Create root build files
+- [x] Create shared version and plugin management
+- [x] Define repository naming and module naming conventions
+- [x] Document root build commands for developers and CI
 
 ### Deliverables
 
@@ -137,12 +137,12 @@ Create the project structure needed for clean separation between API, AST, gramm
 
 ### Tasks
 
-- [ ] Add module declarations to the root build
-- [ ] Create directory structure for each planned module
+- [x] Add module declarations to the root build
+- [x] Create directory structure for each planned module
 - [ ] Add placeholder source sets for main and test code
 - [ ] Add placeholder package structure
-- [ ] Add minimal per-module build files where needed
-- [ ] Verify inter-module dependency wiring
+- [x] Add minimal per-module build files where needed
+- [x] Verify inter-module dependency wiring
 
 ### Deliverables
 
@@ -167,11 +167,11 @@ Lock the project onto Java 25 in a reproducible way.
 
 ### Tasks
 
-- [ ] Configure Java 25 toolchains
-- [ ] Set source and target compatibility rules
-- [ ] Set compiler flags shared across modules
-- [ ] Decide whether preview features are disabled by default
-- [ ] Add a build check that fails fast on the wrong Java version
+- [x] Configure Java 25 toolchains
+- [x] Set source and target compatibility rules
+- [x] Set compiler flags shared across modules
+- [x] Decide whether preview features are disabled by default
+- [x] Add a build check that fails fast on the wrong Java version
 
 ### Deliverables
 
@@ -195,12 +195,12 @@ Prove that ANTLR code generation works within the chosen multi-module layout.
 
 ### Tasks
 
-- [ ] Add ANTLR plugin configuration to grammar modules
-- [ ] Configure grammar source directories
-- [ ] Configure generated-source output directories
-- [ ] Validate Java target generation
-- [ ] Add a trivial smoke grammar or seed one real grammar module
-- [ ] Verify generated sources compile through the normal build
+- [x] Add ANTLR plugin configuration to grammar modules
+- [x] Configure grammar source directories
+- [x] Configure generated-source output directories
+- [x] Validate Java target generation
+- [x] Add a trivial smoke grammar or seed one real grammar module
+- [x] Verify generated sources compile through the normal build
 - [ ] Document the grammar generation workflow
 
 ### Deliverables
@@ -228,11 +228,11 @@ Establish the minimal automated test platform used by all later modules.
 
 ### Tasks
 
-- [ ] Add JUnit configuration
+- [x] Add JUnit configuration
 - [ ] Add one smoke test per core bootstrap module
-- [ ] Add shared test utility conventions if needed
-- [ ] Confirm test discovery works from the root build
-- [ ] Confirm CI can run tests without custom local setup
+- [x] Add shared test utility conventions if needed
+- [x] Confirm test discovery works from the root build
+- [x] Confirm CI can run tests without custom local setup
 
 ### Deliverables
 
@@ -259,11 +259,11 @@ Stand up the performance harness before parser logic is implemented.
 
 ### Tasks
 
-- [ ] Create `sqool-bench`
-- [ ] Add JMH integration
-- [ ] Add a minimal benchmark class
-- [ ] Confirm benchmark packaging and execution
-- [ ] Document how to run benchmarks locally and in CI
+- [x] Create `sqool-bench`
+- [x] Add JMH integration
+- [x] Add a minimal benchmark class
+- [x] Confirm benchmark packaging and execution
+- [x] Document how to run benchmarks locally and in CI
 - [ ] Decide whether benchmark results are stored as artifacts only or also committed as reports
 
 ### Deliverables
@@ -291,10 +291,10 @@ Prevent toolchain drift and make upgrades deliberate.
 
 ### Tasks
 
-- [ ] Centralize dependency versions
-- [ ] Pin ANTLR tool and runtime versions
-- [ ] Pin JUnit and JMH versions
-- [ ] Pin plugin versions
+- [x] Centralize dependency versions
+- [x] Pin ANTLR tool and runtime versions
+- [x] Pin JUnit and JMH versions
+- [x] Pin plugin versions
 - [ ] Document the upgrade policy for build-critical dependencies
 - [ ] Add dependency locking or an equivalent reproducibility mechanism if appropriate
 
@@ -320,11 +320,11 @@ Set the minimum repository quality bar for follow-on implementation work.
 
 ### Tasks
 
-- [ ] Add a formatter configuration
-- [ ] Add one static analysis or style check
-- [ ] Add CI workflow for build and test verification
-- [ ] Add CI workflow for benchmark smoke execution if lightweight enough
-- [ ] Define the expected pre-merge verification commands
+- [x] Add a formatter configuration
+- [x] Add one static analysis or style check
+- [x] Add CI workflow for build and test verification
+- [x] Add CI workflow for benchmark smoke execution if lightweight enough
+- [x] Define the expected pre-merge verification commands
 - [ ] Document contributor expectations in the repository
 
 ### Deliverables

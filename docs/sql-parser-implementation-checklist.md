@@ -23,13 +23,13 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 2. Public API and core model
 
-- [ ] Define the public parser API
-- [ ] Define the dialect selection model
-- [ ] Define parse options and parse result types
-- [ ] Define syntax diagnostics and source span models
-- [ ] Define parser factory or service loading strategy
-- [ ] Decide whether comment capture is in or out for the first milestone
-- [ ] Decide whether script parsing is in the first milestone or follows later
+- [x] Define the public parser API
+- [x] Define the dialect selection model
+- [x] Define parse options and parse result types
+- [x] Define syntax diagnostics and source span models
+- [x] Define parser factory or service loading strategy
+- [x] Decide whether comment capture is in or out for the first milestone
+- [x] Decide whether script parsing is in the first milestone or follows later
 
 ### Exit criteria
 
@@ -38,14 +38,14 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 3. AST v0
 
-- [ ] Define the normalized AST root hierarchy
-- [ ] Define statement nodes for the initial supported subset
-- [ ] Define expression nodes for the initial supported subset
-- [ ] Define table, join, ordering, and select item nodes
-- [ ] Define dialect extension node strategy
-- [ ] Define source span attachment strategy
-- [ ] Define AST traversal and visitor conventions
-- [ ] Define AST golden test format
+- [x] Define the normalized AST root hierarchy
+- [x] Define statement nodes for the initial supported subset
+- [x] Define expression nodes for the initial supported subset
+- [x] Define table, join, ordering, and select item nodes
+- [x] Define dialect extension node strategy
+- [x] Define source span attachment strategy
+- [x] Define AST traversal and visitor conventions
+- [x] Define AST golden test format
 
 ### Exit criteria
 
@@ -54,12 +54,12 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 4. Grammar vendoring workflow
 
-- [ ] Vendor the selected ANTLR grammars into the repository
-- [ ] Record upstream source and revision metadata per dialect
-- [ ] Define local patching rules for upstream grammars
-- [ ] Confirm grammar generation works for the Java target
-- [ ] Establish a repeatable grammar update workflow
-- [ ] Add a regression location for grammar-related fixes
+- [x] Vendor the selected ANTLR grammars into the repository
+- [x] Record upstream source and revision metadata per dialect
+- [x] Define local patching rules for upstream grammars
+- [x] Confirm grammar generation works for the Java target
+- [x] Establish a repeatable grammar update workflow
+- [x] Add a regression location for grammar-related fixes
 
 ### Exit criteria
 
@@ -68,14 +68,14 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 5. Parser runtime architecture
 
-- [ ] Implement one parser pipeline per dialect
-- [ ] Implement lexer and token stream setup per dialect
-- [ ] Implement fast-path SLL parsing
-- [ ] Implement LL fallback with structured diagnostics
-- [ ] Disable parse tree creation by default
-- [ ] Define single-statement entry points
-- [ ] Define script or multi-statement entry points
-- [ ] Add internal parser metrics collection
+- [x] Implement one parser pipeline per dialect
+- [x] Implement lexer and token stream setup per dialect
+- [x] Implement fast-path SLL parsing
+- [x] Implement LL fallback with structured diagnostics
+- [x] Disable parse tree creation by default
+- [x] Define single-statement entry points
+- [x] Define script or multi-statement entry points
+- [x] Add internal parser metrics collection
 
 ### Exit criteria
 
@@ -84,13 +84,13 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 6. MySQL implementation
 
-- [ ] Import and validate the MySQL grammar
-- [ ] Implement MySQL parser integration
-- [ ] Map the initial MySQL subset into the normalized AST
-- [ ] Add MySQL conformance corpus tests
-- [ ] Add MySQL syntax error tests
-- [ ] Add MySQL performance benchmarks against JSqlParser
-- [ ] Tune MySQL parser hot paths
+- [x] Import and validate the MySQL grammar
+- [x] Implement MySQL parser integration
+- [x] Map the initial MySQL subset into the normalized AST
+- [x] Add MySQL conformance corpus tests
+- [x] Add MySQL syntax error tests
+- [x] Add MySQL performance benchmarks against JSqlParser
+- [x] Tune MySQL parser hot paths
 
 ### Exit criteria
 
@@ -158,13 +158,13 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 11. Performance engineering
 
-- [ ] Define the benchmark corpus format
-- [ ] Build benchmark corpora for all supported dialects
-- [ ] Establish baseline JSqlParser measurements
-- [ ] Track throughput, latency, allocations, and GC behavior
-- [ ] Optimize AST construction overhead
-- [ ] Optimize fallback and error-path costs
-- [ ] Review grammar hotspots causing prediction overhead
+- [x] Define the benchmark corpus format
+- [x] Build benchmark corpora for all supported dialects
+- [x] Establish baseline JSqlParser measurements
+- [x] Track throughput, latency, allocations, and GC behavior
+- [x] Optimize AST construction overhead
+- [x] Optimize fallback and error-path costs
+- [x] Review grammar hotspots causing prediction overhead
 - [ ] Publish benchmark results in a reproducible form
 
 ### Exit criteria
