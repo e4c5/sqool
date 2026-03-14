@@ -11,21 +11,18 @@ import java.util.*;
 import org.antlr.v4.runtime.*;
 
 /** The base lexer class provides a number of functions needed in actions in the lexer (grammar). */
-public abstract class MySQLLexerBase extends Lexer {
+public abstract class MySQLLexerBase extends Lexer implements MySQLGrammarConfig {
+  private final MySQLGrammarSettings settings = new MySQLGrammarSettings();
 
-  public MySQLLexerBase(CharStream input) {
-    super(input);
-    this.serverVersion = 80200;
-    this.sqlModes = SqlModes.sqlModeFromString("ANSI_QUOTES");
+  @Override
+  public MySQLGrammarSettings getSettings() {
+    return settings;
   }
 
-  public int serverVersion = 0;
-  public Set<SqlMode> sqlModes = new HashSet<>();
+  protected MySQLLexerBase(CharStream input) {
+    super(input);
+  }
 
-  /** Enable Multi Language Extension support. */
-  public boolean supportMle = true;
-
-  public Set<String> charSets = new HashSet<>(); // Used to check repertoires.
   protected boolean inVersionComment = false;
 
   private Queue<Token> pendingTokens = new LinkedList<>();
@@ -41,10 +38,6 @@ public abstract class MySQLLexerBase extends Lexer {
   static int unsignedLongLongLength = 20;
 
   private boolean justEmittedDot = false;
-
-  public boolean isSqlModeActive(SqlMode mode) {
-    return this.sqlModes.contains(mode);
-  }
 
   @Override
   public void reset() {
@@ -76,7 +69,7 @@ public abstract class MySQLLexerBase extends Lexer {
     }
 
     int version = Integer.parseInt(text.substring(3));
-    if (version <= this.serverVersion) {
+    if (version <= getServerVersion()) {
       this.inVersionComment = true;
       return true;
     }
@@ -86,7 +79,7 @@ public abstract class MySQLLexerBase extends Lexer {
 
   protected int determineFunction(int proposed) {
     char input = (char) this._input.LA(1);
-    if (this.isSqlModeActive(SqlMode.IgnoreSpace)) {
+    if (this.isSqlModeActive(SqlMode.IGNORE_SPACE)) {
       while (input == ' ' || input == '\t' || input == '\r' || input == '\n') {
         this.getInterpreter().consume(this._input);
         this._channel = HIDDEN;
@@ -103,8 +96,8 @@ public abstract class MySQLLexerBase extends Lexer {
       return MySQLLexer.INT_NUMBER;
     }
 
-    boolean negative = false;
     int index = 0;
+    boolean negative = false;
     if (text.charAt(index) == '+') {
       ++index;
       --length;
@@ -123,16 +116,22 @@ public abstract class MySQLLexerBase extends Lexer {
       return MySQLLexer.INT_NUMBER;
     }
 
+    return determineTypeByRange(text, index, length, negative);
+  }
+
+  private int determineTypeByRange(String text, int index, int length, boolean negative) {
     String cmp;
     int smaller;
     int bigger;
     if (negative) {
-      if (length == MySQLLexerBase.longLength) {
-        cmp = MySQLLexerBase.signedLongString.substring(1);
-        smaller = MySQLLexer.INT_NUMBER;
-        bigger = MySQLLexer.LONG_NUMBER;
-      } else if (length < MySQLLexerBase.signedLongLongLength) {
-        return MySQLLexer.LONG_NUMBER;
+      if (length < MySQLLexerBase.signedLongLongLength) {
+        if (length == MySQLLexerBase.longLength) {
+          cmp = MySQLLexerBase.signedLongString.substring(1);
+          smaller = MySQLLexer.INT_NUMBER;
+          bigger = MySQLLexer.LONG_NUMBER;
+        } else {
+          return MySQLLexer.LONG_NUMBER;
+        }
       } else if (length > MySQLLexerBase.signedLongLongLength) {
         return MySQLLexer.DECIMAL_NUMBER;
       } else {
@@ -141,12 +140,14 @@ public abstract class MySQLLexerBase extends Lexer {
         bigger = MySQLLexer.DECIMAL_NUMBER;
       }
     } else {
-      if (length == MySQLLexerBase.longLength) {
-        cmp = MySQLLexerBase.longString;
-        smaller = MySQLLexer.INT_NUMBER;
-        bigger = MySQLLexer.LONG_NUMBER;
-      } else if (length < MySQLLexerBase.longLongLength) {
-        return MySQLLexer.LONG_NUMBER;
+      if (length < MySQLLexerBase.longLongLength) {
+        if (length == MySQLLexerBase.longLength) {
+          cmp = MySQLLexerBase.longString;
+          smaller = MySQLLexer.INT_NUMBER;
+          bigger = MySQLLexer.LONG_NUMBER;
+        } else {
+          return MySQLLexer.LONG_NUMBER;
+        }
       } else if (length > MySQLLexerBase.longLongLength) {
         if (length > MySQLLexerBase.unsignedLongLongLength) {
           return MySQLLexer.DECIMAL_NUMBER;
@@ -161,14 +162,20 @@ public abstract class MySQLLexerBase extends Lexer {
       }
     }
 
+    return compareWithLimit(text, index, cmp, smaller, bigger);
+  }
+
+  private int compareWithLimit(String text, int index, String cmp, int smaller, int bigger) {
     int otherIndex = 0;
-    while (index < text.length() && cmp.charAt(otherIndex++) == text.charAt(index++)) {}
+    while (index < text.length() && cmp.charAt(otherIndex++) == text.charAt(index++)) {
+      // Find the first differing character
+    }
 
     return text.charAt(index - 1) <= cmp.charAt(otherIndex - 1) ? smaller : bigger;
   }
 
   protected int checkCharset(String text) {
-    return this.charSets.contains(text) ? MySQLLexer.UNDERSCORE_CHARSET : MySQLLexer.IDENTIFIER;
+    return getCharSets().contains(text) ? MySQLLexer.UNDERSCORE_CHARSET : MySQLLexer.IDENTIFIER;
   }
 
   protected void emitDot() {
@@ -200,76 +207,12 @@ public abstract class MySQLLexerBase extends Lexer {
   }
 
   public boolean isMasterCompressionAlgorithm() {
-    return serverVersion >= 80018 && isServerVersionLt80024();
-  }
-
-  public boolean isServerVersionGe80011() {
-    return serverVersion >= 80011;
-  }
-
-  public boolean isServerVersionGe80013() {
-    return serverVersion >= 80013;
-  }
-
-  public boolean isServerVersionLt80014() {
-    return serverVersion < 80014;
-  }
-
-  public boolean isServerVersionGe80014() {
-    return serverVersion >= 80014;
-  }
-
-  public boolean isServerVersionGe80016() {
-    return serverVersion >= 80016;
-  }
-
-  public boolean isServerVersionGe80017() {
-    return serverVersion >= 80017;
-  }
-
-  public boolean isServerVersionGe80018() {
-    return serverVersion >= 80018;
-  }
-
-  public boolean isServerVersionLt80021() {
-    return serverVersion < 80021;
-  }
-
-  public boolean isServerVersionGe80021() {
-    return serverVersion >= 80021;
-  }
-
-  public boolean isServerVersionLt80022() {
-    return serverVersion < 80022;
-  }
-
-  public boolean isServerVersionGe80022() {
-    return serverVersion >= 80022;
-  }
-
-  public boolean isServerVersionLt80023() {
-    return serverVersion < 80023;
-  }
-
-  public boolean isServerVersionGe80023() {
-    return serverVersion >= 80023;
-  }
-
-  public boolean isServerVersionLt80024() {
-    return serverVersion < 80024;
-  }
-
-  public boolean isServerVersionGe80024() {
-    return serverVersion >= 80024;
-  }
-
-  public boolean isServerVersionLt80031() {
-    return serverVersion < 80031;
+    return getServerVersion() >= 80018 && isServerVersionLt80024();
   }
 
   public void doLogicalOr() {
     this._type =
-        isSqlModeActive(SqlMode.PipesAsConcat)
+        isSqlModeActive(SqlMode.PIPES_AS_CONCAT)
             ? MySQLLexer.CONCAT_PIPES_SYMBOL
             : MySQLLexer.LOGICAL_OR_OPERATOR;
   }
@@ -348,7 +291,9 @@ public abstract class MySQLLexerBase extends Lexer {
 
   public void doNot() {
     this._type =
-        isSqlModeActive(SqlMode.HighNotPrecedence) ? MySQLLexer.NOT2_SYMBOL : MySQLLexer.NOT_SYMBOL;
+        isSqlModeActive(SqlMode.HIGH_NOT_PRECEDENCE)
+            ? MySQLLexer.NOT2_SYMBOL
+            : MySQLLexer.NOT_SYMBOL;
   }
 
   public void doNow() {
@@ -424,7 +369,7 @@ public abstract class MySQLLexerBase extends Lexer {
   }
 
   public boolean doDollarQuotedStringText() {
-    return this.serverVersion >= 80034 && this.supportMle;
+    return getServerVersion() >= 80034 && isSupportMle();
   }
 
   public boolean isVersionComment() {
@@ -432,15 +377,15 @@ public abstract class MySQLLexerBase extends Lexer {
   }
 
   public boolean isBackTickQuotedId() {
-    return !this.isSqlModeActive(SqlMode.NoBackslashEscapes);
+    return !this.isSqlModeActive(SqlMode.NO_BACKSLASH_ESCAPES);
   }
 
   public boolean isDoubleQuotedText() {
-    return !this.isSqlModeActive(SqlMode.NoBackslashEscapes);
+    return !this.isSqlModeActive(SqlMode.NO_BACKSLASH_ESCAPES);
   }
 
   public boolean isSingleQuotedText() {
-    return !this.isSqlModeActive(SqlMode.NoBackslashEscapes);
+    return !this.isSqlModeActive(SqlMode.NO_BACKSLASH_ESCAPES);
   }
 
   public void startInVersionComment() {

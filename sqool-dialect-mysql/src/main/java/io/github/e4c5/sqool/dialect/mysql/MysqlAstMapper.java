@@ -60,8 +60,9 @@ import org.antlr.v4.runtime.misc.Interval;
 import org.antlr.v4.runtime.tree.TerminalNode;
 
 final class MysqlAstMapper {
+  private static final String YET = " yet.";
   private static final Pattern SUPPORTED_IDENTIFIER =
-      Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)(\\.(?:`[^`]+`|[a-z_][a-z0-9_$]*)){0,2}");
+      Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)(?:\\.(`[^`]+`|[a-z_][a-z0-9_$]*)){0,2}");
 
   private MysqlAstMapper() {}
 
@@ -131,7 +132,7 @@ final class MysqlAstMapper {
         || context.qualifyClause() != null
         || context.intoClause() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support window, QUALIFY, or INTO clauses yet.", context.start);
+          "MySQL MVP does not support window, QUALIFY, or INTO clauses" + YET, context.start);
     }
 
     return new QuerySpecificationMapping(
@@ -175,171 +176,70 @@ final class MysqlAstMapper {
       if (context.truncateTableStatement() != null) {
         return mapTruncateTableStatement(context.truncateTableStatement(), options);
       }
-      if (context.createStatement() != null) {
-        if (context.createStatement().createTable() != null) {
-          return mapCreateTableStatement(context.createStatement().createTable(), options);
-        }
-        if (context.createStatement().createDatabase() != null) {
-          return mapCreateDatabaseStatement(context.createStatement().createDatabase(), options);
-        }
-        return rawStatement(MySqlStatementKind.CREATE_OTHER, context.createStatement(), options);
+
+      Statement ddl = mapDdlStatement(context, options);
+      if (ddl != null) {
+        return ddl;
       }
-      if (context.dropStatement() != null) {
-        return mapDropStatement(context.dropStatement(), options);
+
+      Statement show = mapShowStatement(context, options);
+      if (show != null) {
+        return show;
       }
-      if (context.showDatabasesStatement() != null) {
-        return mapShowDatabasesStatement(context.showDatabasesStatement(), options);
-      }
-      if (context.showTablesStatement() != null) {
-        return mapShowTablesStatement(context.showTablesStatement(), options);
-      }
-      if (context.showColumnsStatement() != null) {
-        return mapShowColumnsStatement(context.showColumnsStatement(), options);
-      }
-      if (context.showCreateTableStatement() != null) {
-        return mapShowCreateTableStatement(context.showCreateTableStatement(), options);
-      }
-      if (context.alterStatement() != null) {
-        return rawStatement(MySqlStatementKind.ALTER, context.alterStatement(), options);
-      }
-      if (context.renameTableStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.RENAME_TABLE, context.renameTableStatement(), options);
-      }
-      if (context.importStatement() != null) {
-        return rawStatement(MySqlStatementKind.IMPORT, context.importStatement(), options);
-      }
-      if (context.callStatement() != null) {
-        return rawStatement(MySqlStatementKind.CALL, context.callStatement(), options);
-      }
-      if (context.doStatement() != null) {
-        return rawStatement(MySqlStatementKind.DO, context.doStatement(), options);
-      }
-      if (context.handlerStatement() != null) {
-        return rawStatement(MySqlStatementKind.HANDLER, context.handlerStatement(), options);
-      }
-      if (context.loadStatement() != null) {
-        return rawStatement(MySqlStatementKind.LOAD, context.loadStatement(), options);
-      }
-      if (context.transactionOrLockingStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.TRANSACTION_OR_LOCKING,
-            context.transactionOrLockingStatement(),
-            options);
-      }
-      if (context.replicationStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.REPLICATION, context.replicationStatement(), options);
-      }
-      if (context.preparedStatement() != null) {
-        return rawStatement(MySqlStatementKind.PREPARED, context.preparedStatement(), options);
-      }
-      if (context.cloneStatement() != null) {
-        return rawStatement(MySqlStatementKind.CLONE, context.cloneStatement(), options);
-      }
-      if (context.accountManagementStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.ACCOUNT_MANAGEMENT, context.accountManagementStatement(), options);
-      }
-      if (context.tableAdministrationStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.TABLE_ADMINISTRATION,
-            context.tableAdministrationStatement(),
-            options);
-      }
-      if (context.uninstallStatement() != null) {
-        return rawStatement(MySqlStatementKind.UNINSTALL, context.uninstallStatement(), options);
-      }
-      if (context.installStatement() != null) {
-        return rawStatement(MySqlStatementKind.INSTALL, context.installStatement(), options);
-      }
-      if (context.setStatement() != null) {
-        return rawStatement(MySqlStatementKind.SET, context.setStatement(), options);
-      }
-      if (context.resourceGroupManagement() != null) {
-        return rawStatement(
-            MySqlStatementKind.OTHER_ADMINISTRATIVE, context.resourceGroupManagement(), options);
-      }
-      if (context.otherAdministrativeStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.OTHER_ADMINISTRATIVE,
-            context.otherAdministrativeStatement(),
-            options);
-      }
-      if (context.utilityStatement() != null) {
-        return rawStatement(MySqlStatementKind.UTILITY, context.utilityStatement(), options);
-      }
-      if (context.getDiagnosticsStatement() != null) {
-        return rawStatement(
-            MySqlStatementKind.GET_DIAGNOSTICS, context.getDiagnosticsStatement(), options);
-      }
-      if (context.signalStatement() != null) {
-        return rawStatement(MySqlStatementKind.SIGNAL, context.signalStatement(), options);
-      }
-      if (context.resignalStatement() != null) {
-        return rawStatement(MySqlStatementKind.RESIGNAL, context.resignalStatement(), options);
-      }
-      if (context.showTriggersStatement() != null
-          || context.showEventsStatement() != null
-          || context.showTableStatusStatement() != null
-          || context.showOpenTablesStatement() != null
-          || context.showParseTreeStatement() != null
-          || context.showPluginsStatement() != null
-          || context.showEngineLogsStatement() != null
-          || context.showEngineMutexStatement() != null
-          || context.showEngineStatusStatement() != null
-          || context.showBinaryLogsStatement() != null
-          || context.showBinaryLogStatusStatement() != null
-          || context.showReplicasStatement() != null
-          || context.showBinlogEventsStatement() != null
-          || context.showRelaylogEventsStatement() != null
-          || context.showKeysStatement() != null
-          || context.showEnginesStatement() != null
-          || context.showCountWarningsStatement() != null
-          || context.showCountErrorsStatement() != null
-          || context.showWarningsStatement() != null
-          || context.showErrorsStatement() != null
-          || context.showProfilesStatement() != null
-          || context.showProfileStatement() != null
-          || context.showStatusStatement() != null
-          || context.showProcessListStatement() != null
-          || context.showVariablesStatement() != null
-          || context.showCharacterSetStatement() != null
-          || context.showCollationStatement() != null
-          || context.showPrivilegesStatement() != null
-          || context.showGrantsStatement() != null
-          || context.showCreateDatabaseStatement() != null
-          || context.showCreateViewStatement() != null
-          || context.showMasterStatusStatement() != null
-          || context.showReplicaStatusStatement() != null
-          || context.showCreateProcedureStatement() != null
-          || context.showCreateFunctionStatement() != null
-          || context.showCreateTriggerStatement() != null
-          || context.showCreateProcedureStatusStatement() != null
-          || context.showCreateFunctionStatusStatement() != null
-          || context.showCreateProcedureCodeStatement() != null
-          || context.showCreateFunctionCodeStatement() != null
-          || context.showCreateEventStatement() != null
-          || context.showCreateUserStatement() != null) {
-        return rawStatement(MySqlStatementKind.SHOW_OTHER, context, options);
-      }
-      throw unsupportedFeature(
-          "MySQL MVP does not support this statement kind yet.", context.start);
+
+      return rawStatement(kindForSimpleStatement(context), context, options);
     } catch (UnsupportedFeatureException exception) {
       return rawSimpleStatement(context, options);
     }
+  }
+
+  private static Statement mapDdlStatement(
+      MySQLParser.SimpleStatementContext context, ParseOptions options) {
+    if (context.createStatement() != null) {
+      if (context.createStatement().createTable() != null) {
+        return mapCreateTableStatement(context.createStatement().createTable(), options);
+      }
+      if (context.createStatement().createDatabase() != null) {
+        return mapCreateDatabaseStatement(context.createStatement().createDatabase(), options);
+      }
+      return rawStatement(MySqlStatementKind.CREATE_OTHER, context.createStatement(), options);
+    }
+    if (context.dropStatement() != null) {
+      return mapDropStatement(context.dropStatement(), options);
+    }
+    return null;
+  }
+
+  private static Statement mapShowStatement(
+      MySQLParser.SimpleStatementContext context, ParseOptions options) {
+    if (context.showDatabasesStatement() != null) {
+      return mapShowDatabasesStatement(context.showDatabasesStatement(), options);
+    }
+    if (context.showTablesStatement() != null) {
+      return mapShowTablesStatement(context.showTablesStatement(), options);
+    }
+    if (context.showColumnsStatement() != null) {
+      return mapShowColumnsStatement(context.showColumnsStatement(), options);
+    }
+    if (context.showCreateTableStatement() != null) {
+      return mapShowCreateTableStatement(context.showCreateTableStatement(), options);
+    }
+    if (isOtherShowStatement(context)) {
+      return rawStatement(MySqlStatementKind.SHOW_OTHER, context, options);
+    }
+    return null;
   }
 
   private static Statement mapSelectStatement(
       MySQLParser.SelectStatementContext context, ParseOptions options) {
     if (context.lockingClauseList() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support SELECT locking clauses yet.",
+          "MySQL MVP does not support SELECT locking clauses" + YET,
           context.lockingClauseList().start);
     }
     if (context.selectStatementWithInto() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support SELECT ... INTO forms yet.",
+          "MySQL MVP does not support SELECT ... INTO forms" + YET,
           context.selectStatementWithInto().start);
     }
     return mapQueryExpressionInternal(context.queryExpression(), options);
@@ -349,7 +249,7 @@ final class MysqlAstMapper {
       MySQLParser.InsertStatementContext context, ParseOptions options) {
     if (context.insertLockOption() != null || context.usePartition() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support INSERT lock or partition options yet.", context.start);
+          "MySQL MVP does not support INSERT lock or partition options" + YET, context.start);
     }
 
     String tableName = context.tableRef().getText();
@@ -364,14 +264,14 @@ final class MysqlAstMapper {
       rows = mapValueList(context.insertFromConstructor().insertValues().valueList(), options);
       if (context.valuesReference() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support VALUES references in INSERT yet.",
+            "MySQL MVP does not support VALUES references in INSERT" + YET,
             context.valuesReference().start);
       }
     } else if (context.updateList() != null) {
       assignments = mapUpdateList(context.updateList(), options);
       if (context.valuesReference() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support VALUES references in INSERT ... SET yet.",
+            "MySQL MVP does not support VALUES references in INSERT ... SET" + YET,
             context.valuesReference().start);
       }
     } else if (context.insertQueryExpression() != null) {
@@ -398,7 +298,7 @@ final class MysqlAstMapper {
       MySQLParser.UpdateStatementContext context, ParseOptions options) {
     if (context.withClause() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support UPDATE with WITH clauses yet.", context.start);
+          "MySQL MVP does not support UPDATE with WITH clauses" + YET, context.start);
     }
     if (context.tableReferenceList().tableReference().size() != 1
         || !context.tableReferenceList().tableReference().getFirst().joinedTable().isEmpty()) {
@@ -448,7 +348,7 @@ final class MysqlAstMapper {
         || context.LOW_PRIORITY_SYMBOL() != null
         || context.DELAYED_SYMBOL() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support REPLACE priority or partition options yet.", context.start);
+          "MySQL MVP does not support REPLACE priority or partition options" + YET, context.start);
     }
 
     String tableName = context.tableRef().getText();
@@ -507,31 +407,35 @@ final class MysqlAstMapper {
           "MySQL MVP encountered an unsupported CREATE TABLE form.", context.start);
     }
 
-    var columns = new ArrayList<ColumnDefinition>();
-    for (var tableElement : context.tableElementList().tableElement()) {
-      if (tableElement.tableConstraintDef() != null) {
-        throw unsupportedFeature(
-            "MySQL MVP does not support table constraints in CREATE TABLE yet.",
-            tableElement.tableConstraintDef().start);
-      }
-      columns.add(mapColumnDefinition(tableElement.columnDefinition(), options));
-    }
-
     return new CreateTableStatement(
         tableName,
         temporary,
         ifNotExists,
-        columns,
+        mapCreateTableColumns(context, options),
         null,
         context.createTableOptionsEtc() == null ? null : context.createTableOptionsEtc().getText(),
         span(context.start, context.stop, options));
+  }
+
+  private static List<ColumnDefinition> mapCreateTableColumns(
+      MySQLParser.CreateTableContext context, ParseOptions options) {
+    var columns = new ArrayList<ColumnDefinition>();
+    for (var tableElement : context.tableElementList().tableElement()) {
+      if (tableElement.tableConstraintDef() != null) {
+        throw unsupportedFeature(
+            "MySQL MVP does not support table constraints in CREATE TABLE" + YET,
+            tableElement.tableConstraintDef().start);
+      }
+      columns.add(mapColumnDefinition(tableElement.columnDefinition(), options));
+    }
+    return columns;
   }
 
   private static Statement mapCreateDatabaseStatement(
       MySQLParser.CreateDatabaseContext context, ParseOptions options) {
     if (!context.createDatabaseOption().isEmpty()) {
       throw unsupportedFeature(
-          "MySQL MVP does not support CREATE DATABASE options yet.", context.start);
+          "MySQL MVP does not support CREATE DATABASE options" + YET, context.start);
     }
     return new CreateDatabaseStatement(
         context.schemaName().getText(),
@@ -548,14 +452,14 @@ final class MysqlAstMapper {
       return mapDropDatabaseStatement(context.dropDatabase(), options);
     }
     throw unsupportedFeature(
-        "MySQL MVP does not support this DROP statement kind yet.", context.start);
+        "MySQL MVP does not support this DROP statement kind" + YET, context.start);
   }
 
   private static Statement mapDropTableStatement(
       MySQLParser.DropTableContext context, ParseOptions options) {
     if (context.CASCADE_SYMBOL() != null || context.RESTRICT_SYMBOL() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support DROP TABLE CASCADE/RESTRICT yet.", context.start);
+          "MySQL MVP does not support DROP TABLE CASCADE/RESTRICT" + YET, context.start);
     }
     var tableNames = new ArrayList<String>();
     for (var tableRef : context.tableRefList().tableRef()) {
@@ -580,7 +484,7 @@ final class MysqlAstMapper {
       MySQLParser.QueryExpressionContext context, ParseOptions options) {
     if (context.withClause() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support WITH clauses yet.", context.withClause().start);
+          "MySQL MVP does not support WITH clauses" + YET, context.withClause().start);
     }
 
     Statement statement = mapQueryExpressionBody(context.queryExpressionBody(), options);
@@ -607,40 +511,32 @@ final class MysqlAstMapper {
           "MySQL MVP encountered an unsupported query expression body.", context.start);
     }
 
-    if (context.children == null) {
-      return current;
-    }
+    return mapSetOperations(context, current, options);
+  }
 
+  private static Statement mapSetOperations(
+      MySQLParser.QueryExpressionBodyContext context, Statement current, ParseOptions options) {
     SetOperator pendingOperator = null;
     boolean skippedBase = false;
     for (var child : context.children) {
       if (!skippedBase
           && (child == context.queryPrimary() || child == context.queryExpressionParens())) {
         skippedBase = true;
-        continue;
-      }
-
-      if (child instanceof TerminalNode terminalNode) {
+      } else if (child instanceof TerminalNode terminalNode) {
         int tokenType = terminalNode.getSymbol().getType();
         if (tokenType == MySQLParser.UNION_SYMBOL) {
           pendingOperator = SetOperator.UNION_DISTINCT;
         } else if (tokenType == MySQLParser.EXCEPT_SYMBOL
             || tokenType == MySQLParser.INTERSECT_SYMBOL) {
           throw unsupportedFeature(
-              "MySQL MVP does not support EXCEPT or INTERSECT yet.", terminalNode.getSymbol());
+              "MySQL MVP does not support EXCEPT or INTERSECT" + YET, terminalNode.getSymbol());
         }
-        continue;
-      }
-
-      if (child instanceof MySQLParser.UnionOptionContext unionOptionContext) {
+      } else if (child instanceof MySQLParser.UnionOptionContext unionOptionContext) {
         pendingOperator =
             "ALL".equalsIgnoreCase(unionOptionContext.getText())
                 ? SetOperator.UNION_ALL
                 : SetOperator.UNION_DISTINCT;
-        continue;
-      }
-
-      if (child instanceof MySQLParser.QueryExpressionBodyContext rhsBody) {
+      } else if (child instanceof MySQLParser.QueryExpressionBodyContext rhsBody) {
         current =
             new SetOperationStatement(
                 current,
@@ -652,7 +548,6 @@ final class MysqlAstMapper {
         pendingOperator = null;
       }
     }
-
     return current;
   }
 
@@ -686,7 +581,7 @@ final class MysqlAstMapper {
     }
     if (context.queryExpressionWithOptLockingClauses().lockingClauseList() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support locking clauses inside subqueries yet.",
+          "MySQL MVP does not support locking clauses inside subqueries" + YET,
           context.queryExpressionWithOptLockingClauses().lockingClauseList().start);
     }
     return mapQueryExpressionInternal(
@@ -724,15 +619,17 @@ final class MysqlAstMapper {
     for (var selectOption : selectOptions) {
       if (selectOption.querySpecOption() == null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support SQL_NO_CACHE select options yet.", selectOption.start);
+            "MySQL MVP does not support SQL_NO_CACHE select options" + YET, selectOption.start);
       }
       String option = selectOption.querySpecOption().getText().toUpperCase(Locale.ROOT);
       switch (option) {
         case "DISTINCT" -> distinct = true;
-        case "ALL" -> {}
+        case "ALL" -> {
+          // ALL is the default behavior in MySQL, so no special action is needed.
+        }
         default ->
             throw unsupportedFeature(
-                "MySQL MVP does not support select option '" + option + "' yet.",
+                "MySQL MVP does not support select option '" + option + "'" + YET,
                 selectOption.start);
       }
     }
@@ -859,7 +756,7 @@ final class MysqlAstMapper {
           span(context.start, context.stop, options));
     }
     if (context.naturalJoinType() != null || context.tableFactor() != null) {
-      throw unsupportedFeature("MySQL MVP does not support NATURAL joins yet.", context.start);
+      throw unsupportedFeature("MySQL MVP does not support NATURAL joins" + YET, context.start);
     }
     if (context.tableReference() == null) {
       throw unsupportedFeature("MySQL MVP encountered an unsupported join target.", context.start);
@@ -999,7 +896,7 @@ final class MysqlAstMapper {
     }
     if (context.groupList() != null || context.olapOption() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support ROLLUP, CUBE, or advanced GROUP BY options yet.",
+          "MySQL MVP does not support ROLLUP, CUBE, or advanced GROUP BY options" + YET,
           context.start);
     }
 
@@ -1007,7 +904,7 @@ final class MysqlAstMapper {
     for (var orderExpression : context.orderList().orderExpression()) {
       if (orderExpression.direction() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support sort directions inside GROUP BY yet.",
+            "MySQL MVP does not support sort directions inside GROUP BY" + YET,
             orderExpression.start);
       }
       result.add(mapExpr(orderExpression.expr(), options));
@@ -1026,7 +923,7 @@ final class MysqlAstMapper {
     if (context.queryExpressionWithOptLockingClauses() != null) {
       if (context.queryExpressionWithOptLockingClauses().lockingClauseList() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support locking clauses in INSERT ... SELECT yet.",
+            "MySQL MVP does not support locking clauses in INSERT ... SELECT" + YET,
             context.queryExpressionWithOptLockingClauses().lockingClauseList().start);
       }
       return mapQueryExpressionInternal(
@@ -1104,24 +1001,13 @@ final class MysqlAstMapper {
 
   private static MySqlStatementKind kindForSimpleStatement(
       MySQLParser.SimpleStatementContext context) {
-    if (context.selectStatement() != null) {
-      return MySqlStatementKind.SELECT;
-    }
-    if (context.insertStatement() != null) {
-      return MySqlStatementKind.INSERT;
-    }
-    if (context.updateStatement() != null) {
-      return MySqlStatementKind.UPDATE;
-    }
-    if (context.deleteStatement() != null) {
-      return MySqlStatementKind.DELETE;
-    }
-    if (context.replaceStatement() != null) {
-      return MySqlStatementKind.REPLACE;
-    }
-    if (context.truncateTableStatement() != null) {
-      return MySqlStatementKind.TRUNCATE_TABLE;
-    }
+    if (context.selectStatement() != null) return MySqlStatementKind.SELECT;
+    if (context.insertStatement() != null) return MySqlStatementKind.INSERT;
+    if (context.updateStatement() != null) return MySqlStatementKind.UPDATE;
+    if (context.deleteStatement() != null) return MySqlStatementKind.DELETE;
+    if (context.replaceStatement() != null) return MySqlStatementKind.REPLACE;
+    if (context.truncateTableStatement() != null) return MySqlStatementKind.TRUNCATE_TABLE;
+
     if (context.createStatement() != null) {
       if (context.createStatement().createTable() != null) {
         return MySqlStatementKind.CREATE_TABLE;
@@ -1140,83 +1026,88 @@ final class MysqlAstMapper {
       }
       return MySqlStatementKind.DROP_OTHER;
     }
-    if (context.showDatabasesStatement() != null) {
-      return MySqlStatementKind.SHOW_DATABASES;
-    }
-    if (context.showTablesStatement() != null) {
-      return MySqlStatementKind.SHOW_TABLES;
-    }
-    if (context.showColumnsStatement() != null) {
-      return MySqlStatementKind.SHOW_COLUMNS;
-    }
-    if (context.showCreateTableStatement() != null) {
-      return MySqlStatementKind.SHOW_CREATE_TABLE;
-    }
-    if (context.alterStatement() != null) {
-      return MySqlStatementKind.ALTER;
-    }
-    if (context.renameTableStatement() != null) {
-      return MySqlStatementKind.RENAME_TABLE;
-    }
-    if (context.importStatement() != null) {
-      return MySqlStatementKind.IMPORT;
-    }
-    if (context.callStatement() != null) {
-      return MySqlStatementKind.CALL;
-    }
-    if (context.doStatement() != null) {
-      return MySqlStatementKind.DO;
-    }
-    if (context.handlerStatement() != null) {
-      return MySqlStatementKind.HANDLER;
-    }
-    if (context.loadStatement() != null) {
-      return MySqlStatementKind.LOAD;
-    }
-    if (context.transactionOrLockingStatement() != null) {
+
+    if (context.showDatabasesStatement() != null) return MySqlStatementKind.SHOW_DATABASES;
+    if (context.showTablesStatement() != null) return MySqlStatementKind.SHOW_TABLES;
+    if (context.showColumnsStatement() != null) return MySqlStatementKind.SHOW_COLUMNS;
+    if (context.showCreateTableStatement() != null) return MySqlStatementKind.SHOW_CREATE_TABLE;
+
+    if (context.alterStatement() != null) return MySqlStatementKind.ALTER;
+    if (context.renameTableStatement() != null) return MySqlStatementKind.RENAME_TABLE;
+    if (context.importStatement() != null) return MySqlStatementKind.IMPORT;
+    if (context.callStatement() != null) return MySqlStatementKind.CALL;
+    if (context.doStatement() != null) return MySqlStatementKind.DO;
+    if (context.handlerStatement() != null) return MySqlStatementKind.HANDLER;
+    if (context.loadStatement() != null) return MySqlStatementKind.LOAD;
+    if (context.transactionOrLockingStatement() != null)
       return MySqlStatementKind.TRANSACTION_OR_LOCKING;
-    }
-    if (context.replicationStatement() != null) {
-      return MySqlStatementKind.REPLICATION;
-    }
-    if (context.preparedStatement() != null) {
-      return MySqlStatementKind.PREPARED;
-    }
-    if (context.cloneStatement() != null) {
-      return MySqlStatementKind.CLONE;
-    }
-    if (context.accountManagementStatement() != null) {
-      return MySqlStatementKind.ACCOUNT_MANAGEMENT;
-    }
-    if (context.tableAdministrationStatement() != null) {
+    if (context.replicationStatement() != null) return MySqlStatementKind.REPLICATION;
+    if (context.preparedStatement() != null) return MySqlStatementKind.PREPARED;
+    if (context.cloneStatement() != null) return MySqlStatementKind.CLONE;
+    if (context.accountManagementStatement() != null) return MySqlStatementKind.ACCOUNT_MANAGEMENT;
+    if (context.tableAdministrationStatement() != null)
       return MySqlStatementKind.TABLE_ADMINISTRATION;
-    }
-    if (context.uninstallStatement() != null) {
-      return MySqlStatementKind.UNINSTALL;
-    }
-    if (context.installStatement() != null) {
-      return MySqlStatementKind.INSTALL;
-    }
-    if (context.setStatement() != null) {
-      return MySqlStatementKind.SET;
-    }
-    if (context.resourceGroupManagement() != null
-        || context.otherAdministrativeStatement() != null) {
+    if (context.uninstallStatement() != null) return MySqlStatementKind.UNINSTALL;
+    if (context.installStatement() != null) return MySqlStatementKind.INSTALL;
+    if (context.setStatement() != null) return MySqlStatementKind.SET;
+    if (context.resourceGroupManagement() != null) return MySqlStatementKind.OTHER_ADMINISTRATIVE;
+    if (context.otherAdministrativeStatement() != null)
       return MySqlStatementKind.OTHER_ADMINISTRATIVE;
+    if (context.utilityStatement() != null) return MySqlStatementKind.UTILITY;
+    if (context.getDiagnosticsStatement() != null) return MySqlStatementKind.GET_DIAGNOSTICS;
+    if (context.signalStatement() != null) return MySqlStatementKind.SIGNAL;
+    if (context.resignalStatement() != null) return MySqlStatementKind.RESIGNAL;
+
+    if (isOtherShowStatement(context)) {
+      return MySqlStatementKind.SHOW_OTHER;
     }
-    if (context.utilityStatement() != null) {
-      return MySqlStatementKind.UTILITY;
-    }
-    if (context.getDiagnosticsStatement() != null) {
-      return MySqlStatementKind.GET_DIAGNOSTICS;
-    }
-    if (context.signalStatement() != null) {
-      return MySqlStatementKind.SIGNAL;
-    }
-    if (context.resignalStatement() != null) {
-      return MySqlStatementKind.RESIGNAL;
-    }
+
     return MySqlStatementKind.SHOW_OTHER;
+  }
+
+  private static boolean isOtherShowStatement(MySQLParser.SimpleStatementContext context) {
+    return context.showTriggersStatement() != null
+        || context.showEventsStatement() != null
+        || context.showTableStatusStatement() != null
+        || context.showOpenTablesStatement() != null
+        || context.showParseTreeStatement() != null
+        || context.showPluginsStatement() != null
+        || context.showEngineLogsStatement() != null
+        || context.showEngineMutexStatement() != null
+        || context.showEngineStatusStatement() != null
+        || context.showBinaryLogsStatement() != null
+        || context.showBinaryLogStatusStatement() != null
+        || context.showReplicasStatement() != null
+        || context.showBinlogEventsStatement() != null
+        || context.showRelaylogEventsStatement() != null
+        || context.showKeysStatement() != null
+        || context.showEnginesStatement() != null
+        || context.showCountWarningsStatement() != null
+        || context.showCountErrorsStatement() != null
+        || context.showWarningsStatement() != null
+        || context.showErrorsStatement() != null
+        || context.showProfilesStatement() != null
+        || context.showProfileStatement() != null
+        || context.showStatusStatement() != null
+        || context.showProcessListStatement() != null
+        || context.showVariablesStatement() != null
+        || context.showCharacterSetStatement() != null
+        || context.showCollationStatement() != null
+        || context.showPrivilegesStatement() != null
+        || context.showGrantsStatement() != null
+        || context.showCreateDatabaseStatement() != null
+        || context.showCreateViewStatement() != null
+        || context.showMasterStatusStatement() != null
+        || context.showReplicaStatusStatement() != null
+        || context.showCreateProcedureStatement() != null
+        || context.showCreateFunctionStatement() != null
+        || context.showCreateTriggerStatement() != null
+        || context.showCreateProcedureStatusStatement() != null
+        || context.showCreateFunctionStatusStatement() != null
+        || context.showCreateProcedureCodeStatement() != null
+        || context.showCreateFunctionCodeStatement() != null
+        || context.showCreateEventStatement() != null
+        || context.showCreateUserStatement() != null;
   }
 
   private static LimitClause mapLimitClause(
@@ -1279,7 +1170,7 @@ final class MysqlAstMapper {
     if (context instanceof MySQLParser.ExprIsContext isContext) {
       if (isContext.type != null || isContext.notRule() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support IS TRUE/FALSE/UNKNOWN yet.", isContext.start);
+            "MySQL MVP does not support IS TRUE/FALSE/UNKNOWN" + YET, isContext.start);
       }
       return mapBoolPri(isContext.boolPri(), options);
     }
@@ -1326,7 +1217,7 @@ final class MysqlAstMapper {
       MySQLParser.PredicateContext context, ParseOptions options) {
     if (context.simpleExprWithParentheses() != null || context.SOUNDS_SYMBOL() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support MEMBER OF or SOUNDS LIKE predicates yet.", context.start);
+          "MySQL MVP does not support MEMBER OF or SOUNDS LIKE predicates" + YET, context.start);
     }
     Expression left = mapBitExpr(context.bitExpr(0), options);
     if (context.predicateOperations() == null) {
@@ -1336,7 +1227,7 @@ final class MysqlAstMapper {
     boolean negated = context.notRule() != null;
     if (context.predicateOperations() instanceof MySQLParser.PredicateExprInContext inContext) {
       if (inContext.subquery() != null) {
-        throw unsupportedFeature("MySQL MVP does not support IN subqueries yet.", inContext.start);
+        throw unsupportedFeature("MySQL MVP does not support IN subqueries" + YET, inContext.start);
       }
       return new InExpression(
           left,
@@ -1364,14 +1255,14 @@ final class MysqlAstMapper {
           span(likeContext.start, likeContext.stop, options));
     }
     throw unsupportedFeature(
-        "MySQL MVP does not support this predicate operation yet.",
+        "MySQL MVP does not support this predicate operation" + YET,
         context.predicateOperations().start);
   }
 
   private static Expression mapBitExpr(MySQLParser.BitExprContext context, ParseOptions options) {
     if (context.expr() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support INTERVAL arithmetic yet.", context.start);
+          "MySQL MVP does not support INTERVAL arithmetic" + YET, context.start);
     }
     if (!context.bitExpr().isEmpty()) {
       if (context.op == null) {
@@ -1399,7 +1290,8 @@ final class MysqlAstMapper {
           throw unsupportedFeature(
               "MySQL MVP does not support arithmetic operator '"
                   + operatorToken.getText()
-                  + "' yet.",
+                  + "'"
+                  + YET,
               operatorToken);
     };
   }
@@ -1409,7 +1301,7 @@ final class MysqlAstMapper {
     if (context instanceof MySQLParser.SimpleExprColumnRefContext columnRefContext) {
       if (columnRefContext.jsonOperator() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support JSON column operators yet.", columnRefContext.start);
+            "MySQL MVP does not support JSON column operators" + YET, columnRefContext.start);
       }
       return new IdentifierExpression(
           columnRefContext.columnRef().getText(),
@@ -1426,10 +1318,18 @@ final class MysqlAstMapper {
     if (context instanceof MySQLParser.SimpleExprSumContext sumContext) {
       return mapSumExpr(sumContext.sumExpr(), options);
     }
+    if (context instanceof MySQLParser.SimpleExprRuntimeFunctionContext runtimeContext) {
+      return mapRuntimeFunction(runtimeContext.runtimeFunctionCall(), options);
+    }
+    return mapUnaryOrListExpr(context, options);
+  }
+
+  private static Expression mapUnaryOrListExpr(
+      MySQLParser.SimpleExprContext context, ParseOptions options) {
     if (context instanceof MySQLParser.SimpleExprUnaryContext unaryContext) {
       if (unaryContext.BITWISE_NOT_OPERATOR() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support bitwise NOT expressions yet.", unaryContext.start);
+            "MySQL MVP does not support bitwise NOT expressions" + YET, unaryContext.start);
       }
       return new UnaryExpression(
           unaryContext.MINUS_OPERATOR() != null ? UnaryOperator.MINUS : UnaryOperator.PLUS,
@@ -1445,13 +1345,10 @@ final class MysqlAstMapper {
     if (context instanceof MySQLParser.SimpleExprListContext listContext) {
       if (listContext.ROW_SYMBOL() != null || listContext.exprList().expr().size() != 1) {
         throw unsupportedFeature(
-            "MySQL MVP does not support row constructors or expression lists yet.",
+            "MySQL MVP does not support row constructors or expression lists" + YET,
             listContext.start);
       }
       return mapExpr(listContext.exprList().expr().getFirst(), options);
-    }
-    if (context instanceof MySQLParser.SimpleExprRuntimeFunctionContext runtimeContext) {
-      return mapRuntimeFunction(runtimeContext.runtimeFunctionCall(), options);
     }
     throw unsupportedFeature(
         "MySQL MVP encountered an unsupported expression leaf.", context.start);
@@ -1501,7 +1398,8 @@ final class MysqlAstMapper {
     throw unsupportedFeature(
         "MySQL MVP does not support built-in runtime function '"
             + context.getStart().getText()
-            + "' yet.",
+            + "'"
+            + YET,
         context.start);
   }
 
@@ -1511,10 +1409,14 @@ final class MysqlAstMapper {
         context.pureIdentifier() != null
             ? context.pureIdentifier().getText()
             : context.qualifiedIdentifier().getText();
-    List<Expression> arguments =
-        context.udfExprList() != null
-            ? mapUdfExprList(context.udfExprList(), options)
-            : context.exprList() != null ? mapExprList(context.exprList(), options) : List.of();
+    List<Expression> arguments;
+    if (context.udfExprList() != null) {
+      arguments = mapUdfExprList(context.udfExprList(), options);
+    } else if (context.exprList() != null) {
+      arguments = mapExprList(context.exprList(), options);
+    } else {
+      arguments = List.of();
+    }
     return new FunctionCallExpression(
         name, arguments, false, false, span(context.start, context.stop, options));
   }
@@ -1525,7 +1427,7 @@ final class MysqlAstMapper {
     for (var udfExpr : context.udfExpr()) {
       if (udfExpr.selectAlias() != null) {
         throw unsupportedFeature(
-            "MySQL MVP does not support aliased function arguments yet.", udfExpr.start);
+            "MySQL MVP does not support aliased function arguments" + YET, udfExpr.start);
       }
       arguments.add(mapExpr(udfExpr.expr(), options));
     }
@@ -1536,16 +1438,16 @@ final class MysqlAstMapper {
       MySQLParser.SumExprContext context, ParseOptions options) {
     if (context.windowingClause() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support windowed aggregate functions yet.", context.start);
+          "MySQL MVP does not support windowed aggregate functions" + YET, context.start);
     }
     if (context.jsonFunction() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support JSON aggregate functions yet.", context.start);
+          "MySQL MVP does not support JSON aggregate functions" + YET, context.start);
     }
     if (context.GROUP_CONCAT_SYMBOL() != null
         && (context.orderClause() != null || context.SEPARATOR_SYMBOL() != null)) {
       throw unsupportedFeature(
-          "MySQL MVP does not support GROUP_CONCAT ORDER BY or SEPARATOR clauses yet.",
+          "MySQL MVP does not support GROUP_CONCAT ORDER BY or SEPARATOR clauses" + YET,
           context.start);
     }
 
@@ -1553,12 +1455,14 @@ final class MysqlAstMapper {
     boolean distinct = context.DISTINCT_SYMBOL() != null;
     boolean starArgument = context.MULT_OPERATOR() != null;
 
-    List<Expression> arguments =
-        context.exprList() != null
-            ? mapExprList(context.exprList(), options)
-            : context.inSumExpr() != null
-                ? List.of(mapExpr(context.inSumExpr().expr(), options))
-                : List.of();
+    List<Expression> arguments;
+    if (context.exprList() != null) {
+      arguments = mapExprList(context.exprList(), options);
+    } else if (context.inSumExpr() != null) {
+      arguments = List.of(mapExpr(context.inSumExpr().expr(), options));
+    } else {
+      arguments = List.of();
+    }
 
     return new FunctionCallExpression(
         name, arguments, distinct, starArgument, span(context.start, context.stop, options));
@@ -1594,11 +1498,11 @@ final class MysqlAstMapper {
       MySQLParser.ColumnDefinitionContext context, ParseOptions options) {
     if (context.fieldDefinition().AS_SYMBOL() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support generated columns in CREATE TABLE yet.", context.start);
+          "MySQL MVP does not support generated columns in CREATE TABLE" + YET, context.start);
     }
     if (context.checkOrReferences() != null) {
       throw unsupportedFeature(
-          "MySQL MVP does not support column-level CHECK or REFERENCES clauses yet.",
+          "MySQL MVP does not support column-level CHECK or REFERENCES clauses" + YET,
           context.checkOrReferences().start);
     }
 
@@ -1618,7 +1522,7 @@ final class MysqlAstMapper {
       MySQLParser.DerivedTableContext context, ParseOptions options) {
     if (context.getStart().getType() == MySQLParser.LATERAL_SYMBOL) {
       throw unsupportedFeature(
-          "MySQL MVP does not support LATERAL derived tables yet.", context.start);
+          "MySQL MVP does not support LATERAL derived tables" + YET, context.start);
     }
     if (context.subquery() == null) {
       throw unsupportedFeature(
