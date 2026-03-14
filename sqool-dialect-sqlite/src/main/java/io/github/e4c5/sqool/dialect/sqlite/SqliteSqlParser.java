@@ -60,13 +60,20 @@ public final class SqliteSqlParser implements SqlParser {
     try {
       return parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy());
     } catch (ParseCancellationException | InputMismatchException exception) {
+      // SLL fast-path failed; run an LL pass to surface real syntax diagnostics.
+      ParseAttempt<SQLiteParser.ParseContext> llAttempt =
+          parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
       if (!enableFallback) {
+        // When fallback is disabled we only want the diagnostics, not the LL parse result.
+        if (!llAttempt.diagnostics().isEmpty()) {
+          return ParseAttempt.failure(llAttempt.diagnostics());
+        }
         return ParseAttempt.failure(
             List.of(
                 new SyntaxDiagnostic(
                     DiagnosticSeverity.ERROR, "Fast-path SQLite parse failed.", 1, 0, null)));
       }
-      return parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
+      return llAttempt;
     }
   }
 

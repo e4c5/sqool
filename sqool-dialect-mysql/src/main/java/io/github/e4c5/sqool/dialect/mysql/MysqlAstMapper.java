@@ -71,8 +71,8 @@ final class MysqlAstMapper {
       Pattern.compile("(?i)(`[^`]+`|[a-z_][a-z0-9_$]*)");
 
   private static boolean isSupportedIdentifier(String name) {
-    String[] parts = name.split("\\.", -1);
-    if (parts.length < 1 || parts.length > 3) {
+    List<String> parts = splitOnUnquotedDots(name);
+    if (parts == null || parts.isEmpty() || parts.size() > 3) {
       return false;
     }
     for (String part : parts) {
@@ -81,6 +81,33 @@ final class MysqlAstMapper {
       }
     }
     return true;
+  }
+
+  /**
+   * Splits {@code name} on dots that are outside backtick-quoted segments, respecting MySQL quoted
+   * identifiers like {@code `sales.2024`}. Returns {@code null} if the input has an unclosed
+   * backtick.
+   */
+  private static List<String> splitOnUnquotedDots(String name) {
+    List<String> parts = new ArrayList<>();
+    StringBuilder segment = new StringBuilder();
+    boolean inBacktick = false;
+    for (char c : name.toCharArray()) {
+      if (c == '`') {
+        inBacktick = !inBacktick;
+        segment.append(c);
+      } else if (c == '.' && !inBacktick) {
+        parts.add(segment.toString());
+        segment.setLength(0);
+      } else {
+        segment.append(c);
+      }
+    }
+    if (inBacktick) {
+      return null;
+    }
+    parts.add(segment.toString());
+    return parts;
   }
 
   private MysqlAstMapper() {}
