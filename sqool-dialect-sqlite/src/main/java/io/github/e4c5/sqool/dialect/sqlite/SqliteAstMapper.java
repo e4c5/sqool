@@ -191,8 +191,21 @@ final class SqliteAstMapper {
 
   private static TableReference mapJoinClause(
       SQLiteParser.Join_clauseContext context, ParseOptions options) {
+    if (context == null) {
+      return null;
+    }
+    // Only support a single table with no explicit join operators or constraints. Anything more
+    // complex (joins, multiple tables) is treated as unsupported so the caller can fall back to
+    // a raw statement.
+    if (context.join_operator() != null && !context.join_operator().isEmpty()) {
+      return null;
+    }
+    if (context.join_constraint() != null && !context.join_constraint().isEmpty()) {
+      return null;
+    }
+
     List<SQLiteParser.Table_or_subqueryContext> tables = context.table_or_subquery();
-    if (tables.isEmpty()) {
+    if (tables.size() != 1) {
       return null;
     }
     SQLiteParser.Table_or_subqueryContext first = tables.get(0);
@@ -377,17 +390,42 @@ final class SqliteAstMapper {
   private static LimitClause mapLimitClause(
       SQLiteParser.Limit_clauseContext context, ParseOptions options) {
     List<SQLiteParser.ExprContext> exprs = context.expr();
-    Long rowCount = parseLimitExpr(exprs.get(0));
-    if (rowCount == null) {
+    if (exprs.isEmpty()) {
       return null;
     }
-    Long offset = null;
+
+    Long first = parseLimitExpr(exprs.get(0));
+    if (first == null) {
+      return null;
+    }
+
+    Long second = null;
     if (exprs.size() > 1) {
-      offset = parseLimitExpr(exprs.get(1));
-      if (offset == null) {
+      second = parseLimitExpr(exprs.get(1));
+      if (second == null) {
         return null;
       }
     }
+
+    Long rowCount;
+    Long offset;
+    if (exprs.size() == 1) {
+      // LIMIT rowCount
+      rowCount = first;
+      offset = null;
+    } else if (context.OFFSET_() != null) {
+      // LIMIT rowCount OFFSET offset
+      rowCount = first;
+      offset = second;
+    } else if (context.COMMA() != null) {
+      // LIMIT offset, rowCount
+      offset = first;
+      rowCount = second;
+    } else {
+      // Unexpected shape; treat as unsupported so the caller can fall back to raw.
+      return null;
+    }
+
     return new LimitClause(
         rowCount, offset, SourceSpans.fromTokens(context.start, context.stop, options));
   }
