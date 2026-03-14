@@ -11,53 +11,18 @@ import java.util.*;
 import org.antlr.v4.runtime.*;
 
 /** The base lexer class provides a number of functions needed in actions in the lexer (grammar). */
-public abstract class MySQLLexerBase extends Lexer {
+public abstract class MySQLLexerBase extends Lexer implements MySQLGrammarConfig {
+  private final MySQLGrammarSettings settings = new MySQLGrammarSettings();
+
+  @Override
+  public MySQLGrammarSettings getSettings() {
+    return settings;
+  }
 
   protected MySQLLexerBase(CharStream input) {
     super(input);
-    this.serverVersion = 80200;
-    this.sqlModes = SqlModes.sqlModeFromString("ANSI_QUOTES");
   }
 
-  public int getServerVersion() {
-    return serverVersion;
-  }
-
-  public void setServerVersion(int serverVersion) {
-    this.serverVersion = serverVersion;
-  }
-
-  public Set<SqlMode> getSqlModes() {
-    return sqlModes;
-  }
-
-  public void setSqlModes(Set<SqlMode> sqlModes) {
-    this.sqlModes = sqlModes;
-  }
-
-  public boolean isSupportMle() {
-    return supportMle;
-  }
-
-  public void setSupportMle(boolean supportMle) {
-    this.supportMle = supportMle;
-  }
-
-  public Set<String> getCharSets() {
-    return charSets;
-  }
-
-  public void setCharSets(Set<String> charSets) {
-    this.charSets = charSets;
-  }
-
-  private int serverVersion = 0;
-  private Set<SqlMode> sqlModes = new HashSet<>();
-
-  /** Enable Multi Language Extension support. */
-  private boolean supportMle = true;
-
-  private Set<String> charSets = new HashSet<>(); // Used to check repertoires.
   protected boolean inVersionComment = false;
 
   private Queue<Token> pendingTokens = new LinkedList<>();
@@ -73,10 +38,6 @@ public abstract class MySQLLexerBase extends Lexer {
   static int unsignedLongLongLength = 20;
 
   private boolean justEmittedDot = false;
-
-  public boolean isSqlModeActive(SqlMode mode) {
-    return this.sqlModes.contains(mode);
-  }
 
   @Override
   public void reset() {
@@ -108,7 +69,7 @@ public abstract class MySQLLexerBase extends Lexer {
     }
 
     int version = Integer.parseInt(text.substring(3));
-    if (version <= this.serverVersion) {
+    if (version <= getServerVersion()) {
       this.inVersionComment = true;
       return true;
     }
@@ -214,7 +175,7 @@ public abstract class MySQLLexerBase extends Lexer {
   }
 
   protected int checkCharset(String text) {
-    return this.charSets.contains(text) ? MySQLLexer.UNDERSCORE_CHARSET : MySQLLexer.IDENTIFIER;
+    return getCharSets().contains(text) ? MySQLLexer.UNDERSCORE_CHARSET : MySQLLexer.IDENTIFIER;
   }
 
   protected void emitDot() {
@@ -246,71 +207,7 @@ public abstract class MySQLLexerBase extends Lexer {
   }
 
   public boolean isMasterCompressionAlgorithm() {
-    return serverVersion >= 80018 && isServerVersionLt80024();
-  }
-
-  public boolean isServerVersionGe80011() {
-    return serverVersion >= 80011;
-  }
-
-  public boolean isServerVersionGe80013() {
-    return serverVersion >= 80013;
-  }
-
-  public boolean isServerVersionLt80014() {
-    return serverVersion < 80014;
-  }
-
-  public boolean isServerVersionGe80014() {
-    return serverVersion >= 80014;
-  }
-
-  public boolean isServerVersionGe80016() {
-    return serverVersion >= 80016;
-  }
-
-  public boolean isServerVersionGe80017() {
-    return serverVersion >= 80017;
-  }
-
-  public boolean isServerVersionGe80018() {
-    return serverVersion >= 80018;
-  }
-
-  public boolean isServerVersionLt80021() {
-    return serverVersion < 80021;
-  }
-
-  public boolean isServerVersionGe80021() {
-    return serverVersion >= 80021;
-  }
-
-  public boolean isServerVersionLt80022() {
-    return serverVersion < 80022;
-  }
-
-  public boolean isServerVersionGe80022() {
-    return serverVersion >= 80022;
-  }
-
-  public boolean isServerVersionLt80023() {
-    return serverVersion < 80023;
-  }
-
-  public boolean isServerVersionGe80023() {
-    return serverVersion >= 80023;
-  }
-
-  public boolean isServerVersionLt80024() {
-    return serverVersion < 80024;
-  }
-
-  public boolean isServerVersionGe80024() {
-    return serverVersion >= 80024;
-  }
-
-  public boolean isServerVersionLt80031() {
-    return serverVersion < 80031;
+    return getServerVersion() >= 80018 && isServerVersionLt80024();
   }
 
   public void doLogicalOr() {
@@ -472,7 +369,7 @@ public abstract class MySQLLexerBase extends Lexer {
   }
 
   public boolean doDollarQuotedStringText() {
-    return this.serverVersion >= 80034 && this.supportMle;
+    return getServerVersion() >= 80034 && isSupportMle();
   }
 
   public boolean isVersionComment() {
