@@ -1,0 +1,4 @@
+-- DROP TABLE statements
+DROP TABLE employees;
+DROP TABLE IF EXISTS temp_data;
+DROP TABLE employees CASCADE CONSTRAINTS;
