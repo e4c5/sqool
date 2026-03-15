@@ -12,6 +12,7 @@ import io.github.e4c5.sqool.core.SyntaxDiagnostic;
 import io.github.e4c5.sqool.grammar.postgresql.generated.PostgreSQLLexer;
 import io.github.e4c5.sqool.grammar.postgresql.generated.PostgreSQLParser;
 import java.util.List;
+import java.util.function.Function;
 import org.antlr.v4.runtime.BailErrorStrategy;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
@@ -79,23 +80,7 @@ public final class PostgresqlSqlParser implements SqlParser {
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
-    AntlrSyntaxErrorListener syntaxErrors = new AntlrSyntaxErrorListener();
-    var lexer = new PostgreSQLLexer(CharStreams.fromString(sql));
-    lexer.removeErrorListeners();
-    lexer.addErrorListener(syntaxErrors);
-
-    var tokens = new CommonTokenStream(lexer);
-    var parser = new PostgreSQLParser(tokens);
-    parser.removeErrorListeners();
-    parser.addErrorListener(syntaxErrors);
-    parser.setBuildParseTree(true);
-    parser.setErrorHandler(errorStrategy);
-    parser.getInterpreter().setPredictionMode(predictionMode);
-
-    PostgreSQLParser.RootContext context = parser.root();
-    return syntaxErrors.hasDiagnostics()
-        ? ParseAttempt.failure(syntaxErrors.diagnostics())
-        : new ParseAttempt<>(context, List.of());
+    return doParse(sql, predictionMode, errorStrategy, PostgreSQLParser::root);
   }
 
   private ParseAttempt<PostgreSQLParser.SingleStatementContext> parseSingleStatement(
@@ -122,6 +107,14 @@ public final class PostgresqlSqlParser implements SqlParser {
       String sql,
       PredictionMode predictionMode,
       org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy) {
+    return doParse(sql, predictionMode, errorStrategy, PostgreSQLParser::singleStatement);
+  }
+
+  private <T> ParseAttempt<T> doParse(
+      String sql,
+      PredictionMode predictionMode,
+      org.antlr.v4.runtime.ANTLRErrorStrategy errorStrategy,
+      Function<PostgreSQLParser, T> entryPoint) {
     AntlrSyntaxErrorListener syntaxErrors = new AntlrSyntaxErrorListener();
     var lexer = new PostgreSQLLexer(CharStreams.fromString(sql));
     lexer.removeErrorListeners();
@@ -135,7 +128,7 @@ public final class PostgresqlSqlParser implements SqlParser {
     parser.setErrorHandler(errorStrategy);
     parser.getInterpreter().setPredictionMode(predictionMode);
 
-    PostgreSQLParser.SingleStatementContext context = parser.singleStatement();
+    T context = entryPoint.apply(parser);
     return syntaxErrors.hasDiagnostics()
         ? ParseAttempt.failure(syntaxErrors.diagnostics())
         : new ParseAttempt<>(context, List.of());
