@@ -1,11 +1,16 @@
 package io.github.e4c5.sqool.conformance.crossdialect;
 
+import static org.junit.jupiter.api.Assertions.assertEquals;
 import static org.junit.jupiter.api.Assertions.assertFalse;
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
+import io.github.e4c5.sqool.ast.CreateTableStatement;
+import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.SelectStatement;
+import io.github.e4c5.sqool.ast.SqliteRawStatement;
+import io.github.e4c5.sqool.ast.SqliteStatementKind;
 import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
@@ -72,10 +77,19 @@ class CrossDialectConformanceTest {
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
     ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
 
-    assertInstanceOf(ParseSuccess.class, mysqlResult);
-    assertInstanceOf(ParseSuccess.class, sqliteResult);
-    assertTrue(((ParseSuccess) mysqlResult).diagnostics().isEmpty());
-    assertTrue(((ParseSuccess) sqliteResult).diagnostics().isEmpty());
+    ParseSuccess mysqlSuccess = assertInstanceOf(ParseSuccess.class, mysqlResult);
+    ParseSuccess sqliteSuccess = assertInstanceOf(ParseSuccess.class, sqliteResult);
+    assertTrue(mysqlSuccess.diagnostics().isEmpty());
+    assertTrue(sqliteSuccess.diagnostics().isEmpty());
+
+    // MySQL normalizes CREATE TABLE into a structured AST node.
+    Statement mysqlStmt = (Statement) mysqlSuccess.root();
+    assertInstanceOf(CreateTableStatement.class, mysqlStmt);
+
+    // SQLite uses a raw statement wrapper for non-SELECT statements; verify the correct kind.
+    Statement sqliteStmt = (Statement) sqliteSuccess.root();
+    SqliteRawStatement sqliteRaw = assertInstanceOf(SqliteRawStatement.class, sqliteStmt);
+    assertEquals(SqliteStatementKind.CREATE_TABLE, sqliteRaw.kind());
   }
 
   @Test
@@ -84,10 +98,19 @@ class CrossDialectConformanceTest {
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
     ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
 
-    assertInstanceOf(ParseSuccess.class, mysqlResult);
-    assertInstanceOf(ParseSuccess.class, sqliteResult);
-    assertTrue(((ParseSuccess) mysqlResult).diagnostics().isEmpty());
-    assertTrue(((ParseSuccess) sqliteResult).diagnostics().isEmpty());
+    ParseSuccess mysqlSuccess = assertInstanceOf(ParseSuccess.class, mysqlResult);
+    ParseSuccess sqliteSuccess = assertInstanceOf(ParseSuccess.class, sqliteResult);
+    assertTrue(mysqlSuccess.diagnostics().isEmpty());
+    assertTrue(sqliteSuccess.diagnostics().isEmpty());
+
+    // MySQL normalizes INSERT into a structured AST node.
+    Statement mysqlStmt = (Statement) mysqlSuccess.root();
+    assertInstanceOf(InsertStatement.class, mysqlStmt);
+
+    // SQLite uses a raw statement wrapper for non-SELECT statements; verify the correct kind.
+    Statement sqliteStmt = (Statement) sqliteSuccess.root();
+    SqliteRawStatement sqliteRaw = assertInstanceOf(SqliteRawStatement.class, sqliteStmt);
+    assertEquals(SqliteStatementKind.INSERT, sqliteRaw.kind());
   }
 
   @Test

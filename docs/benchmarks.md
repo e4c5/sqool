@@ -32,7 +32,7 @@ Each dialect has its own benchmark class:
 - `SqliteParserBenchmark` – SQLite
 - `PostgresqlParserBenchmark` – PostgreSQL
 
-All three use similar corpus categories (simple, join, complex, error-path) and JSqlParser comparison where applicable. Run all benchmarks to compare throughput and latency across dialects:
+Benchmark categories vary by dialect today. PostgreSQL includes simple/join/complex/error-path scenarios; MySQL and SQLite currently cover a smaller subset. Run all benchmarks to compare currently implemented scenarios across dialects:
 
 ```bash
 ./gradlew :sqool-bench:jmh

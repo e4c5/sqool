@@ -610,7 +610,45 @@ Resolved:
 - improve documentation
 - publish benchmark reports in CI
 
-## 18. Recommended Immediate Next Step
+## 18. How to Implement a New Dialect
+
+Use the following checklist when adding a new SQL dialect to the project.
+
+### Module structure
+
+Each dialect requires three modules:
+- `sqool-grammar-<dialect>` — vendored ANTLR grammar and generated parser/lexer
+- `sqool-dialect-<dialect>` — parser facade and AST mapper
+- Conformance test resources under `sqool-conformance/src/test/resources/<dialect>/`
+
+### Implementation checklist
+
+1. **Vendor grammar**: Place `.g4` files in `sqool-grammar-<dialect>/src/main/antlr/`. Document provenance in `UPSTREAM.md`. Validate with grammar smoke tests.
+
+2. **Parser facade** (`<Dialect>SqlParser implements SqlParser`):
+   - Use SLL-first parse with `BailErrorStrategy`, fall back to LL with `DefaultErrorStrategy` on `ParseCancellationException` or `InputMismatchException`.
+   - Record `ParseMetrics` (prediction mode and elapsed nanos) around the parse.
+   - Return `ParseFailure` only at this facade boundary; do not catch exceptions and return `ParseResult` in inner mapper helpers.
+
+3. **Shared abstractions first**: Before adding dialect-local logic, reuse helpers in `sqool-core` (e.g., `AntlrSyntaxErrorListener`, `SourceSpans`, `ParseAttempt`) and normalized AST types in `sqool-ast`. Add normalized AST nodes when a construct is shared across dialects. Use dialect-specific raw statement wrappers only for constructs not yet normalized.
+
+4. **AST mapper** (`<Dialect>AstMapper`):
+   - Map the supported subset to normalized AST nodes from `sqool-ast`.
+   - Return a dialect-specific raw statement (e.g., `SqliteRawStatement`, `PostgresqlRawStatement`) for valid syntax outside the normalized subset; do not throw for unsupported shapes.
+   - Throw (do not catch) domain exceptions so that the facade boundary handles `ParseResult` construction.
+
+5. **`ParseOptions` flags**: Implement `scriptMode()` (multi-statement) and `enableFallback()` (SLL→LL). Optionally implement `collectComments` and `ErrorTolerance` if required.
+
+6. **`SyntaxDiagnostic`**: Populate `line`, `column`, `message`, and `severity` for every error. Optionally include `offendingToken`. Consider adding `SourceSpan` and `expectedTokens` for richer IDE integration.
+
+7. **Tests**:
+   - Add SQL files to `sqool-conformance/src/test/resources/<dialect>/supported/` and `unsupported/` and cover them in a conformance test class.
+   - Add unit tests for AST structure in `<Dialect>SqlParserTest`.
+   - Add cross-dialect tests in `CrossDialectConformanceTest` for constructs shared with other dialects.
+
+8. **Benchmarks**: Add JMH benchmarks in `sqool-bench` covering at least simple, join, and error-path query shapes. Run `./gradlew :sqool-bench:jmh` to capture a baseline. See `docs/benchmarks.md` for details.
+
+## 19. Recommended Immediate Next Step
 
 Milestones 0–3 are complete. The next steps are:
 
