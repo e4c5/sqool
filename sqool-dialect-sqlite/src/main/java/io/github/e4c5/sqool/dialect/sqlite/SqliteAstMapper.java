@@ -257,7 +257,8 @@ final class SqliteAstMapper {
         condition,
         usingColumns,
         natural,
-        SourceSpans.fromTokens(context.start, context.table_or_subquery().get(rightTableIndex).stop, options));
+        SourceSpans.fromTokens(
+            context.start, context.table_or_subquery().get(rightTableIndex).stop, options));
   }
 
   private static io.github.e4c5.sqool.ast.JoinType mapJoinOperator(
