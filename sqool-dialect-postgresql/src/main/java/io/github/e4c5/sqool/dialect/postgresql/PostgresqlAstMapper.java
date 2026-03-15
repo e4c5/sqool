@@ -425,7 +425,9 @@ final class PostgresqlAstMapper {
     return new ParseSuccess(
         SqlDialect.POSTGRESQL,
         DmlAstBuilder.buildUpdate(
-            target, assignments, whereResult.value(),
+            target,
+            assignments,
+            whereResult.value(),
             SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
         List.of(),
         ParseMetrics.unknown());

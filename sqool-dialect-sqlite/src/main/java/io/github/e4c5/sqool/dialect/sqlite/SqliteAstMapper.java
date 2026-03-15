@@ -202,7 +202,8 @@ final class SqliteAstMapper {
 
     List<SQLiteParser.Join_operatorContext> operators = context.join_operator();
     List<SQLiteParser.Join_constraintContext> constraints = context.join_constraint();
-    // join_constraint is optional per step; when counts differ we cannot map constraint i to step i.
+    // join_constraint is optional per step; when counts differ we cannot map constraint i to step
+    // i.
     if (constraints.size() != operators.size()) {
       return null;
     }

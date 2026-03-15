@@ -22,31 +22,19 @@ public final class DmlAstBuilder {
       Statement sourceQuery,
       SourceSpan sourceSpan) {
     return new InsertStatement(
-        tableName,
-        columns,
-        rows,
-        List.of(),
-        sourceQuery,
-        List.of(),
-        false,
-        sourceSpan);
+        tableName, columns, rows, List.of(), sourceQuery, List.of(), false, sourceSpan);
   }
 
-  /**
-   * Builds a normalized UPDATE statement from already-parsed target, assignments, and WHERE.
-   */
+  /** Builds a normalized UPDATE statement from already-parsed target, assignments, and WHERE. */
   public static UpdateStatement buildUpdate(
       TableReference target,
       List<ColumnAssignment> assignments,
       Expression where,
       SourceSpan sourceSpan) {
-    return new UpdateStatement(
-        target, assignments, where, List.of(), null, false, sourceSpan);
+    return new UpdateStatement(target, assignments, where, List.of(), null, false, sourceSpan);
   }
 
-  /**
-   * Builds a normalized DELETE statement from already-parsed target and WHERE.
-   */
+  /** Builds a normalized DELETE statement from already-parsed target and WHERE. */
   public static DeleteStatement buildDelete(
       TableReference target, Expression where, SourceSpan sourceSpan) {
     return new DeleteStatement(target, where, List.of(), null, sourceSpan);

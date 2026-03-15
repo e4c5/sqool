@@ -200,7 +200,8 @@ class CrossDialectConformanceTest {
 
     // SQLite: assert raw SELECT kind instead of join-table normalization.
     SqliteRawStatement sqliteRaw =
-        assertInstanceOf(SqliteRawStatement.class, sqliteSuccess.root(), "SQLite JOIN falls back to raw");
+        assertInstanceOf(
+            SqliteRawStatement.class, sqliteSuccess.root(), "SQLite JOIN falls back to raw");
     assertEquals(SqliteStatementKind.SELECT, sqliteRaw.kind());
   }
 
