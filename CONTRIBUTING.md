@@ -12,7 +12,7 @@ When building the project via Gradle, the ANTLR generation task automatically pr
 
 We use JMH in the `sqool-bench` module to benchmark parser performance, particularly comparing `sqool` dialect parsing speeds against `JSqlParser`.
 
-Currently, **benchmark results are stored as CI artifacts only**. We do not commit benchmark result reports into the repository tree to keep history uncluttered. To view historical performance trends, refer to the artifact outputs on recent main-branch CI runs.
+**Benchmark results are stored as CI artifacts only**. We do not commit benchmark result reports into the repository tree to keep history uncluttered. To view historical performance trends, refer to the artifact outputs on recent main-branch CI runs. See [Benchmarks](docs/benchmarks.md) for how to run and interpret benchmark results.
 
 ## Dependency Upgrade Policy
 
@@ -20,6 +20,71 @@ We prioritize build stability and reproducibility. The `antlr` tool and runtime,
 
 - Version updates for parser toolchains (like ANTLR) should be treated cautiously and only happen when addressing a critical bug or taking advantage of a major performance feature.
 - Dependency locks (via Gradle's native dependency locking) must be updated by running `./gradlew dependencies --write-locks` whenever modifying dependencies. Commit the resulting `gradle.lockfile` changes.
+
+## Module and naming conventions
+
+### Dialect modules
+
+All dialect modules follow the naming pattern `sqool-dialect-{dialect}`:
+- `sqool-dialect-mysql`
+- `sqool-dialect-sqlite`
+- `sqool-dialect-postgresql`
+- `sqool-dialect-oracle`
+
+Grammar modules follow `sqool-grammar-{dialect}`. Each grammar module contains an `UPSTREAM.md` documenting the upstream source, commit, and local deviations.
+
+### AST node naming
+
+Dialect-specific raw statement nodes follow the pattern `{Dialect}RawStatement` and their kind enums follow `{Dialect}StatementKind`:
+- `MySqlRawStatement` / `MySqlStatementKind`
+- `SqliteRawStatement` / `SqliteStatementKind`
+- `PostgresqlRawStatement` / `PostgresqlStatementKind`
+- `OracleRawStatement` / `OracleStatementKind`
+
+Normalized nodes (e.g. `SelectStatement`, `InsertStatement`, `JoinTableReference`) are shared across all dialects and live in `sqool-ast`.
+
+### Parser and mapper naming
+
+Each dialect has:
+- `{Dialect}SqlParser` (implements `SqlParser`) in the public-facing module.
+- `{Dialect}AstMapper` (package-private) doing the parse-tree-to-AST mapping.
+
+For example: `MysqlSqlParser` + `MysqlAstMapper`, `OracleSqlParser` + `OracleAstMapper`.
+
+## Adding a new dialect
+
+To add a new SQL dialect:
+
+1. **Grammar module**: Create `sqool-grammar-{dialect}/` with vendored `.g4` files and an `UPSTREAM.md`. Declare it in `settings.gradle.kts`.
+2. **Dialect module**: Create `sqool-dialect-{dialect}/` with `{Dialect}SqlParser` (implementing `SqlParser`) and `{Dialect}AstMapper` (package-private). Add the module to `settings.gradle.kts` and `sqool-conformance`/`sqool-bench` dependencies.
+3. **AST raw node**: Add `{Dialect}RawStatement` and `{Dialect}StatementKind` in `sqool-ast`. Register `{Dialect}RawStatement` in the `Statement` sealed interface.
+4. **Conformance tests**: Create test resources in `sqool-conformance/src/test/resources/{dialect}/supported/` and `unsupported/`. Add a `{Dialect}ConformanceTest` class.
+5. **Cross-dialect tests**: Extend `CrossDialectConformanceTest` to include the new dialect where the same SQL is valid.
+6. **Benchmark**: Add a `{Dialect}ParserBenchmark` in `sqool-bench`.
+7. **Documentation**: Update `docs/dialect-coverage.md` and `README.md` with the new dialect's coverage.
+
+## Extending an existing dialect
+
+### Adding a new normalized statement type
+
+To normalize a new statement type (e.g. normalize `INSERT` for a dialect that currently uses raw):
+
+1. **Shared abstractions first**: If the normalized AST node already exists in `sqool-ast` (e.g. `InsertStatement`), reuse it. Prefer normalized nodes over dialect-specific wrappers.
+2. **Mapper**: Add a `mapXxx(XxxContext ctx, ParseOptions options) -> ParseResult` method to `{Dialect}AstMapper` returning the normalized AST node.
+3. **Dispatch**: Wire the new method into the `mapStatement()` dispatch in `{Dialect}AstMapper`.
+4. **Tests**: Add representative SQL to the conformance resources and update the conformance test.
+5. **Update coverage docs**: Update `docs/dialect-coverage.md`.
+
+### Adding a new SQL construct to an existing statement type
+
+For example, to add normalized JOIN support to a dialect:
+
+1. Add helper methods: `mapTableReference(...)`, `mapTablePrimary(...)`, `mapJoinClause(...)`, `mapJoinKind(...)`.
+2. Update `mapFromClause(...)` to call `mapTableReference` instead of only handling the single-table case.
+3. Return `null` from the join helpers to fall back to raw for unsupported join shapes (e.g. NATURAL JOIN).
+4. Add SQL test resources and update conformance tests.
+
+See the Oracle and PostgreSQL `AstMapper` implementations for reference patterns.
 
 ## Extending PostgreSQL (or other dialects)
 
@@ -31,6 +96,13 @@ To add support for new PostgreSQL syntax or mapping:
 4. **Tests**: Add SQL to `sqool-conformance/src/test/resources/postgresql/supported/` or `unsupported/`, and ensure `PostgresqlConformanceTest` covers it. Add unit tests in `PostgresqlSqlParserTest` for AST structure.
 5. **Benchmarks**: Add representative queries to `PostgresqlParserBenchmark` if they exercise new code paths. See `docs/benchmarks.md` for baseline capture.
 
+## Shared helpers
+
+- **`AntlrSyntaxErrorListener`** (`sqool-core`): Used by all dialects for uniform diagnostic collection. Do not replicate its logic.
+- **`SourceSpans.fromTokens(Token, Token, ParseOptions)`** (`sqool-core`): Use this for all `SourceSpan` creation from ANTLR tokens.
+- **`ParseMetrics`** (`sqool-core`): Record SLL vs LL prediction mode and elapsed parse time.
+- **`ParseOptions`** (`sqool-core`): Common parse options; use `ParseOptions.defaults(dialect)` in tests.
+
 ## Contributor Expectations
 
 Before merging any code, you are expected to:
@@ -38,3 +110,4 @@ Before merging any code, you are expected to:
 2. Run standard verification, which includes checkstyle and tests (`./gradlew check`).
 3. If changing parsing logic, ensure you do not regress performance by verifying changes locally (`./gradlew :sqool-bench:jmh`).
 4. Ensure new syntax nodes support dialect extensions cleanly, and do not bake String-typed logic into the normalized AST root.
+5. Update `docs/dialect-coverage.md` if the normalization level for any construct changes.

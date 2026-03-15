@@ -281,8 +281,7 @@ class CrossDialectConformanceTest {
 
     ParseSuccess pgSuccess = assertInstanceOf(ParseSuccess.class, pgResult, "PostgreSQL INSERT");
     assertTrue(pgSuccess.diagnostics().isEmpty());
-    PostgresqlRawStatement pgRaw =
-        assertInstanceOf(PostgresqlRawStatement.class, pgSuccess.root());
+    PostgresqlRawStatement pgRaw = assertInstanceOf(PostgresqlRawStatement.class, pgSuccess.root());
     assertEquals(PostgresqlStatementKind.INSERT, pgRaw.kind());
 
     ParseSuccess oraSuccess = assertInstanceOf(ParseSuccess.class, oraResult, "Oracle INSERT");
@@ -357,19 +356,15 @@ class CrossDialectConformanceTest {
 
   private static void assertSuccessWithSelectStatement(ParseResult result, String dialectLabel) {
     ParseSuccess success =
-        assertInstanceOf(
-            ParseSuccess.class, result, dialectLabel + " parse should succeed");
-    assertTrue(
-        success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
+        assertInstanceOf(ParseSuccess.class, result, dialectLabel + " parse should succeed");
+    assertTrue(success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
     assertInstanceOf(
         SelectStatement.class, success.root(), dialectLabel + " root should be SelectStatement");
   }
 
   private static void assertSuccessNoDiagnostics(ParseResult result, String dialectLabel) {
     ParseSuccess success =
-        assertInstanceOf(
-            ParseSuccess.class, result, dialectLabel + " parse should succeed");
-    assertTrue(
-        success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
+        assertInstanceOf(ParseSuccess.class, result, dialectLabel + " parse should succeed");
+    assertTrue(success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
   }
 }

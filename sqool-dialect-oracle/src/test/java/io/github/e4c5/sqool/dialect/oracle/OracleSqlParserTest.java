@@ -174,15 +174,20 @@ class OracleSqlParserTest {
   // =========================================================================
 
   @Test
-  void parseSelectWithJoinFallsBackToRaw() {
+  void parseSelectWithJoinProducesSelectStatement() {
     ParseResult result =
         PARSER.parse(
             "SELECT e.id, d.name FROM employees e"
                 + " INNER JOIN departments d ON e.dept_id = d.id",
             ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    // Joins are not yet supported in the normalized AST; falls back to raw.
-    assertInstanceOf(OracleRawStatement.class, success.root());
+    // Joins are now normalized to SelectStatement + JoinTableReference.
+    assertInstanceOf(SelectStatement.class, success.root());
+    SelectStatement stmt = (SelectStatement) success.root();
+    assertInstanceOf(
+        io.github.e4c5.sqool.ast.JoinTableReference.class,
+        stmt.from(),
+        "FROM clause should be a JoinTableReference");
   }
 
   @Test
