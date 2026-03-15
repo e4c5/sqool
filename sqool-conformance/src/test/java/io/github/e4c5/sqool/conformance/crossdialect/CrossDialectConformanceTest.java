@@ -164,19 +164,27 @@ class CrossDialectConformanceTest {
   void selectWithInnerJoinProducesJoinTableReferenceInAllFourDialects() {
     String sql = "SELECT u.id, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id";
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
+    ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
     ParseResult postgresqlResult =
         postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oracleResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
+    ParseSuccess mysqlSuccess =
+        assertInstanceOf(ParseSuccess.class, mysqlResult, "MySQL parse should succeed");
+    ParseSuccess sqliteSuccess =
+        assertInstanceOf(ParseSuccess.class, sqliteResult, "SQLite parse should succeed");
+    ParseSuccess pgSuccess =
+        assertInstanceOf(ParseSuccess.class, postgresqlResult, "PostgreSQL parse should succeed");
+    ParseSuccess oraSuccess =
+        assertInstanceOf(ParseSuccess.class, oracleResult, "Oracle parse should succeed");
+
     SelectStatement mysqlStmt =
-        assertInstanceOf(
-            SelectStatement.class, ((ParseSuccess) mysqlResult).root(), "MySQL SELECT");
+        assertInstanceOf(SelectStatement.class, mysqlSuccess.root(), "MySQL SELECT");
+    assertInstanceOf(SqliteRawStatement.class, sqliteSuccess.root(), "SQLite SELECT should remain raw");
     SelectStatement pgStmt =
-        assertInstanceOf(
-            SelectStatement.class, ((ParseSuccess) postgresqlResult).root(), "PostgreSQL SELECT");
+        assertInstanceOf(SelectStatement.class, pgSuccess.root(), "PostgreSQL SELECT");
     SelectStatement oraStmt =
-        assertInstanceOf(
-            SelectStatement.class, ((ParseSuccess) oracleResult).root(), "Oracle SELECT");
+        assertInstanceOf(SelectStatement.class, oraSuccess.root(), "Oracle SELECT");
 
     JoinTableReference mysqlJoin =
         assertInstanceOf(JoinTableReference.class, mysqlStmt.from(), "MySQL FROM");
