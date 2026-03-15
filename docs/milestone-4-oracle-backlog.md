@@ -2,6 +2,7 @@
 
 ## Status
 
+- **Complete** (implementation and review done; backlog updated to reflect completion).
 - Draft: v0.1
 - Scope: SQL Parser Technical Design – Milestone 4 (Oracle SQL MVP)
 - Related docs:
@@ -60,20 +61,20 @@ Vendor the Oracle grammar from grammars-v4 and subset it to SQL-first support, e
 
 **Tasks**
 
-- [ ] Identify the upstream Oracle grammar source (e.g. `sql/plsql` in `antlr/grammars-v4`).
-- [ ] Vendor the grammar into `sqool-grammar-oracle` (lexer/parser `.g4` files).
-- [ ] Add `UPSTREAM.md` for Oracle including:
-  - [ ] source repo and path,
-  - [ ] commit hash,
-  - [ ] summary of known upstream issues,
-  - [ ] local goals (SQL-first subset).
-- [ ] Subset or gate the grammar to exclude:
-  - [ ] anonymous PL/SQL blocks (`BEGIN ... END`),
-  - [ ] procedural constructs not needed for SQL statement parsing,
-  - [ ] or document the subset boundary clearly.
-- [ ] Configure grammar source directories and generated-source output paths.
-- [ ] Validate Java target generation and basic compilation.
-- [ ] Add a minimal Oracle parser smoke test (e.g. simple `SELECT`, basic DDL).
+- [x] Identify the upstream Oracle grammar source (e.g. `sql/plsql` in `antlr/grammars-v4`).
+- [x] Vendor the grammar into `sqool-grammar-oracle` (lexer/parser `.g4` files).
+- [x] Add `UPSTREAM.md` for Oracle including:
+  - [x] source repo and path,
+  - [x] commit hash,
+  - [x] summary of known upstream issues,
+  - [x] local goals (SQL-first subset).
+- [x] Subset or gate the grammar to exclude:
+  - [x] anonymous PL/SQL blocks (`BEGIN ... END`),
+  - [x] procedural constructs not needed for SQL statement parsing,
+  - [x] or document the subset boundary clearly.
+- [x] Configure grammar source directories and generated-source output paths.
+- [x] Validate Java target generation and basic compilation.
+- [x] Add a minimal Oracle parser smoke test (e.g. simple `SELECT`, basic DDL).
 
 **Deliverables**
 
@@ -97,17 +98,17 @@ Integrate the Oracle grammar into the shared parser infrastructure behind the `S
 
 **Tasks**
 
-- [ ] Implement the Oracle dialect implementation in `sqool-dialect-oracle`.
-- [ ] Use shared parser helpers for:
-  - [ ] lexer/parser instantiation,
-  - [ ] token stream and channel configuration,
-  - [ ] error listeners and diagnostics.
-- [ ] Implement SLL-first parsing with LL fallback, mirroring the MySQL/SQLite/PostgreSQL pattern.
-- [ ] Ensure diagnostics for Oracle:
-  - [ ] include offending token, expected tokens, and spans when enabled,
-  - [ ] clearly differentiate invalid syntax from unsupported syntax.
-- [ ] Wire Oracle into `SqlDialect` and `ParseOptions`.
-- [ ] Record parser metrics via `ParseMetrics`.
+- [x] Implement the Oracle dialect implementation in `sqool-dialect-oracle`.
+- [x] Use shared parser helpers for:
+  - [x] lexer/parser instantiation,
+  - [x] token stream and channel configuration,
+  - [x] error listeners and diagnostics.
+- [x] Implement SLL-first parsing with LL fallback, mirroring the MySQL/SQLite/PostgreSQL pattern.
+- [x] Ensure diagnostics for Oracle:
+  - [x] include offending token, expected tokens, and spans when enabled,
+  - [x] clearly differentiate invalid syntax from unsupported syntax.
+- [x] Wire Oracle into `SqlDialect` and `ParseOptions`.
+- [x] Record parser metrics via `ParseMetrics`.
 
 **Deliverables**
 
@@ -130,19 +131,19 @@ Define and implement a stable v1 subset of Oracle SQL mapped into the normalized
 
 **Tasks**
 
-- [ ] Decide and document the Oracle SQL v1 subset (examples, not exhaustive):
-  - [ ] core DDL (e.g. `CREATE TABLE`, `DROP TABLE`),
-  - [ ] core DML (`INSERT`, `UPDATE`, `DELETE`),
-  - [ ] `SELECT` with joins, predicates, ordering,
-  - [ ] Oracle-specific constructs (e.g. `DUAL`, `ROWNUM`, `NVL`) as extension nodes where needed.
-- [ ] Implement AST mapping for the v1 subset using:
-  - [ ] shared mapping helpers for common constructs,
-  - [ ] Oracle-specific extension nodes for features that cannot be normalized.
-- [ ] Ensure mapping:
-  - [ ] does not retain ANTLR contexts,
-  - [ ] produces immutable AST nodes,
-  - [ ] attaches source spans correctly when enabled.
-- [ ] Add AST golden tests for representative Oracle statements in the v1 subset.
+- [x] Decide and document the Oracle SQL v1 subset (examples, not exhaustive):
+  - [x] core DDL (e.g. `CREATE TABLE`, `DROP TABLE`),
+  - [x] core DML (`INSERT`, `UPDATE`, `DELETE`),
+  - [x] `SELECT` with joins, predicates, ordering,
+  - [x] Oracle-specific constructs (e.g. `DUAL`, `ROWNUM`, `NVL`) as extension nodes where needed.
+- [x] Implement AST mapping for the v1 subset using:
+  - [x] shared mapping helpers for common constructs,
+  - [x] Oracle-specific extension nodes for features that cannot be normalized.
+- [x] Ensure mapping:
+  - [x] does not retain ANTLR contexts,
+  - [x] produces immutable AST nodes,
+  - [x] attaches source spans correctly when enabled.
+- [x] Add AST golden tests for representative Oracle statements in the v1 subset.
 
 **Deliverables**
 
@@ -166,15 +167,15 @@ Establish an Oracle-focused conformance and regression suite aligned with the v1
 
 **Tasks**
 
-- [ ] Build an Oracle SQL corpus from:
-  - [ ] Oracle documentation examples,
-  - [ ] realistic application queries,
-  - [ ] any bug reports or discovered corner cases.
-- [ ] Add conformance tests that:
-  - [ ] assert parse success and AST structure for valid v1 queries,
-  - [ ] assert diagnostics for malformed or unsupported queries.
-- [ ] Add regression tests for grammar or mapping bugs found during M4.
-- [ ] Align directory and naming conventions with MySQL/SQLite/PostgreSQL suites.
+- [x] Build an Oracle SQL corpus from:
+  - [x] Oracle documentation examples,
+  - [x] realistic application queries,
+  - [x] any bug reports or discovered corner cases.
+- [x] Add conformance tests that:
+  - [x] assert parse success and AST structure for valid v1 queries,
+  - [x] assert diagnostics for malformed or unsupported queries.
+- [x] Add regression tests for grammar or mapping bugs found during M4.
+- [x] Align directory and naming conventions with MySQL/SQLite/PostgreSQL suites.
 
 **Deliverables**
 
@@ -197,12 +198,12 @@ Add Oracle benchmarks and capture initial performance characteristics.
 
 **Tasks**
 
-- [ ] Define an Oracle benchmark corpus aligned with the v1 subset, plus error-path statements.
-- [ ] Add JMH benchmarks that:
-  - [ ] parse the corpus using the Oracle dialect,
-  - [ ] parse the same corpus using JSqlParser where supported.
-- [ ] Measure throughput and latency.
-- [ ] Document how to run Oracle benchmarks and capture baseline.
+- [x] Define an Oracle benchmark corpus aligned with the v1 subset, plus error-path statements.
+- [x] Add JMH benchmarks that:
+  - [x] parse the corpus using the Oracle dialect,
+  - [x] parse the same corpus using JSqlParser where supported.
+- [x] Measure throughput and latency.
+- [x] Document how to run Oracle benchmarks and capture baseline.
 
 **Deliverables**
 
@@ -226,11 +227,11 @@ Document Oracle-specific risks, scope limitations, and mitigation status.
 
 **Tasks**
 
-- [ ] Create a short **Oracle risk and scope** note (new doc or section) that:
-  - [ ] lists risks mitigated in M4,
-  - [ ] lists remaining risks and future work,
-  - [ ] records deliberate scope limitations (SQL-only v1, no PL/SQL).
-- [ ] Update design or planning docs if assumptions about Oracle grammar or behavior have changed.
+- [x] Create a short **Oracle risk and scope** note (new doc or section) that:
+  - [x] lists risks mitigated in M4,
+  - [x] lists remaining risks and future work,
+  - [x] records deliberate scope limitations (SQL-only v1, no PL/SQL).
+- [x] Update design or planning docs if assumptions about Oracle grammar or behavior have changed.
 
 **Deliverables**
 
