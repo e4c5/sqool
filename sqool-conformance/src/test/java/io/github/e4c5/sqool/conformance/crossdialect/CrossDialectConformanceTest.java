@@ -207,7 +207,8 @@ class CrossDialectConformanceTest {
     String sql = "SELECT u.id, o.total FROM users u NATURAL JOIN orders o";
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
     ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
-    ParseResult pgResult = postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
     ParseSuccess mysqlSuccess =
@@ -329,7 +330,8 @@ class CrossDialectConformanceTest {
     String sql = "INSERT INTO users (id, name) VALUES (1, 'alice')";
 
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
-    ParseResult pgResult = postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
     assertSuccessWithStatementClass(mysqlResult, InsertStatement.class, "MySQL");
@@ -341,22 +343,28 @@ class CrossDialectConformanceTest {
   void updateStatementProducesNormalizedAstInPostgresqlAndOracle() {
     String sql = "UPDATE users SET name = 'bob' WHERE id = 1";
 
-    ParseResult pgResult = postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
-    assertSuccessWithStatementClass(pgResult, io.github.e4c5.sqool.ast.UpdateStatement.class, "PostgreSQL");
-    assertSuccessWithStatementClass(oraResult, io.github.e4c5.sqool.ast.UpdateStatement.class, "Oracle");
+    assertSuccessWithStatementClass(
+        pgResult, io.github.e4c5.sqool.ast.UpdateStatement.class, "PostgreSQL");
+    assertSuccessWithStatementClass(
+        oraResult, io.github.e4c5.sqool.ast.UpdateStatement.class, "Oracle");
   }
 
   @Test
   void deleteStatementProducesNormalizedAstInPostgresqlAndOracle() {
     String sql = "DELETE FROM users WHERE id = 1";
 
-    ParseResult pgResult = postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
-    assertSuccessWithStatementClass(pgResult, io.github.e4c5.sqool.ast.DeleteStatement.class, "PostgreSQL");
-    assertSuccessWithStatementClass(oraResult, io.github.e4c5.sqool.ast.DeleteStatement.class, "Oracle");
+    assertSuccessWithStatementClass(
+        pgResult, io.github.e4c5.sqool.ast.DeleteStatement.class, "PostgreSQL");
+    assertSuccessWithStatementClass(
+        oraResult, io.github.e4c5.sqool.ast.DeleteStatement.class, "Oracle");
   }
 
   // =========================================================================
@@ -442,6 +450,7 @@ class CrossDialectConformanceTest {
     ParseSuccess success =
         assertInstanceOf(ParseSuccess.class, result, dialectLabel + " parse should succeed");
     assertTrue(success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
-    assertInstanceOf(clazz, success.root(), dialectLabel + " root should be " + clazz.getSimpleName());
+    assertInstanceOf(
+        clazz, success.root(), dialectLabel + " root should be " + clazz.getSimpleName());
   }
 }

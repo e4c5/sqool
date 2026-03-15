@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
+import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.PostgresqlRawStatement;
@@ -16,6 +18,7 @@ import io.github.e4c5.sqool.ast.PostgresqlStatementKind;
 import io.github.e4c5.sqool.ast.SelectStatement;
 import io.github.e4c5.sqool.ast.SqlScript;
 import io.github.e4c5.sqool.ast.Statement;
+import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
@@ -114,36 +117,32 @@ class PostgresqlSqlParserTest {
   // =========================================================================
 
   @Test
-  void parseInsertAsRaw() {
+  void parseInsertProducesNormalizedAst() {
     ParseResult result =
         PARSER.parse(
             "INSERT INTO users (name) VALUES ('Alice')",
             ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    PostgresqlRawStatement raw = assertInstanceOf(PostgresqlRawStatement.class, success.root());
-    assertEquals(PostgresqlStatementKind.INSERT, raw.kind());
-    assertTrue(raw.sqlText().contains("INSERT"));
+    assertInstanceOf(InsertStatement.class, success.root());
   }
 
   @Test
-  void parseUpdateAsRaw() {
+  void parseUpdateProducesNormalizedAst() {
     ParseResult result =
         PARSER.parse(
             "UPDATE users SET name = 'Bob' WHERE id = 1",
             ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    PostgresqlRawStatement raw = assertInstanceOf(PostgresqlRawStatement.class, success.root());
-    assertEquals(PostgresqlStatementKind.UPDATE, raw.kind());
+    assertInstanceOf(UpdateStatement.class, success.root());
   }
 
   @Test
-  void parseDeleteAsRaw() {
+  void parseDeleteProducesNormalizedAst() {
     ParseResult result =
         PARSER.parse(
             "DELETE FROM users WHERE id = 1", ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    PostgresqlRawStatement raw = assertInstanceOf(PostgresqlRawStatement.class, success.root());
-    assertEquals(PostgresqlStatementKind.DELETE, raw.kind());
+    assertInstanceOf(DeleteStatement.class, success.root());
   }
 
   @Test

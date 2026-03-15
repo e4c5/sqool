@@ -303,65 +303,82 @@ final class OracleAstMapper {
   private static ParseResult mapInsertStatement(
       OracleParser.InsertStatementContext ctx, ParseOptions options) {
     String tableName = ctx.qualifiedName().getText();
-    List<String> columns = List.of();
-    if (ctx.columnList() != null) {
-      columns =
-          ctx.columnList().columnName().stream()
-              .map(OracleParser.ColumnNameContext::getText)
-              .toList();
-    }
+    List<String> columns =
+        ctx.columnList() != null
+            ? ctx.columnList().columnName().stream()
+                .map(OracleParser.ColumnNameContext::getText)
+                .toList()
+            : List.of();
 
     OracleParser.InsertSourceContext source = ctx.insertSource();
     if (source instanceof OracleParser.InsertValuesContext valuesCtx) {
-      List<List<Expression>> rows = new ArrayList<>();
-      for (OracleParser.RowValuesContext rowCtx : valuesCtx.rowValues()) {
-        List<Expression> row = new ArrayList<>();
-        for (OracleParser.InsertExprContext exprCtx : rowCtx.insertExpr()) {
-          if (exprCtx instanceof OracleParser.DefaultExprContext) {
-            return rawStatement(ctx, OracleStatementKind.INSERT, options);
-          }
-          Expression expr = mapExpr(((OracleParser.ValueExprContext) exprCtx).expr(), options);
-          if (expr == null) {
-            return rawStatement(ctx, OracleStatementKind.INSERT, options);
-          }
-          row.add(expr);
-        }
-        rows.add(List.copyOf(row));
+      List<List<Expression>> rows = mapInsertValues(valuesCtx, options);
+      if (rows != null) {
+        return new ParseSuccess(
+            SqlDialect.ORACLE,
+            new InsertStatement(
+                tableName,
+                columns,
+                rows,
+                List.of(),
+                null,
+                List.of(),
+                false,
+                SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+            List.of(),
+            ParseMetrics.unknown());
       }
-      return new ParseSuccess(
-          SqlDialect.ORACLE,
-          new InsertStatement(
-              tableName,
-              columns,
-              rows,
-              List.of(),
-              null,
-              List.of(),
-              false,
-              SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
-          List.of(),
-          ParseMetrics.unknown());
     } else if (source instanceof OracleParser.InsertSelectContext selectCtx) {
-      ParseResult selectResult = mapSelectStatement(selectCtx.selectStatement(), options);
-      if (!(selectResult instanceof ParseSuccess success)) {
-        return rawStatement(ctx, OracleStatementKind.INSERT, options);
+      Statement selectStmt = mapInsertSelect(selectCtx, options);
+      if (selectStmt != null) {
+        return new ParseSuccess(
+            SqlDialect.ORACLE,
+            new InsertStatement(
+                tableName,
+                columns,
+                List.of(),
+                List.of(),
+                selectStmt,
+                List.of(),
+                false,
+                SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+            List.of(),
+            ParseMetrics.unknown());
       }
-      return new ParseSuccess(
-          SqlDialect.ORACLE,
-          new InsertStatement(
-              tableName,
-              columns,
-              List.of(),
-              List.of(),
-              (Statement) success.root(),
-              List.of(),
-              false,
-              SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
-          List.of(),
-          ParseMetrics.unknown());
     }
 
     return rawStatement(ctx, OracleStatementKind.INSERT, options);
+  }
+
+  /** Returns parsed value rows, or null if VALUES contain DEFAULT or unparseable expr. */
+  private static List<List<Expression>> mapInsertValues(
+      OracleParser.InsertValuesContext valuesCtx, ParseOptions options) {
+    List<List<Expression>> rows = new ArrayList<>();
+    for (OracleParser.RowValuesContext rowCtx : valuesCtx.rowValues()) {
+      List<Expression> row = new ArrayList<>();
+      for (OracleParser.InsertExprContext exprCtx : rowCtx.insertExpr()) {
+        if (exprCtx instanceof OracleParser.DefaultExprContext) {
+          return null;
+        }
+        Expression expr = mapExpr(((OracleParser.ValueExprContext) exprCtx).expr(), options);
+        if (expr == null) {
+          return null;
+        }
+        row.add(expr);
+      }
+      rows.add(List.copyOf(row));
+    }
+    return rows;
+  }
+
+  /** Returns the SELECT statement for INSERT...SELECT, or null if not parseable. */
+  private static Statement mapInsertSelect(
+      OracleParser.InsertSelectContext selectCtx, ParseOptions options) {
+    ParseResult selectResult = mapSelectStatement(selectCtx.selectStatement(), options);
+    if (!(selectResult instanceof ParseSuccess success)) {
+      return null;
+    }
+    return (Statement) success.root();
   }
 
   private static ParseResult mapUpdateStatement(
