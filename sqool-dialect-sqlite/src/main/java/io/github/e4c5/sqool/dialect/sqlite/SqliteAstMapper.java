@@ -18,16 +18,20 @@ import io.github.e4c5.sqool.ast.SqliteRawStatement;
 import io.github.e4c5.sqool.ast.SqliteStatementKind;
 import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
+import io.github.e4c5.sqool.ast.UnaryExpression;
+import io.github.e4c5.sqool.ast.UnaryOperator;
 import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
 import io.github.e4c5.sqool.core.SourceSpans;
 import io.github.e4c5.sqool.core.SqlDialect;
+import io.github.e4c5.sqool.grammar.sqlite.generated.SQLiteLexer;
 import io.github.e4c5.sqool.grammar.sqlite.generated.SQLiteParser;
 import java.util.ArrayList;
 import java.util.List;
 import org.antlr.v4.runtime.misc.Interval;
+import org.antlr.v4.runtime.tree.TerminalNode;
 
 final class SqliteAstMapper {
 
@@ -198,6 +202,11 @@ final class SqliteAstMapper {
 
     List<SQLiteParser.Join_operatorContext> operators = context.join_operator();
     List<SQLiteParser.Join_constraintContext> constraints = context.join_constraint();
+    // join_constraint is optional per step. Only reject when we have some constraints but not one
+    // per join (ambiguous); 0 constraints or constraints.size() == operators.size() is fine.
+    if (!constraints.isEmpty() && constraints.size() != operators.size()) {
+      return null;
+    }
 
     for (int i = 0; i < operators.size(); i++) {
       JoinType joinType = mapJoinOperator(operators.get(i));
@@ -391,6 +400,12 @@ final class SqliteAstMapper {
       SQLiteParser.Expr_binaryContext context, ParseOptions options) {
     if (context == null || context.expr_comparison().isEmpty()) return null;
 
+    // expr_binary allows postfix (ISNULL_, NOTNULL_, NOT NULL_) with no second expr_comparison;
+    // we only fold binary forms, so reject single-expr + trailing children (unsupported shape).
+    if (context.expr_comparison().size() == 1 && context.getChildCount() > 1) {
+      return null;
+    }
+
     Expression current = mapExprComparison(context.expr_comparison(0), options);
     if (current == null) return null;
 
@@ -444,8 +459,7 @@ final class SqliteAstMapper {
       SQLiteParser.Expr_bitwiseContext context, ParseOptions options) {
     if (context == null || context.expr_addition().isEmpty()) return null;
     Expression current = mapAddition(context.expr_addition(0), options);
-    // Folding similar to above... but for simplicity of this task, I'll only do comparison for now
-    // as it's the blocking issue for JOIN ON.
+    // Multi-term bitwise (e.g. a | b, a + b) not yet normalized; fall back to raw.
     if (context.expr_addition().size() > 1) return null;
     return current;
   }
@@ -477,14 +491,43 @@ final class SqliteAstMapper {
   private static Expression mapCollate(
       SQLiteParser.Expr_collateContext context, ParseOptions options) {
     if (context == null || context.expr_unary() == null) return null;
-    // Ignore COLLATE for now
+    if (context.COLLATE_() != null && !context.COLLATE_().isEmpty()) {
+      return null; // COLLATE not supported; fall back to raw
+    }
     return mapUnary(context.expr_unary(), options);
   }
 
   private static Expression mapUnary(SQLiteParser.Expr_unaryContext context, ParseOptions options) {
     if (context == null || context.expr_base() == null) return null;
-    // Ignore unary PLUS/MINUS/TILDE for now
-    return mapBase(context.expr_base(), options);
+
+    int countMinus = 0;
+    for (int i = 0; i < context.getChildCount(); i++) {
+      if (context.getChild(i) instanceof SQLiteParser.Expr_baseContext) {
+        break;
+      }
+      if (context.getChild(i) instanceof TerminalNode tn) {
+        int type = tn.getSymbol().getType();
+        if (type == SQLiteLexer.TILDE) {
+          return null; // bitwise unary not supported
+        }
+        if (type == SQLiteLexer.MINUS) {
+          countMinus++;
+        }
+        // PLUS is identity, ignore
+      }
+    }
+
+    Expression base = mapBase(context.expr_base(), options);
+    if (base == null) return null;
+
+    if (countMinus % 2 == 1) {
+      base =
+          new UnaryExpression(
+              UnaryOperator.MINUS,
+              base,
+              SourceSpans.fromTokens(context.start, context.stop, options));
+    }
+    return base;
   }
 
   private static Expression mapBase(SQLiteParser.Expr_baseContext context, ParseOptions options) {
@@ -501,10 +544,9 @@ final class SqliteAstMapper {
           SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.table_name() != null && context.DOT() != null && context.column_name() != null) {
-      String table = context.table_name().getText();
-      String column = context.column_name().getText();
+      // Preserve full form (schema.table.column or table.column) from source.
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          table + "." + column, SourceSpans.fromTokens(context.start, context.stop, options));
+          context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.OPEN_PAR() != null && context.select_stmt() != null) {
       // Subqueries are not yet supported
@@ -513,8 +555,8 @@ final class SqliteAstMapper {
     if (context.expr_recursive() != null) {
       return mapRecursiveExpr(context.expr_recursive(), options);
     }
-    return new LiteralExpression(
-        context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
+    // Unsupported expr_base (e.g. raise_function); do not invent a literal
+    return null;
   }
 
   private static Expression mapRecursiveExpr(

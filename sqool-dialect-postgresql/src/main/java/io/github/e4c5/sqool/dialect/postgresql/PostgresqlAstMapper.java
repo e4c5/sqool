@@ -4,11 +4,10 @@ import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.ColumnAssignment;
-import io.github.e4c5.sqool.ast.DeleteStatement;
+import io.github.e4c5.sqool.ast.DmlAstBuilder;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
-import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LimitClause;
@@ -26,7 +25,6 @@ import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
-import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.MappingResult;
 import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
@@ -330,14 +328,11 @@ final class PostgresqlAstMapper {
       if (rowsOpt.isPresent()) {
         return new ParseSuccess(
             SqlDialect.POSTGRESQL,
-            new InsertStatement(
+            DmlAstBuilder.buildInsert(
                 tableName,
                 columns,
                 rowsOpt.get(),
-                List.of(),
                 null,
-                List.of(),
-                false,
                 SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
             List.of(),
             ParseMetrics.unknown());
@@ -347,14 +342,11 @@ final class PostgresqlAstMapper {
       if (selectStmt != null) {
         return new ParseSuccess(
             SqlDialect.POSTGRESQL,
-            new InsertStatement(
+            DmlAstBuilder.buildInsert(
                 tableName,
                 columns,
                 List.of(),
-                List.of(),
                 selectStmt,
-                List.of(),
-                false,
                 SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
             List.of(),
             ParseMetrics.unknown());
@@ -385,14 +377,21 @@ final class PostgresqlAstMapper {
     return Optional.of(rows);
   }
 
-  /** Returns the SELECT statement for INSERT...SELECT, or null if not parseable. */
+  /**
+   * Returns the SELECT statement for INSERT...SELECT, or null if not parseable or not normalized.
+   */
   private static Statement mapInsertSelect(
       PostgreSQLParser.InsertSelectContext selectCtx, ParseOptions options) {
     ParseResult selectResult = mapSelectStatement(selectCtx.selectStatement(), options);
     if (!(selectResult instanceof ParseSuccess success)) {
       return null;
     }
-    return (Statement) success.root();
+    // Unsupported SELECT shapes are returned as PostgresqlRawStatement; require actual
+    // SelectStatement.
+    if (!(success.root() instanceof SelectStatement selectStmt)) {
+      return null;
+    }
+    return selectStmt;
   }
 
   private static ParseResult mapUpdateStatement(
@@ -432,13 +431,10 @@ final class PostgresqlAstMapper {
 
     return new ParseSuccess(
         SqlDialect.POSTGRESQL,
-        new UpdateStatement(
+        DmlAstBuilder.buildUpdate(
             target,
             assignments,
             whereResult.value(),
-            List.of(),
-            null,
-            false,
             SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
         List.of(),
         ParseMetrics.unknown());
@@ -467,12 +463,8 @@ final class PostgresqlAstMapper {
 
     return new ParseSuccess(
         SqlDialect.POSTGRESQL,
-        new DeleteStatement(
-            target,
-            whereResult.value(),
-            List.of(),
-            null,
-            SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+        DmlAstBuilder.buildDelete(
+            target, whereResult.value(), SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
         List.of(),
         ParseMetrics.unknown());
   }
