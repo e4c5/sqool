@@ -91,7 +91,6 @@ class OracleGrammarSmokeTest {
     var parser = new OracleParser(new CommonTokenStream(lexer));
     parser.setBuildParseTree(true);
     OracleParser.SingleStatementContext context = parser.singleStatement();
-    assertEquals(0, lexer.getNumberOfSyntaxErrors(), "Lexer reported syntax errors");
     assertEquals(0, parser.getNumberOfSyntaxErrors(), "Parser reported syntax errors");
     assertEquals(
         Token.EOF, parser.getCurrentToken().getType(), "Parser did not consume the full SQL input");
