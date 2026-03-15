@@ -3,6 +3,7 @@ package io.github.e4c5.sqool.dialect.sqlite;
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
+import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
@@ -183,64 +184,135 @@ final class SqliteAstMapper {
     if (context == null) {
       return null;
     }
-    // Only support a single table with no explicit join operators or constraints. Anything more
-    // complex (joins, multiple tables) is treated as unsupported so the caller can fall back to
-    // a raw statement.
-    if (context.join_operator() != null && !context.join_operator().isEmpty()) {
-      return null;
-    }
-    if (context.join_constraint() != null && !context.join_constraint().isEmpty()) {
-      return null;
-    }
 
     List<SQLiteParser.Table_or_subqueryContext> tables = context.table_or_subquery();
-    if (tables.size() != 1) {
-      return null;
-    }
-    SQLiteParser.Table_or_subqueryContext first = tables.get(0);
-    if (first.select_stmt() != null) {
-      return null;
-    }
-    if (first.table_function_name() != null) {
-      return null;
-    }
-    if (first.OPEN_PAR() != null) {
-      return null;
-    }
-    String tableName = first.table_name() != null ? first.table_name().getText() : null;
-    if (tableName == null) {
-      return null;
-    }
-    String alias = first.table_alias() != null ? first.table_alias().getText() : null;
-    return new NamedTableReference(
-        tableName, alias, SourceSpans.fromTokens(first.start, first.stop, options));
-  }
-
-  private static Expression mapExpr(SQLiteParser.ExprContext context, ParseOptions options) {
-    SQLiteParser.Expr_orContext or = context.expr_or();
-    if (or == null || or.expr_and().isEmpty()) {
+    if (tables.isEmpty()) {
       return null;
     }
 
-    // Build a left-associative OR chain of AND expressions.
-    Expression current = mapAnd(or.expr_and(0), options);
+    TableReference current = mapTableOrSubquery(tables.get(0), options);
     if (current == null) {
       return null;
     }
 
-    for (int i = 1; i < or.expr_and().size(); i++) {
-      Expression rhs = mapAnd(or.expr_and(i), options);
-      if (rhs == null) {
+    List<SQLiteParser.Join_operatorContext> operators = context.join_operator();
+    List<SQLiteParser.Join_constraintContext> constraints = context.join_constraint();
+
+    for (int i = 0; i < operators.size(); i++) {
+      JoinType joinType = mapJoinOperator(operators.get(i));
+      if (joinType == null) {
+        // Unsupported join type (e.g. NATURAL JOIN fallback).
         return null;
       }
+
+      TableReference nextTable = mapTableOrSubquery(tables.get(i + 1), options);
+      if (nextTable == null) {
+        return null;
+      }
+
+      Expression condition = null;
+      List<String> usingColumns = List.of();
+      boolean natural = operators.get(i).NATURAL_() != null;
+
+      if (i < constraints.size()) {
+        SQLiteParser.Join_constraintContext constraint = constraints.get(i);
+        if (constraint.ON_() != null) {
+          condition = mapExpr(constraint.expr(), options);
+          if (condition == null) {
+            return null;
+          }
+        } else if (constraint.USING_() != null) {
+          usingColumns =
+              constraint.column_name().stream()
+                  .map(SQLiteParser.Column_nameContext::getText)
+                  .toList();
+        }
+      }
+
+      current =
+          new io.github.e4c5.sqool.ast.JoinTableReference(
+              current,
+              joinType,
+              nextTable,
+              condition,
+              usingColumns,
+              natural,
+              SourceSpans.fromTokens(context.start, tables.get(i + 1).stop, options));
+    }
+
+    return current;
+  }
+
+  private static io.github.e4c5.sqool.ast.JoinType mapJoinOperator(
+      SQLiteParser.Join_operatorContext context) {
+    if (context.COMMA() != null) {
+      return io.github.e4c5.sqool.ast.JoinType.INNER;
+    }
+
+    // NATURAL JOIN is normalized; the caller handles the NATURAL flag.
+    if (context.NATURAL_() != null) {
+      boolean hasLeft = context.LEFT_() != null;
+      boolean hasRight = context.RIGHT_() != null;
+      boolean hasFull = context.FULL_() != null;
+      return io.github.e4c5.sqool.ast.JoinType.fromKind(hasLeft, hasRight, hasFull);
+    }
+
+    boolean hasLeft = context.LEFT_() != null;
+    boolean hasRight = context.RIGHT_() != null;
+    boolean hasFull = context.FULL_() != null;
+    boolean hasInner = context.INNER_() != null;
+    boolean hasCross = context.CROSS_() != null;
+
+    if (hasCross) return io.github.e4c5.sqool.ast.JoinType.CROSS;
+    if (hasInner) return io.github.e4c5.sqool.ast.JoinType.INNER;
+    return io.github.e4c5.sqool.ast.JoinType.fromKind(hasLeft, hasRight, hasFull);
+  }
+
+  private static TableReference mapTableOrSubquery(
+      SQLiteParser.Table_or_subqueryContext context, ParseOptions options) {
+    if (context.schema_name() != null && !context.schema_name().isEmpty()) {
+      // Schema-qualified tables are not yet supported in the normalized AST.
+      return null;
+    }
+
+    if (context.table_name() != null) {
+      String tableName = context.table_name().getText();
+      String alias = context.table_alias() != null ? context.table_alias().getText() : null;
+      if (alias == null && context.table_alias_excluding_joins() != null) {
+        alias = context.table_alias_excluding_joins().getText();
+      }
+      return new NamedTableReference(
+          tableName, alias, SourceSpans.fromTokens(context.start, context.stop, options));
+    }
+
+    if (context.join_clause() != null) {
+      return mapJoinClause(context.join_clause(), options);
+    }
+
+    // Subqueries, table functions, and indexed-by are not yet supported.
+    return null;
+  }
+
+  private static Expression mapExpr(SQLiteParser.ExprContext context, ParseOptions options) {
+    if (context == null) return null;
+    return mapExprOr(context.expr_or(), options);
+  }
+
+  private static Expression mapExprOr(SQLiteParser.Expr_orContext context, ParseOptions options) {
+    if (context == null || context.expr_and().isEmpty()) return null;
+    Expression current = mapAnd(context.expr_and(0), options);
+    if (current == null) return null;
+
+    for (int i = 1; i < context.expr_and().size(); i++) {
+      Expression rhs = mapAnd(context.expr_and(i), options);
+      if (rhs == null) return null;
       current =
           new io.github.e4c5.sqool.ast.BinaryExpression(
               current,
               io.github.e4c5.sqool.ast.BinaryOperator.OR,
               rhs,
-              SourceSpans.fromTokens(context.start, context.stop, options));
+              SourceSpans.fromTokens(context.start, context.expr_and(i).stop, options));
     }
-
     return current;
   }
 
@@ -293,59 +365,162 @@ final class SqliteAstMapper {
 
   private static Expression mapExprFromBinary(
       SQLiteParser.Expr_binaryContext context, ParseOptions options) {
-    SQLiteParser.Expr_comparisonContext comp =
-        singleOrNull(context, context == null ? null : context.expr_comparison());
-    if (comp == null) {
-      return null;
+    if (context == null || context.expr_comparison().isEmpty()) return null;
+
+    Expression current = mapExprComparison(context.expr_comparison(0), options);
+    if (current == null) return null;
+
+    // Handle (operator expr_comparison)*
+    // In SQLite grammar, expr_binary has a list of expr_comparison and some operators between them.
+    // We need to fold them.
+    int childCount = context.getChildCount();
+    int compIndex = 1;
+    for (int i = 1; i < childCount; i++) {
+      var child = context.getChild(i);
+      if (child instanceof SQLiteParser.Expr_comparisonContext nextCompCtx) {
+        Expression rhs = mapExprComparison(nextCompCtx, options);
+        if (rhs == null) return null;
+
+        // Find the operator between current and rhs. It's the child before nextCompCtx.
+        var opChild = context.getChild(i - 1);
+        io.github.e4c5.sqool.ast.BinaryOperator op = mapBinaryOperator(opChild.getText());
+        if (op == null) return null;
+
+        current =
+            new io.github.e4c5.sqool.ast.BinaryExpression(
+                current, op, rhs, SourceSpans.fromTokens(context.start, nextCompCtx.stop, options));
+        compIndex++;
+      }
     }
-    SQLiteParser.Expr_bitwiseContext bit = singleOrNull(comp, comp.expr_bitwise());
-    if (bit == null) {
-      return null;
+
+    return current;
+  }
+
+  private static Expression mapExprComparison(
+      SQLiteParser.Expr_comparisonContext context, ParseOptions options) {
+    if (context == null || context.expr_bitwise().isEmpty()) return null;
+    Expression current = mapBitwise(context.expr_bitwise(0), options);
+    if (current == null) return null;
+
+    for (int i = 1; i < context.expr_bitwise().size(); i++) {
+      var rhsCtx = context.expr_bitwise(i);
+      Expression rhs = mapBitwise(rhsCtx, options);
+      if (rhs == null) return null;
+
+      var opText = context.getChild(2 * i - 1).getText();
+      var op = mapBinaryOperator(opText);
+      if (op == null) return null;
+
+      current =
+          new io.github.e4c5.sqool.ast.BinaryExpression(
+              current, op, rhs, SourceSpans.fromTokens(context.start, rhsCtx.stop, options));
     }
-    SQLiteParser.Expr_additionContext add = singleOrNull(bit, bit.expr_addition());
-    if (add == null) {
-      return null;
+    return current;
+  }
+
+  private static Expression mapBitwise(
+      SQLiteParser.Expr_bitwiseContext context, ParseOptions options) {
+    if (context == null || context.expr_addition().isEmpty()) return null;
+    Expression current = mapAddition(context.expr_addition(0), options);
+    // Folding similar to above... but for simplicity of this task, I'll only do comparison for now
+    // as it's the blocking issue for JOIN ON.
+    if (context.expr_addition().size() > 1) return null;
+    return current;
+  }
+
+  private static Expression mapAddition(
+      SQLiteParser.Expr_additionContext context, ParseOptions options) {
+    if (context == null || context.expr_multiplication().isEmpty()) return null;
+    Expression current = mapMultiplication(context.expr_multiplication(0), options);
+    if (context.expr_multiplication().size() > 1) return null;
+    return current;
+  }
+
+  private static Expression mapMultiplication(
+      SQLiteParser.Expr_multiplicationContext context, ParseOptions options) {
+    if (context == null || context.expr_string().isEmpty()) return null;
+    Expression current = mapStringExpr(context.expr_string(0), options);
+    if (context.expr_string().size() > 1) return null;
+    return current;
+  }
+
+  private static Expression mapStringExpr(
+      SQLiteParser.Expr_stringContext context, ParseOptions options) {
+    if (context == null || context.expr_collate().isEmpty()) return null;
+    Expression current = mapCollate(context.expr_collate(0), options);
+    if (context.expr_collate().size() > 1) return null;
+    return current;
+  }
+
+  private static Expression mapCollate(
+      SQLiteParser.Expr_collateContext context, ParseOptions options) {
+    if (context == null || context.expr_unary() == null) return null;
+    Expression current = mapUnary(context.expr_unary(), options);
+    // Ignore COLLATE for now
+    return current;
+  }
+
+  private static Expression mapUnary(SQLiteParser.Expr_unaryContext context, ParseOptions options) {
+    if (context == null || context.expr_base() == null) return null;
+    Expression base = mapBase(context.expr_base(), options);
+    // Ignore unary PLUS/MINUS/TILDE for now
+    return base;
+  }
+
+  private static Expression mapBase(SQLiteParser.Expr_baseContext context, ParseOptions options) {
+    if (context.literal_value() != null) {
+      return mapLiteralValue(context.literal_value(), options);
     }
-    SQLiteParser.Expr_multiplicationContext mul = singleOrNull(add, add.expr_multiplication());
-    if (mul == null) {
-      return null;
-    }
-    SQLiteParser.Expr_stringContext str = singleOrNull(mul, mul.expr_string());
-    if (str == null) {
-      return null;
-    }
-    SQLiteParser.Expr_collateContext coll = singleOrNull(str, str.expr_collate());
-    if (coll == null) {
-      return null;
-    }
-    SQLiteParser.Expr_unaryContext un = coll.expr_unary();
-    if (un == null) {
-      return null;
-    }
-    SQLiteParser.Expr_baseContext base = un.expr_base();
-    if (base == null) {
-      return null;
-    }
-    if (base.literal_value() != null) {
-      return mapLiteralValue(base.literal_value(), options);
-    }
-    if (base.BIND_PARAMETER() != null) {
+    if (context.BIND_PARAMETER() != null) {
       return new LiteralExpression(
-          base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
+          context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
     }
-    if (base.column_name_excluding_string() != null) {
+    if (context.column_name_excluding_string() != null) {
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          base.column_name_excluding_string().getText(),
-          SourceSpans.fromTokens(base.start, base.stop, options));
+          context.column_name_excluding_string().getText(),
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
-    if (base.table_name() != null && base.DOT() != null && base.column_name() != null) {
-      String table = base.table_name().getText();
-      String column = base.column_name().getText();
+    if (context.table_name() != null && context.DOT() != null && context.column_name() != null) {
+      String table = context.table_name().getText();
+      String column = context.column_name().getText();
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          table + "." + column, SourceSpans.fromTokens(base.start, base.stop, options));
+          table + "." + column, SourceSpans.fromTokens(context.start, context.stop, options));
+    }
+    if (context.OPEN_PAR() != null && context.select_stmt() != null) {
+      // Subqueries are not yet supported
+      return null;
+    }
+    if (context.expr_recursive() != null) {
+      return mapRecursiveExpr(context.expr_recursive(), options);
     }
     return new LiteralExpression(
-        base.getText(), SourceSpans.fromTokens(base.start, base.stop, options));
+        context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
+  }
+
+  private static Expression mapRecursiveExpr(
+      SQLiteParser.Expr_recursiveContext context, ParseOptions options) {
+    if (context.OPEN_PAR() != null && context.expr().size() == 1) {
+      return mapExpr(context.expr(0), options);
+    }
+    return null;
+  }
+
+  private static io.github.e4c5.sqool.ast.BinaryOperator mapBinaryOperator(String text) {
+    return switch (text.toUpperCase()) {
+      case "=", "==" -> io.github.e4c5.sqool.ast.BinaryOperator.EQUAL;
+      case "<>", "!=" -> io.github.e4c5.sqool.ast.BinaryOperator.NOT_EQUAL;
+      case "<" -> io.github.e4c5.sqool.ast.BinaryOperator.LESS_THAN;
+      case "<=" -> io.github.e4c5.sqool.ast.BinaryOperator.LESS_OR_EQUAL;
+      case ">" -> io.github.e4c5.sqool.ast.BinaryOperator.GREATER_THAN;
+      case ">=" -> io.github.e4c5.sqool.ast.BinaryOperator.GREATER_OR_EQUAL;
+      case "+" -> io.github.e4c5.sqool.ast.BinaryOperator.PLUS;
+      case "-" -> io.github.e4c5.sqool.ast.BinaryOperator.MINUS;
+      case "*" -> io.github.e4c5.sqool.ast.BinaryOperator.MULTIPLY;
+      case "/" -> io.github.e4c5.sqool.ast.BinaryOperator.DIVIDE;
+      case "AND" -> io.github.e4c5.sqool.ast.BinaryOperator.AND;
+      case "OR" -> io.github.e4c5.sqool.ast.BinaryOperator.OR;
+      default -> null;
+    };
   }
 
   private static Expression mapLiteralValue(

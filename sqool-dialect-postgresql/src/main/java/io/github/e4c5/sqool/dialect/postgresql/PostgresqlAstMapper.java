@@ -3,9 +3,12 @@ package io.github.e4c5.sqool.dialect.postgresql;
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
+import io.github.e4c5.sqool.ast.ColumnAssignment;
+import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LimitClause;
@@ -23,6 +26,7 @@ import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
+import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.MappingResult;
 import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
@@ -77,6 +81,15 @@ final class PostgresqlAstMapper {
   static ParseResult mapStatement(PostgreSQLParser.StatementContext stmt, ParseOptions options) {
     if (stmt.selectStatement() != null) {
       return mapSelectStatement(stmt.selectStatement(), options);
+    }
+    if (stmt.insertStatement() != null) {
+      return mapInsertStatement(stmt.insertStatement(), options);
+    }
+    if (stmt.updateStatement() != null) {
+      return mapUpdateStatement(stmt.updateStatement(), options);
+    }
+    if (stmt.deleteStatement() != null) {
+      return mapDeleteStatement(stmt.deleteStatement(), options);
     }
     PostgresqlStatementKind kind = kindForStatement(stmt);
     return rawStatement(stmt, kind, options);
@@ -243,11 +256,23 @@ final class PostgresqlAstMapper {
           right,
           null,
           List.of(),
+          false,
           SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
     }
-    if (joinCtx instanceof PostgreSQLParser.NaturalJoinContext) {
-      // NATURAL JOIN is not yet normalized; fall back to raw.
-      return null;
+    if (joinCtx instanceof PostgreSQLParser.NaturalJoinContext naturalCtx) {
+      JoinType joinType = mapJoinKind(naturalCtx.joinKind());
+      TableReference right = mapTablePrimary(naturalCtx.tablePrimary(), options);
+      if (right == null) {
+        return null;
+      }
+      return new JoinTableReference(
+          left,
+          joinType,
+          right,
+          null,
+          List.of(),
+          true,
+          SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
     }
     if (joinCtx instanceof PostgreSQLParser.QualifiedJoinContext qualCtx) {
       JoinType joinType = mapJoinKind(qualCtx.joinKind());
@@ -274,9 +299,165 @@ final class PostgresqlAstMapper {
           right,
           condition,
           usingColumns,
+          false,
           SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
     }
     return null;
+  }
+
+  // =========================================================================
+  // INSERT / UPDATE / DELETE
+  // =========================================================================
+
+  private static ParseResult mapInsertStatement(
+      PostgreSQLParser.InsertStatementContext ctx, ParseOptions options) {
+    if (ctx.onConflictClause() != null || ctx.returningClause() != null) {
+      return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
+    }
+
+    String tableName = ctx.qualifiedName().getText();
+    List<String> columns = List.of();
+    if (ctx.columnList() != null) {
+      columns =
+          ctx.columnList().columnName().stream()
+              .map(PostgreSQLParser.ColumnNameContext::getText)
+              .toList();
+    }
+
+    PostgreSQLParser.InsertSourceContext source = ctx.insertSource();
+    if (source instanceof PostgreSQLParser.InsertValuesContext valuesCtx) {
+      List<List<Expression>> rows = new ArrayList<>();
+      for (PostgreSQLParser.RowValuesContext rowCtx : valuesCtx.rowValues()) {
+        List<Expression> row = new ArrayList<>();
+        for (PostgreSQLParser.InsertExprContext exprCtx : rowCtx.insertExpr()) {
+          if (exprCtx instanceof PostgreSQLParser.DefaultExprContext) {
+            // DEFAULT in VALUES is not yet supported in normalized AST.
+            return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
+          }
+          Expression expr = mapExpr(((PostgreSQLParser.ValueExprContext) exprCtx).expr(), options);
+          if (expr == null) {
+            return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
+          }
+          row.add(expr);
+        }
+        rows.add(List.copyOf(row));
+      }
+      return new ParseSuccess(
+          SqlDialect.POSTGRESQL,
+          new InsertStatement(
+              tableName,
+              columns,
+              rows,
+              List.of(),
+              null,
+              List.of(),
+              false,
+              SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+          List.of(),
+          ParseMetrics.unknown());
+    } else if (source instanceof PostgreSQLParser.InsertSelectContext selectCtx) {
+      ParseResult selectResult = mapSelectStatement(selectCtx.selectStatement(), options);
+      if (!(selectResult instanceof ParseSuccess success)) {
+        return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
+      }
+      return new ParseSuccess(
+          SqlDialect.POSTGRESQL,
+          new InsertStatement(
+              tableName,
+              columns,
+              List.of(),
+              List.of(),
+              (Statement) success.root(),
+              List.of(),
+              false,
+              SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+          List.of(),
+          ParseMetrics.unknown());
+    }
+
+    return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
+  }
+
+  private static ParseResult mapUpdateStatement(
+      PostgreSQLParser.UpdateStatementContext ctx, ParseOptions options) {
+    if (ctx.ONLY() != null || ctx.fromClause() != null || ctx.returningClause() != null) {
+      return rawStatement(ctx, PostgresqlStatementKind.UPDATE, options);
+    }
+
+    String tableName = ctx.qualifiedName().getText();
+    String alias = ctx.alias != null ? ctx.alias.getText() : null;
+    TableReference target =
+        new NamedTableReference(
+            tableName,
+            alias,
+            SourceSpans.fromTokens(ctx.qualifiedName().start, ctx.qualifiedName().stop, options));
+
+    List<ColumnAssignment> assignments = new ArrayList<>();
+    for (PostgreSQLParser.SetClauseContext setCtx : ctx.setClauseList().setClause()) {
+      if (setCtx.DEFAULT_KW() != null) {
+        return rawStatement(ctx, PostgresqlStatementKind.UPDATE, options);
+      }
+      Expression value = mapExpr(setCtx.expr(), options);
+      if (value == null) {
+        return rawStatement(ctx, PostgresqlStatementKind.UPDATE, options);
+      }
+      assignments.add(
+          new ColumnAssignment(
+              setCtx.columnName().getText(),
+              value,
+              SourceSpans.fromTokens(setCtx.start, setCtx.stop, options)));
+    }
+
+    MappingResult<Expression> whereResult = mapWhereClause(ctx.whereClause(), options);
+    if (!whereResult.supported()) {
+      return rawStatement(ctx, PostgresqlStatementKind.UPDATE, options);
+    }
+
+    return new ParseSuccess(
+        SqlDialect.POSTGRESQL,
+        new UpdateStatement(
+            target,
+            assignments,
+            whereResult.value(),
+            List.of(),
+            null,
+            false,
+            SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+        List.of(),
+        ParseMetrics.unknown());
+  }
+
+  private static ParseResult mapDeleteStatement(
+      PostgreSQLParser.DeleteStatementContext ctx, ParseOptions options) {
+    if (ctx.ONLY() != null
+        || ctx.tableReference() != null && !ctx.tableReference().isEmpty()
+        || ctx.returningClause() != null) {
+      return rawStatement(ctx, PostgresqlStatementKind.DELETE, options);
+    }
+
+    String tableName = ctx.qualifiedName().getText();
+    String alias = ctx.alias != null ? ctx.alias.getText() : null;
+    TableReference target =
+        new NamedTableReference(
+            tableName,
+            alias,
+            SourceSpans.fromTokens(ctx.qualifiedName().start, ctx.qualifiedName().stop, options));
+
+    MappingResult<Expression> whereResult = mapWhereClause(ctx.whereClause(), options);
+    if (!whereResult.supported()) {
+      return rawStatement(ctx, PostgresqlStatementKind.DELETE, options);
+    }
+
+    return new ParseSuccess(
+        SqlDialect.POSTGRESQL,
+        new DeleteStatement(
+            target,
+            whereResult.value(),
+            List.of(),
+            null,
+            SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   private static JoinType mapJoinKind(PostgreSQLParser.JoinKindContext ctx) {

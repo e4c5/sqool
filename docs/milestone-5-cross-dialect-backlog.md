@@ -61,11 +61,11 @@ Ensure diagnostics are consistent across dialects for analogous errors, or docum
 
 **Tasks**
 
-- [ ] Audit diagnostic structure (severity, line, column, message, offending token) across all dialects.
-- [ ] Identify and fix or document any dialect-specific diagnostic quirks.
-- [ ] Add or extend cross-dialect tests that verify analogous syntax errors produce consistent diagnostic structure.
-- [ ] Consider extending `SyntaxDiagnostic` with `SourceSpan` and `expectedTokens` if needed for consistency.
-- [ ] Document diagnostic behavior in the technical design or a dedicated doc.
+- [x] Audit diagnostic structure (severity, line, column, message, offending token) across all dialects.
+- [x] Identify and fix or document any dialect-specific diagnostic quirks.
+- [x] Add or extend cross-dialect tests that verify analogous syntax errors produce consistent diagnostic structure.
+- [x] Consider extending `SyntaxDiagnostic` with `SourceSpan` and `expectedTokens` if needed for consistency.
+- [x] Document diagnostic behavior in the technical design or a dedicated doc.
 
 **Deliverables**
 
@@ -89,14 +89,14 @@ Expand normalized AST mapping for shared constructs across dialects where gaps e
 
 **Tasks**
 
-- [ ] Identify shared constructs that are normalized in some dialects but raw in others (e.g. joins, CTEs, DML).
-- [ ] Prioritize expansion based on:
-  - [ ] consumer value,
-  - [ ] grammar/mapper complexity,
-  - [ ] consistency with existing patterns.
-- [ ] Implement normalized mapping for the highest-priority shared constructs in each dialect.
-- [ ] Add golden tests for the expanded coverage.
-- [ ] Document the expanded v1/v2 subset per dialect.
+- [x] Identify shared constructs that are normalized in some dialects but raw in others (e.g. joins, CTEs, DML).
+- [x] Prioritize expansion based on:
+  - [x] consumer value,
+  - [x] grammar/mapper complexity,
+  - [x] consistency with existing patterns.
+- [/] Implement normalized mapping for the highest-priority shared constructs in each dialect.
+- [x] Add golden tests for the expanded coverage.
+- [x] Document the expanded v1/v2 subset per dialect.
 
 **Deliverables**
 
@@ -120,13 +120,13 @@ Establish cross-dialect golden tests for the common SQL subset across all four d
 
 **Tasks**
 
-- [ ] Define the common subset for cross-dialect testing (SELECT, basic DDL, basic DML).
-- [ ] Add cross-dialect tests that:
-  - [ ] parse identical or equivalent queries in MySQL, SQLite, PostgreSQL, and Oracle,
-  - [ ] verify parse success and AST shape consistency where applicable,
-  - [ ] cover the shared expression and clause constructs.
-- [ ] Include PostgreSQL and Oracle in `CrossDialectConformanceTest` (or equivalent) where syntax overlaps.
-- [ ] Add regression tests for any cross-dialect bugs discovered.
+- [x] Define the common subset for cross-dialect testing (SELECT, basic DDL, basic DML).
+- [x] Add cross-dialect tests that:
+  - [x] parse identical or equivalent queries in MySQL, SQLite, PostgreSQL, and Oracle,
+  - [x] verify parse success and AST shape consistency where applicable,
+  - [x] cover the shared expression and clause constructs.
+- [x] Include PostgreSQL and Oracle in `CrossDialectConformanceTest` (or equivalent) where syntax overlaps.
+- [x] Add regression tests for any cross-dialect bugs discovered.
 
 **Deliverables**
 
@@ -150,13 +150,13 @@ Produce clear documentation of supported constructs, limitations, and dialect di
 
 **Tasks**
 
-- [ ] Create or update a **dialect coverage matrix** (e.g. in `README.md` or `docs/dialect-coverage.md`) that:
-  - [ ] lists supported statement types and constructs per dialect,
-  - [ ] indicates normalized vs raw-statement mapping,
-  - [ ] documents known limitations and unsupported features.
-- [ ] Update `sql-parser-technical-design.md` with any changes from M5.
-- [ ] Ensure `CONTRIBUTING.md` and dialect-specific docs are up to date.
-- [ ] Add or update usage examples for parsing each dialect.
+- [x] Create or update a **dialect coverage matrix** (e.g. in `README.md` or `docs/dialect-coverage.md`) that:
+  - [x] lists supported statement types and constructs per dialect,
+  - [x] indicates normalized vs raw-statement mapping,
+  - [x] documents known limitations and unsupported features.
+- [x] Update `sql-parser-technical-design.md` with any changes from M5.
+- [x] Ensure `CONTRIBUTING.md` and dialect-specific docs are up to date.
+- [x] Add or update usage examples for parsing each dialect.
 
 **Deliverables**
 
@@ -180,10 +180,10 @@ Publish benchmark reports in CI or a reproducible form so performance can be tra
 
 **Tasks**
 
-- [ ] Configure CI to run benchmarks and store results (e.g. as artifacts or in a report).
-- [ ] Ensure benchmark output format (JSON, CSV, or human-readable) is documented.
-- [ ] Add a comparison view or script that compares MySQL, SQLite, PostgreSQL, and Oracle baselines.
-- [ ] Document how to interpret benchmark results and compare across dialects.
+- [x] Configure CI to run benchmarks and store results (e.g. as artifacts or in a report).
+- [x] Ensure benchmark output format (JSON, CSV, or human-readable) is documented.
+- [x] Add a comparison view or script that compares MySQL, SQLite, PostgreSQL, and Oracle baselines.
+- [x] Document how to interpret benchmark results and compare across dialects.
 
 **Deliverables**
 
@@ -207,11 +207,11 @@ Review naming, packaging, and shared helper APIs for clarity and consistency.
 
 **Tasks**
 
-- [ ] Review dialect module naming (`sqool-dialect-mysql`, etc.) for consistency.
-- [ ] Review AST node naming and package structure across dialects.
-- [ ] Identify any shared parser or mapper helpers that could be generalized.
-- [ ] Propose and implement refactors that improve clarity without breaking the public API.
-- [ ] Document the recommended patterns for adding new dialects or constructs.
+- [x] Review dialect module naming (`sqool-dialect-mysql`, etc.) for consistency.
+- [x] Review AST node naming and package structure across dialects.
+- [x] Identify any shared parser or mapper helpers that could be generalized.
+- [x] Propose and implement refactors that improve clarity without breaking the public API.
+- [x] Document the recommended patterns for adding new dialects or constructs.
 
 **Deliverables**
 

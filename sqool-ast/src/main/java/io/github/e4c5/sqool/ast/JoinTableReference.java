@@ -10,6 +10,7 @@ public record JoinTableReference(
     TableReference right,
     Expression condition,
     List<String> usingColumns,
+    boolean natural,
     SourceSpan sourceSpan)
     implements TableReference {
 
