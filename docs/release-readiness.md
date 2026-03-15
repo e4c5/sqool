@@ -12,12 +12,16 @@ This document tracks items that should be completed or decided before publishing
 |--------|------------|---------|
 | Core API and runtime | `sqool-core` | Public parser API, parse options, diagnostics, source spans, shared parser utilities. |
 | AST model | `sqool-ast` | Normalized AST nodes, dialect raw statement wrappers. |
-| MySQL dialect | `sqool-dialect-mysql` | MySQL parser and AST mapping. |
-| PostgreSQL dialect | `sqool-dialect-postgresql` | PostgreSQL parser and AST mapping. |
-| Oracle dialect | `sqool-dialect-oracle` | Oracle SQL parser and AST mapping. |
-| SQLite dialect | `sqool-dialect-sqlite` | SQLite parser and AST mapping. |
+| MySQL grammar | `sqool-grammar-mysql` | Vendored MySQL ANTLR grammar and generated parser/lexer; required by the MySQL dialect. |
+| PostgreSQL grammar | `sqool-grammar-postgresql` | Vendored PostgreSQL ANTLR grammar and generated parser/lexer. |
+| Oracle grammar | `sqool-grammar-oracle` | Vendored Oracle SQL ANTLR grammar and generated parser/lexer. |
+| SQLite grammar | `sqool-grammar-sqlite` | Vendored SQLite ANTLR grammar and generated parser/lexer. |
+| MySQL dialect | `sqool-dialect-mysql` | MySQL parser and AST mapping. Depends on `sqool-grammar-mysql`. |
+| PostgreSQL dialect | `sqool-dialect-postgresql` | PostgreSQL parser and AST mapping. Depends on `sqool-grammar-postgresql`. |
+| Oracle dialect | `sqool-dialect-oracle` | Oracle SQL parser and AST mapping. Depends on `sqool-grammar-oracle`. |
+| SQLite dialect | `sqool-dialect-sqlite` | SQLite parser and AST mapping. Depends on `sqool-grammar-sqlite`. |
 
-**Not published:** Grammar modules (`sqool-grammar-*`), `sqool-conformance`, `sqool-bench` — they are implementation details or test/benchmark only.
+**Not published:** `sqool-conformance`, `sqool-bench` — they are test/benchmark only.
 
 **Coordinates:** `io.github.e4c5:sqool-core:VERSION`, `io.github.e4c5:sqool-ast:VERSION`, `io.github.e4c5:sqool-dialect-mysql:VERSION`, etc.
 

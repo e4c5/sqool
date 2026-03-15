@@ -27,10 +27,15 @@ plugins {
 group = "io.github.e4c5"
 version = "0.1.0-SNAPSHOT"
 
-// Modules published to Maven (see docs/release-readiness.md). Grammar and internal modules are not published.
+// Modules published to Maven (see docs/release-readiness.md).
+// Dialect modules depend on their grammar modules, so those grammars must be published too.
 val publishableModules = listOf(
     "sqool-core",
     "sqool-ast",
+    "sqool-grammar-mysql",
+    "sqool-grammar-postgresql",
+    "sqool-grammar-oracle",
+    "sqool-grammar-sqlite",
     "sqool-dialect-mysql",
     "sqool-dialect-postgresql",
     "sqool-dialect-oracle",
