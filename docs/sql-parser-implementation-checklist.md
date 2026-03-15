@@ -99,13 +99,13 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 7. SQLite implementation
 
-- [ ] Import and validate the SQLite grammar
-- [ ] Implement SQLite parser integration
-- [ ] Map the initial SQLite subset into the normalized AST
-- [ ] Add SQLite conformance corpus tests
-- [ ] Add SQLite syntax error tests
-- [ ] Add SQLite benchmarks against JSqlParser
-- [ ] Tune SQLite parser hot paths
+- [x] Import and validate the SQLite grammar
+- [x] Implement SQLite parser integration
+- [x] Map the initial SQLite subset into the normalized AST
+- [x] Add SQLite conformance corpus tests
+- [x] Add SQLite syntax error tests
+- [x] Add SQLite benchmarks against JSqlParser
+- [x] Tune SQLite parser hot paths
 
 ### Exit criteria
 
@@ -174,10 +174,10 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 12. Conformance and regression quality
 
-- [ ] Build a vendor-documentation-based SQL corpus
-- [ ] Add malformed SQL coverage per dialect
+- [x] Build a vendor-documentation-based SQL corpus
+- [x] Add malformed SQL coverage per dialect
 - [x] Add regression tests for every grammar or AST bug fixed
-- [ ] Add differential tests where practical
+- [x] Add differential tests where practical
 - [ ] Define quality gates for adding new syntax coverage
 
 ### Exit criteria

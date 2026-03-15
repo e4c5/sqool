@@ -45,6 +45,7 @@ import io.github.e4c5.sqool.ast.UnaryOperator;
 import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.DiagnosticSeverity;
 import io.github.e4c5.sqool.core.ParseFailure;
+import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
@@ -96,7 +97,11 @@ final class MysqlAstMapper {
               ? null
               : SourceSpans.fromTokens(
                   context.query().getFirst().start, context.query().getLast().stop, options);
-      return new ParseSuccess(SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of());
+      return new ParseSuccess(
+          SqlDialect.MYSQL,
+          new SqlScript(statements, sourceSpan),
+          List.of(),
+          ParseMetrics.unknown());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
           SqlDialect.MYSQL,
@@ -106,7 +111,8 @@ final class MysqlAstMapper {
                   exception.getMessage(),
                   exception.token == null ? 1 : exception.token.getLine(),
                   exception.token == null ? 0 : exception.token.getCharPositionInLine(),
-                  exception.token == null ? null : exception.token.getText())));
+                  exception.token == null ? null : exception.token.getText())),
+          ParseMetrics.unknown());
     }
   }
 
@@ -114,7 +120,10 @@ final class MysqlAstMapper {
       MySQLParser.SimpleStatementContext context, ParseOptions options) {
     try {
       return new ParseSuccess(
-          SqlDialect.MYSQL, mapSimpleStatementInternal(context, options), List.of());
+          SqlDialect.MYSQL,
+          mapSimpleStatementInternal(context, options),
+          List.of(),
+          ParseMetrics.unknown());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
           SqlDialect.MYSQL,
@@ -124,7 +133,8 @@ final class MysqlAstMapper {
                   exception.getMessage(),
                   exception.token == null ? 1 : exception.token.getLine(),
                   exception.token == null ? 0 : exception.token.getCharPositionInLine(),
-                  exception.token == null ? null : exception.token.getText())));
+                  exception.token == null ? null : exception.token.getText())),
+          ParseMetrics.unknown());
     }
   }
 
@@ -132,7 +142,10 @@ final class MysqlAstMapper {
       MySQLParser.QueryExpressionContext context, ParseOptions options) {
     try {
       return new ParseSuccess(
-          SqlDialect.MYSQL, mapQueryExpressionInternal(context, options), List.of());
+          SqlDialect.MYSQL,
+          mapQueryExpressionInternal(context, options),
+          List.of(),
+          ParseMetrics.unknown());
     } catch (UnsupportedFeatureException exception) {
       return new ParseFailure(
           SqlDialect.MYSQL,
@@ -142,7 +155,8 @@ final class MysqlAstMapper {
                   exception.getMessage(),
                   exception.token == null ? 1 : exception.token.getLine(),
                   exception.token == null ? 0 : exception.token.getCharPositionInLine(),
-                  exception.token == null ? null : exception.token.getText())));
+                  exception.token == null ? null : exception.token.getText())),
+          ParseMetrics.unknown());
     }
   }
 

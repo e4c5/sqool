@@ -92,13 +92,13 @@ Vendor and validate the SQLite grammar in `sqool-grammar-sqlite`.
 
 **Tasks**
 
-- [ ] Confirm the upstream SQLite grammar source and revision.
-- [ ] Vendor `.g4` grammar files into `sqool-grammar-sqlite`.
-- [ ] Configure grammar source directories for SQLite.
-- [ ] Configure generated-source output directories.
-- [ ] Validate Java target generation and ensure SQLite grammar compiles.
-- [ ] Add a minimal SQLite parser smoke test (e.g., a basic `SELECT` or DDL).
-- [ ] Add `UPSTREAM.md` documenting provenance and local patches.
+- [x] Confirm the upstream SQLite grammar source and revision.
+- [x] Vendor `.g4` grammar files into `sqool-grammar-sqlite`.
+- [x] Configure grammar source directories for SQLite.
+- [x] Configure generated-source output directories.
+- [x] Validate Java target generation and ensure SQLite grammar compiles.
+- [x] Add a minimal SQLite parser smoke test (e.g., a basic `SELECT` or DDL).
+- [x] Add `UPSTREAM.md` documenting provenance and local patches.
 
 **Deliverables**
 
@@ -121,12 +121,12 @@ Implement the SQLite-specific parser pipeline behind the public API, reusing gen
 
 **Tasks**
 
-- [ ] Implement a SQLite `SqlParser` dialect implementation in `sqool-dialect-sqlite`.
-- [ ] Configure lexer and token stream setup for SQLite via shared parser utilities where appropriate.
-- [ ] Implement SLL-fast / LL-fallback behavior using the same pattern as MySQL.
-- [ ] Ensure diagnostics construction reuses shared error helper code.
-- [ ] Wire SQLite into `ParseOptions` / `SqlDialect`.
-- [ ] Add parser metrics for SQLite.
+- [x] Implement a SQLite `SqlParser` dialect implementation in `sqool-dialect-sqlite`.
+- [x] Configure lexer and token stream setup for SQLite via shared parser utilities where appropriate.
+- [x] Implement SLL-fast / LL-fallback behavior using the same pattern as MySQL.
+- [x] Ensure diagnostics construction reuses shared error helper code.
+- [x] Wire SQLite into `ParseOptions` / `SqlDialect`.
+- [x] Add parser metrics for SQLite.
 
 **Deliverables**
 

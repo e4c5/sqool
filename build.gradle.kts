@@ -245,6 +245,7 @@ project(":sqool-conformance") {
         "implementation"(project(":sqool-core"))
         "implementation"(project(":sqool-ast"))
         "testImplementation"(project(":sqool-dialect-mysql"))
+        "testImplementation"(project(":sqool-dialect-sqlite"))
     }
 
     tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
@@ -270,6 +271,7 @@ project(":sqool-bench") {
     dependencies {
         "implementation"(project(":sqool-core"))
         "implementation"(project(":sqool-dialect-mysql"))
+        "implementation"(project(":sqool-dialect-sqlite"))
         "implementation"(libsCatalog.findLibrary("jsqlparser").get())
     }
 

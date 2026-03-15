@@ -6,11 +6,11 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
 
 - Build tool: Gradle
 - Target runtime: Java 25
-- Current status: Milestone 0 baseline implemented, MySQL MVP slice implemented
+- Current status: Milestone 0 done; MySQL and SQLite MVP implemented
 
 ## Current parser coverage
 
-- MySQL:
+- **MySQL**
   - real upstream grammar vendored from `antlr/grammars-v4`
   - parser facade implemented with SLL-first parsing and LL fallback
   - normalized AST currently supports:
@@ -46,7 +46,9 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
   - valid but not-yet-normalized MySQL statement kinds fall back to a typed `MySqlRawStatement` node
   - comprehensive conformance/regression suite (>80% instruction coverage for key mapper logic)
   - JMH benchmark includes a first comparison against JSqlParser
-- PostgreSQL, Oracle, SQLite:
+- **SQLite**
+  - Grammar vendored in `sqool-grammar-sqlite` (see `UPSTREAM.md`). Parser in `sqool-dialect-sqlite` with SLL/LL and `ParseMetrics`. Normalized AST for core SELECT, CREATE TABLE, INSERT; conformance tests and JMH benchmark in `sqool-conformance` and `sqool-bench`. Cross-dialect tests (MySQL vs SQLite) in `sqool-conformance`.
+- **PostgreSQL, Oracle**
   - planned, not yet implemented
 
 ## Common commands

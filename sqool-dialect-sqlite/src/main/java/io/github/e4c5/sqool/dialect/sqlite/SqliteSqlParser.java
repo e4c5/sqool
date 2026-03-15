@@ -4,6 +4,7 @@ import io.github.e4c5.sqool.core.AntlrSyntaxErrorListener;
 import io.github.e4c5.sqool.core.DiagnosticSeverity;
 import io.github.e4c5.sqool.core.ParseAttempt;
 import io.github.e4c5.sqool.core.ParseFailure;
+import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.SqlDialect;
@@ -35,15 +36,21 @@ public final class SqliteSqlParser implements SqlParser {
       return failure("SqliteSqlParser only accepts SQLITE parse options.", 1, 0, null);
     }
 
-    ParseAttempt<SQLiteParser.ParseContext> attempt =
-        parseRoot(sql, effectiveOptions.enableFallback());
-    if (!attempt.diagnostics().isEmpty()) {
-      return new ParseFailure(SqlDialect.SQLITE, attempt.diagnostics());
+    long startNanos = System.nanoTime();
+    ParseOutcome<SQLiteParser.ParseContext> outcome =
+        parseRootWithMode(sql, effectiveOptions.enableFallback());
+    ParseMetrics metrics =
+        ParseMetrics.of(
+            outcome.usedSll() ? ParseMetrics.PredictionMode.SLL : ParseMetrics.PredictionMode.LL,
+            System.nanoTime() - startNanos);
+
+    if (!outcome.attempt().diagnostics().isEmpty()) {
+      return new ParseFailure(SqlDialect.SQLITE, outcome.attempt().diagnostics(), metrics);
     }
 
-    SQLiteParser.Sql_stmt_listContext stmtList = attempt.context().sql_stmt_list();
+    SQLiteParser.Sql_stmt_listContext stmtList = outcome.attempt().context().sql_stmt_list();
     if (effectiveOptions.scriptMode()) {
-      return SqliteAstMapper.mapSqlStmtList(stmtList, effectiveOptions);
+      return SqliteAstMapper.mapSqlStmtList(stmtList, effectiveOptions).withMetrics(metrics);
     }
 
     List<SQLiteParser.Sql_stmtContext> stmts = stmtList.sql_stmt();
@@ -53,20 +60,26 @@ public final class SqliteSqlParser implements SqlParser {
     if (stmts.size() > 1) {
       return failure("Multiple statements not allowed in single-statement mode.", 1, 0, null);
     }
-    return SqliteAstMapper.mapSqlStmt(stmts.get(0), effectiveOptions);
+    return SqliteAstMapper.mapSqlStmt(stmts.get(0), effectiveOptions).withMetrics(metrics);
   }
 
-  private ParseAttempt<SQLiteParser.ParseContext> parseRoot(String sql, boolean enableFallback) {
+  private record ParseOutcome<C>(ParseAttempt<C> attempt, boolean usedSll) {}
+
+  private ParseOutcome<SQLiteParser.ParseContext> parseRootWithMode(
+      String sql, boolean enableFallback) {
     try {
-      return parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return new ParseOutcome<>(parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
-        return ParseAttempt.failure(
-            List.of(
-                new SyntaxDiagnostic(
-                    DiagnosticSeverity.ERROR, "Fast-path SQLite parse failed.", 1, 0, null)));
+        return new ParseOutcome<>(
+            ParseAttempt.failure(
+                List.of(
+                    new SyntaxDiagnostic(
+                        DiagnosticSeverity.ERROR, "Fast-path SQLite parse failed.", 1, 0, null))),
+            false);
       }
-      return parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
+      return new ParseOutcome<>(
+          parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy()), false);
     }
   }
 
@@ -97,6 +110,7 @@ public final class SqliteSqlParser implements SqlParser {
     return new ParseFailure(
         SqlDialect.SQLITE,
         List.of(
-            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
+            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)),
+        ParseMetrics.unknown());
   }
 }

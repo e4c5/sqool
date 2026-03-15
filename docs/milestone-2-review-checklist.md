@@ -35,12 +35,12 @@ Reference documents:
 
 ## 1. Dialect generalization and reuse
 
-- [ ] Shared parsing and mapping infrastructure extracted from MySQL is:
-  - [ ] clearly located (e.g., in `sqool-core`, `sqool-ast`, or focused shared packages),
-  - [ ] used by both MySQL and SQLite,
-  - [ ] free of dialect-specific assumptions.
-- [ ] MySQL-specific code has not been blindly copy-pasted into SQLite.
-- [ ] The shared components are named and documented clearly enough for later dialects.
+- [x] Shared parsing and mapping infrastructure extracted from MySQL is:
+  - [x] clearly located (e.g., in `sqool-core`, `sqool-ast`, or focused shared packages),
+  - [x] used by both MySQL and SQLite,
+  - [x] free of dialect-specific assumptions.
+- [x] MySQL-specific code has not been blindly copy-pasted into SQLite.
+- [x] The shared components are named and documented clearly enough for later dialects.
 
 ### Evidence to review
 
@@ -55,13 +55,13 @@ Reference documents:
 
 ## 2. SQLite grammar vendoring and ANTLR integration
 
-- [ ] SQLite grammar is vendored into `sqool-grammar-sqlite` with a clear `UPSTREAM.md`.
-- [ ] `UPSTREAM.md` documents:
-  - [ ] source repository and path,
+- [x] SQLite grammar is vendored into `sqool-grammar-sqlite` with a clear `UPSTREAM.md`.
+- [x] `UPSTREAM.md` documents:
+  - [x] source repository and path,
   - [ ] commit hash,
-  - [ ] local patches and why they are needed.
-- [ ] ANTLR generation for SQLite runs as part of the normal Gradle build.
-- [ ] Generated SQLite parser sources compile without manual changes.
+  - [x] local patches and why they are needed.
+- [x] ANTLR generation for SQLite runs as part of the normal Gradle build.
+- [x] Generated SQLite parser sources compile without manual changes.
 
 ### Evidence to review
 
@@ -76,14 +76,14 @@ Reference documents:
 
 ## 3. SQLite parser pipeline
 
-- [ ] SQLite dialect implementation resides in `sqool-dialect-sqlite`.
-- [ ] Parser setup follows the same SLL-fast / LL-fallback pattern as MySQL.
-- [ ] Shared utilities are used for:
-  - [ ] lexer/parser instantiation,
-  - [ ] token stream configuration,
-  - [ ] error listener and diagnostic wiring.
-- [ ] Single-statement vs script entry points are defined where appropriate.
-- [ ] Parser metrics for SQLite are captured via `ParseMetrics`.
+- [x] SQLite dialect implementation resides in `sqool-dialect-sqlite`.
+- [x] Parser setup follows the same SLL-fast / LL-fallback pattern as MySQL.
+- [x] Shared utilities are used for:
+  - [x] lexer/parser instantiation,
+  - [x] token stream configuration,
+  - [x] error listener and diagnostic wiring.
+- [x] Single-statement vs script entry points are defined where appropriate.
+- [x] Parser metrics for SQLite are captured via `ParseMetrics`.
 
 ### Evidence to review
 
@@ -98,12 +98,12 @@ Reference documents:
 
 ## 4. SQLite AST mapping and dialect extensions
 
-- [ ] The SQLite v1 subset is defined and documented.
-- [ ] For shared SQL constructs, SQLite and MySQL map to the same normalized AST shapes.
-- [ ] SQLite-specific constructs (e.g., conflict resolution clauses) use well-defined extension nodes.
-- [ ] AST nodes remain immutable, compact, and free of ANTLR context references.
-- [ ] Source spans are attached correctly when requested.
-- [ ] Golden tests exist for representative SQLite statements.
+- [x] The SQLite v1 subset is defined and documented.
+- [x] For shared SQL constructs, SQLite and MySQL map to the same normalized AST shapes.
+- [x] SQLite-specific constructs (e.g., conflict resolution clauses) use well-defined extension nodes.
+- [x] AST nodes remain immutable, compact, and free of ANTLR context references.
+- [x] Source spans are attached correctly when requested.
+- [x] Golden tests exist for representative SQLite statements.
 
 ### Evidence to review
 
@@ -118,15 +118,15 @@ Reference documents:
 
 ## 5. SQLite conformance and regression quality
 
-- [ ] A SQLite-focused corpus exists and is:
-  - [ ] versioned and reproducible,
-  - [ ] based on real or realistic examples.
-- [ ] Conformance tests:
-  - [ ] assert success for valid queries,
-  - [ ] assert expected diagnostics for malformed or unsupported queries,
-  - [ ] validate AST structure where applicable.
-- [ ] Regression tests are added for any SQLite issues found during the milestone.
-- [ ] Test structure mirrors the MySQL layout where sensible.
+- [x] A SQLite-focused corpus exists and is:
+  - [x] versioned and reproducible,
+  - [x] based on real or realistic examples.
+- [x] Conformance tests:
+  - [x] assert success for valid queries,
+  - [x] assert expected diagnostics for malformed or unsupported queries,
+  - [x] validate AST structure where applicable.
+- [x] Regression tests are added for any SQLite issues found during the milestone.
+- [x] Test structure mirrors the MySQL layout where sensible.
 
 ### Evidence to review
 
@@ -140,14 +140,14 @@ Reference documents:
 
 ## 6. SQLite performance and benchmarks
 
-- [ ] A SQLite benchmark corpus is defined across small, medium, large, and error-path categories.
-- [ ] JMH benchmarks in `sqool-bench` exercise SQLite parsing with `sqool` (and JSqlParser where appropriate).
-- [ ] Benchmarks report:
-  - [ ] throughput,
-  - [ ] latency,
-  - [ ] allocation and GC behavior (where practical).
-- [ ] Baseline SQLite metrics are recorded in a way that can be compared over time.
-- [ ] Running SQLite benchmarks is documented for contributors.
+- [x] A SQLite benchmark corpus is defined across small, medium, large, and error-path categories.
+- [x] JMH benchmarks in `sqool-bench` exercise SQLite parsing with `sqool` (and JSqlParser where appropriate).
+- [x] Benchmarks report:
+  - [x] throughput,
+  - [x] latency,
+  - [x] allocation and GC behavior (where practical).
+- [x] Baseline SQLite metrics are recorded in a way that can be compared over time.
+- [x] Running SQLite benchmarks is documented for contributors.
 
 ### Evidence to review
 
@@ -161,11 +161,11 @@ Reference documents:
 
 ## 7. Cross-dialect consistency: MySQL vs SQLite
 
-- [ ] There are explicit cross-dialect tests for shared constructs between MySQL and SQLite.
-- [ ] For equivalent queries:
-  - [ ] AST shapes are consistent,
-  - [ ] diagnostics are comparable in structure and quality.
-- [ ] Differences in behavior are documented and justified (e.g., dialect-specific syntax rules).
+- [x] There are explicit cross-dialect tests for shared constructs between MySQL and SQLite.
+- [x] For equivalent queries:
+  - [x] AST shapes are consistent,
+  - [x] diagnostics are comparable in structure and quality.
+- [x] Differences in behavior are documented and justified (e.g., dialect-specific syntax rules).
 
 ### Evidence to review
 
@@ -179,12 +179,12 @@ Reference documents:
 
 ## 8. Documentation and onboarding
 
-- [ ] Documentation describes:
-  - [ ] the current SQLite feature surface,
-  - [ ] how to run SQLite tests,
-  - [ ] how to run SQLite benchmarks.
-- [ ] Known SQLite limitations are clearly described.
-- [ ] Contributor guidance explains how to add or update SQLite-specific behavior.
+- [x] Documentation describes:
+  - [x] the current SQLite feature surface,
+  - [x] how to run SQLite tests,
+  - [x] how to run SQLite benchmarks.
+- [x] Known SQLite limitations are clearly described.
+- [x] Contributor guidance explains how to add or update SQLite-specific behavior.
 
 ### Evidence to review
 

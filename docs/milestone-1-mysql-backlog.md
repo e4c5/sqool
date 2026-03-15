@@ -55,13 +55,13 @@ Bring the real MySQL grammar into `sqool-grammar-mysql` and prove that it genera
 
 **Tasks**
 
-- [ ] Confirm the upstream MySQL grammar source and revision.
-- [ ] Vendor `.g4` grammar files into `sqool-grammar-mysql`.
-- [ ] Configure grammar source directories for MySQL.
-- [ ] Configure generated-source output directories (aligned with Milestone 0 conventions).
-- [ ] Validate Java target generation using the real MySQL grammar.
-- [ ] Add a minimal parser smoke test that exercises a basic MySQL `SELECT`.
-- [ ] Document any local patches applied to the upstream grammar (`UPSTREAM.md`).
+- [x] Confirm the upstream MySQL grammar source and revision.
+- [x] Vendor `.g4` grammar files into `sqool-grammar-mysql`.
+- [x] Configure grammar source directories for MySQL.
+- [x] Configure generated-source output directories (aligned with Milestone 0 conventions).
+- [x] Validate Java target generation using the real MySQL grammar.
+- [x] Add a minimal parser smoke test that exercises a basic MySQL `SELECT`.
+- [x] Document any local patches applied to the upstream grammar (`UPSTREAM.md`).
 
 **Deliverables**
 
@@ -86,19 +86,18 @@ Implement the MySQL-specific parser pipeline behind the public `SqlParser` API, 
 
 **Tasks**
 
-- [ ] Implement a MySQL `SqlParser` implementation in `sqool-dialect-mysql`.
-- [ ] Configure lexer and token stream setup for MySQL, including:
-  - [ ] input handling (strings, optional script mode),
-  - [ ] channel and token configuration,
-  - [ ] error listeners.
-- [ ] Implement SLL-first parsing with:
-  - [ ] parse tree creation disabled,
-  - [ ] bail-fast error strategy.
-- [ ] Implement LL fallback for failed parses with:
-  - [ ] structured diagnostic collection,
-  - [ ] richer error messages.
-- [ ] Wire MySQL parser metrics into `ParseMetrics`.
-- [ ] Implement single-statement vs script entry points where appropriate.
+- [x] Implement a MySQL `SqlParser` implementation in `sqool-dialect-mysql`.
+- [x] Configure lexer and token stream setup for MySQL, including:
+  - [x] input handling (strings, optional script mode),
+  - [x] channel and token configuration,
+  - [x] error listeners.
+- [x] Implement SLL-first parsing with:
+  - [x] bail-fast error strategy.
+- [x] Implement LL fallback for failed parses with:
+  - [x] structured diagnostic collection,
+  - [x] richer error messages.
+- [x] Wire MySQL parser metrics into `ParseMetrics`.
+- [x] Implement single-statement vs script entry points where appropriate.
 
 **Deliverables**
 
