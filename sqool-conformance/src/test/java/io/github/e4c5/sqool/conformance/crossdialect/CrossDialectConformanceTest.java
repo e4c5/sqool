@@ -116,7 +116,8 @@ class CrossDialectConformanceTest {
     assertSuccessNoDiagnostics(postgresqlResult, "PostgreSQL");
     assertSuccessNoDiagnostics(oracleResult, "Oracle");
 
-    // All four dialects normalize to SelectStatement (SQLite v1 expression mapper supports basic WHERE).
+    // All four dialects normalize to SelectStatement (SQLite v1 expression mapper supports basic
+    // WHERE).
     assertSuccessWithSelectStatement(mysqlResult, "MySQL");
     assertSuccessWithSelectStatement(sqliteResult, "SQLite");
     assertSuccessWithSelectStatement(postgresqlResult, "PostgreSQL");
