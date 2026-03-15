@@ -14,6 +14,12 @@ We use JMH in the `sqool-bench` module to benchmark parser performance, particul
 
 **Benchmark results are stored as CI artifacts only**. We do not commit benchmark result reports into the repository tree to keep history uncluttered. To view historical performance trends, refer to the artifact outputs on recent main-branch CI runs. See [Benchmarks](docs/benchmarks.md) for how to run and interpret benchmark results.
 
+## Versioning and release
+
+We use **semantic versioning** (MAJOR.MINOR.PATCH). Breaking changes to the public API or AST require a MAJOR bump; new features that are backward compatible require MINOR; fixes and internal changes require PATCH. See [Release Readiness](docs/release-readiness.md) for the full versioning and compatibility policy.
+
+**Release runbook (tag-based):** Bump version in `build.gradle.kts` to the release version (e.g. `1.0.0`), commit, tag with `v1.0.0`, push the tag. The [release workflow](.github/workflows/release.yml) runs the full check and can publish to Maven once OSSRH and signing are configured. After release, bump to the next `-SNAPSHOT` and push.
+
 ## Dependency Upgrade Policy
 
 We prioritize build stability and reproducibility. The `antlr` tool and runtime, `junit`, and `jmh` versions are strictly pinned in `gradle/libs.versions.toml`.

@@ -186,12 +186,12 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 13. Packaging and release readiness
 
-- [ ] Finalize module publication layout
-- [ ] Define versioning strategy
+- [x] Finalize module publication layout
+- [x] Define versioning strategy
 - [x] Finalize documentation for supported dialect coverage
-- [ ] Publish benchmark and feature support reports
-- [ ] Prepare release automation and CI quality gates
-- [ ] Define the upstream grammar refresh process
+- [x] Publish benchmark and feature support reports
+- [x] Prepare release automation and CI quality gates
+- [x] Define the upstream grammar refresh process
 
 ### Exit criteria
 
@@ -242,6 +242,6 @@ Each checked item should eventually be expanded into:
 
 ## 17. Remaining work and next milestone
 
-All items in **§1–§12** are complete. **§13** has five remaining items (module publication layout, versioning strategy, benchmark/feature reports, release automation, upstream grammar refresh). **§14** is deferred.
+All items in **§1–§13** are complete. **§14** is deferred.
 
-**For the implementation plan covering the remaining §13 items and the deferred §14 items**, see [Milestone 6: Remaining Implementation Plan](milestone-6-remaining-implementation-plan.md).
+**For the deferred §14 items and historical plan**, see [Milestone 6: Remaining Implementation Plan](milestone-6-remaining-implementation-plan.md). Milestone 6 (release readiness) is complete.

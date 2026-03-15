@@ -8,6 +8,8 @@ import org.gradle.api.plugins.quality.Checkstyle
 import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
+import org.gradle.api.publish.MavenPublication
+import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -26,6 +28,16 @@ plugins {
 
 group = "io.github.e4c5"
 version = "0.1.0-SNAPSHOT"
+
+// Modules published to Maven (see docs/release-readiness.md). Grammar and internal modules are not published.
+val publishableModules = listOf(
+    "sqool-core",
+    "sqool-ast",
+    "sqool-dialect-mysql",
+    "sqool-dialect-postgresql",
+    "sqool-dialect-oracle",
+    "sqool-dialect-sqlite",
+)
 
 val libsCatalog = extensions.getByType<VersionCatalogsExtension>().named("libs")
 val targetJavaVersion = 25
@@ -358,6 +370,35 @@ project(":sqool-bench") {
         warmupIterations.set(1)
         iterations.set(1)
         duplicateClassesStrategy.set(DuplicatesStrategy.EXCLUDE)
+    }
+}
+
+configure(publishableModules.map(::project)) {
+    apply(plugin = "maven-publish")
+    extensions.configure<PublishingExtension> {
+        publications {
+            create<MavenPublication>("maven") {
+                from(components["java"])
+                groupId = rootProject.group.toString()
+                artifactId = project.name
+                version = rootProject.version.toString()
+                pom {
+                    name.set(project.name)
+                    description.set("ANTLR-based SQL parser for Java — ${project.name}")
+                    url.set("https://github.com/e4c5/sqool")
+                    licenses {
+                        license {
+                            name.set("The Apache License, Version 2.0")
+                            url.set("https://www.apache.org/licenses/LICENSE-2.0.txt")
+                        }
+                    }
+                    scm {
+                        url.set("https://github.com/e4c5/sqool")
+                        connection.set("scm:git:https://github.com/e4c5/sqool.git")
+                    }
+                }
+            }
+        }
     }
 }
 

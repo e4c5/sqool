@@ -58,3 +58,4 @@ See [Benchmarks](docs/benchmarks.md) for how to run and capture baseline results
 - [Parser Abstractions (design note)](docs/parser-abstractions.md)
 - [Release Readiness](docs/release-readiness.md)
 - [Milestone 6: Remaining Implementation Plan](docs/milestone-6-remaining-implementation-plan.md)
+- [Upstream Grammar Refresh Process](docs/upstream-grammar-refresh.md)

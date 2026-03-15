@@ -24,10 +24,10 @@ Sections **1–12** of the implementation checklist are **complete**. Section **
 
 - **Objective:** Decide which modules are published and under what Maven coordinates.
 - **Tasks:**
-  - [ ] List candidate modules (e.g. `sqool-core`, `sqool-ast`, `sqool-dialect-mysql`, `sqool-dialect-sqlite`, `sqool-dialect-postgresql`, `sqool-dialect-oracle`).
-  - [ ] Exclude non-publishable modules (e.g. `sqool-conformance`, `sqool-bench`, grammar modules if they are implementation details).
-  - [ ] Define groupId and artifactId pattern (e.g. `io.github.e4c5:sqool-core`).
-  - [ ] Document the decision in release-readiness.md or CONTRIBUTING.
+  - [x] List candidate modules; exclude conformance, bench, grammar modules.
+  - [x] Define groupId `io.github.e4c5` and artifactIds (sqool-core, sqool-ast, sqool-dialect-*).
+  - [x] Configure Maven Publish in root build.gradle.kts; POM metadata, Javadoc/sources.
+  - [x] Document in release-readiness.md §1.
 - **Deliverable:** Documented publication layout.
 - **Dependencies:** None.
 
@@ -35,10 +35,9 @@ Sections **1–12** of the implementation checklist are **complete**. Section **
 
 - **Objective:** Adopt a versioning scheme and compatibility policy.
 - **Tasks:**
-  - [ ] Choose a scheme (e.g. semantic versioning).
-  - [ ] Document what constitutes a breaking change (public API, AST node changes, dialect support).
-  - [ ] Document compatibility expectations for patch/minor/major.
-  - [ ] Record in release-readiness.md and/or CONTRIBUTING.
+  - [x] Adopt semantic versioning (MAJOR.MINOR.PATCH).
+  - [x] Document breaking changes (API, AST, dialect support) in release-readiness.md §2.
+  - [x] Record in CONTRIBUTING (Versioning and release).
 - **Deliverable:** Versioning and compatibility policy.
 - **Dependencies:** None.
 
@@ -46,9 +45,7 @@ Sections **1–12** of the implementation checklist are **complete**. Section **
 
 - **Objective:** Make benchmark and feature support visible for releases.
 - **Tasks:**
-  - [ ] Decide format and location (e.g. CI artifact only, or a `docs/benchmark-results/` or release asset).
-  - [ ] Document how to generate and attach benchmark reports to a release (or link to CI).
-  - [ ] Add a short “Feature support” summary (e.g. link to dialect-coverage.md) to release notes or README for releases.
+  - [x] Benchmark reports: CI artifact; release workflow uploads jmh-results-{tag}. Feature support: link to dialect-coverage.md (release-readiness.md §4).
 - **Deliverable:** Process and docs for benchmark/feature reports.
 - **Dependencies:** R1 (to know what is “released”).
 
@@ -56,10 +53,9 @@ Sections **1–12** of the implementation checklist are **complete**. Section **
 
 - **Objective:** Enable tag-based (or similar) release and artifact publishing.
 - **Tasks:**
-  - [ ] Define release trigger (e.g. tag `v*`, or manual workflow).
-  - [ ] Configure CI to run full check (tests, benchmarks, style) on release branch/tag.
-  - [ ] Configure publishing to a repository (e.g. OSSRH/Maven Central) on release.
-  - [ ] Document the release steps for maintainers.
+  - [x] Release trigger: push tag `v*`; .github/workflows/release.yml runs check + JMH, then publish (OSSRH placeholder).
+  - [x] Quality gates: ./gradlew check and :sqool-bench:jmh in release workflow.
+  - [x] Runbook in CONTRIBUTING and release-readiness.md §5.
 - **Deliverable:** Release automation and CI gates; runbook for releasing.
 - **Dependencies:** R1, R2.
 
@@ -67,10 +63,10 @@ Sections **1–12** of the implementation checklist are **complete**. Section **
 
 - **Objective:** Document how and when vendored grammars are updated.
 - **Tasks:**
-  - [ ] Document who is responsible (e.g. maintainers).
-  - [ ] Document when to refresh (e.g. security fix, major ANTLR upgrade, or scheduled).
-  - [ ] Document steps: obtain upstream source, copy into grammar module, update UPSTREAM.md (commit hash, path), run build and conformance tests, run benchmarks.
-  - [ ] Add or point to this process in release-readiness.md and/or each grammar module’s UPSTREAM.md.
+  - [x] Document who is responsible (e.g. maintainers).
+  - [x] Document when to refresh (e.g. security fix, major ANTLR upgrade, or scheduled).
+  - [x] Document steps: obtain upstream source, copy into grammar module, update UPSTREAM.md (commit hash, path), run build and conformance tests, run benchmarks.
+  - [x] Add or point to this process in release-readiness.md and/or each grammar module’s UPSTREAM.md.
 - **Deliverable:** Upstream grammar refresh process.
 - **Dependencies:** None.
 
@@ -112,7 +108,7 @@ No implementation plan is spelled out here for §14; when the project prioritize
 | Category | Status | Plan |
 |----------|--------|------|
 | Checklist §1–§12 | Complete | — |
-| Checklist §13 (release readiness) | 1/6 done; 5 remaining | **Milestone 6** (this plan §2) |
+| Checklist §13 (release readiness) | **Complete** (R1–R5 implemented) | Milestone 6 done |
 | Checklist §14 (deferred) | Not started | Backlog / future milestones (§3) |
 
-Update this plan when Milestone 6 tasks are completed or when new work is pulled from §14 into a new milestone.
+**Milestone 6 is complete.** Publication layout, versioning, benchmark/feature reports, release workflow, and grammar refresh process are documented and configured. To publish to Maven Central, add OSSRH and signing configuration and uncomment the publish step in `.github/workflows/release.yml`.

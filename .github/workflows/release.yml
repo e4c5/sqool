@@ -1,0 +1,73 @@
+# Release workflow: runs full check and publish when a version tag is pushed.
+# Requires repository secrets for Maven publish (e.g. OSSRH credentials, signing).
+# See docs/release-readiness.md for the release process.
+
+name: Release
+
+on:
+  push:
+    tags:
+      - 'v*'
+
+permissions:
+  contents: write  # for publishing and creating GitHub release assets (optional)
+
+jobs:
+  release-check:
+    name: Full check before release
+    runs-on: ubuntu-latest
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+
+      - name: Run full check
+        run: ./gradlew check --no-daemon
+
+      - name: Run benchmarks (smoke)
+        run: >
+          ./gradlew :sqool-bench:jmh --no-daemon
+          -Pjmh.rf=json
+          -Pjmh.rff=build/reports/jmh/results.json
+
+      - name: Upload benchmark results for release
+        uses: actions/upload-artifact@v4
+        with:
+          name: jmh-results-${{ github.ref_name }}
+          path: sqool-bench/build/reports/jmh/results.json
+          retention-days: 365
+        continue-on-error: true
+
+  publish:
+    name: Publish to Maven
+    needs: release-check
+    runs-on: ubuntu-latest
+    if: startsWith(github.ref, 'refs/tags/v')
+    steps:
+      - name: Check out repository
+        uses: actions/checkout@v4
+
+      - name: Set up Java 25
+        uses: actions/setup-java@v4
+        with:
+          distribution: temurin
+          java-version: "25"
+          cache: gradle
+          server-id: central
+          server-username: MAVEN_CENTRAL_USERNAME
+          server-password: MAVEN_CENTRAL_PASSWORD
+
+      # Uncomment and configure when OSSRH and signing are set up:
+      # - name: Publish to Maven Central
+      #   run: ./gradlew publish
+      #   env:
+      #     MAVEN_CENTRAL_USERNAME: ${{ secrets.OSSRH_USERNAME }}
+      #     MAVEN_CENTRAL_PASSWORD: ${{ secrets.OSSRH_TOKEN }}
+      #     SIGNING_KEY: ${{ secrets.GPG_SIGNING_KEY }}
+      #     SIGNING_PASSWORD: ${{ secrets.GPG_SIGNING_PASSWORD }}
