@@ -270,9 +270,13 @@ project(":sqool-conformance") {
     tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
         dependsOn(tasks.named("test"))
         val mysqlDialect = project(":sqool-dialect-mysql")
-        val javaExt = mysqlDialect.extensions.getByType<JavaPluginExtension>()
-        sourceDirectories.from(javaExt.sourceSets.getByName("main").allSource.srcDirs)
-        classDirectories.from(javaExt.sourceSets.getByName("main").output)
+        val mysqlJavaExt = mysqlDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(mysqlJavaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(mysqlJavaExt.sourceSets.getByName("main").output)
+        val postgresqlDialect = project(":sqool-dialect-postgresql")
+        val postgresqlJavaExt = postgresqlDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(postgresqlJavaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(postgresqlJavaExt.sourceSets.getByName("main").output)
     }
 }
 

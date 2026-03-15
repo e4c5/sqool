@@ -272,7 +272,7 @@ QUOTED_IDENTIFIER
 // -------------------------------------------------------------------------
 
 BLOCK_COMMENT
-    : '/*' .*? '*/' -> skip
+    : '/*' (BLOCK_COMMENT | .)*? '*/' -> skip
     ;
 
 LINE_COMMENT

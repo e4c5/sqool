@@ -77,7 +77,7 @@ final class PostgresqlAstMapper {
 
   private static ParseResult mapSelectStatement(
       PostgreSQLParser.SelectStatementContext ctx, ParseOptions options) {
-    if (hasUnsupportedSelectShape(ctx)) {
+    if (hasUnsupportedSelectShape(ctx) || ctx.offsetClause() != null || ctx.fetchClause() != null) {
       return rawStatement(ctx, PostgresqlStatementKind.SELECT, options);
     }
 
@@ -261,6 +261,9 @@ final class PostgresqlAstMapper {
     }
     List<OrderByItem> items = new ArrayList<>();
     for (PostgreSQLParser.OrderByItemContext item : ctx.orderByItem()) {
+      if (item.NULLS() != null) {
+        return new MappingResult<>(false, List.of());
+      }
       Expression expr = mapExpr(item.expr(), options);
       if (expr == null) {
         return new MappingResult<>(false, List.of());
@@ -336,9 +339,8 @@ final class PostgresqlAstMapper {
     if (ctx instanceof PostgreSQLParser.IsNullExprContext isNullCtx) {
       return mapIsNullExpr(isNullCtx, options);
     }
-    // For any other expression shape, return a raw literal with the full text as fallback.
-    // This lets simple expressions work correctly while complex ones fall through.
-    return new LiteralExpression(textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+    // For any other expression shape, signal unsupported so caller can fall back to raw.
+    return null;
   }
 
   private static Expression mapUnaryExpr(
@@ -402,8 +404,12 @@ final class PostgresqlAstMapper {
     if (operand == null) {
       return null;
     }
-    // IS NULL → use literal text as fallback expression
-    return new LiteralExpression(textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options));
+    BinaryOperator op = ctx.NOT() != null ? BinaryOperator.IS_NOT : BinaryOperator.IS;
+    return new BinaryExpression(
+        operand,
+        op,
+        new LiteralExpression("NULL", null),
+        SourceSpans.fromTokens(ctx.start, ctx.stop, options));
   }
 
   private static Expression mapBinaryExpr(

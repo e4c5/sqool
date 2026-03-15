@@ -32,7 +32,7 @@ package io.github.e4c5.sqool.grammar.postgresql.generated;
 
 /** Script entry point: one or more statements separated by semicolons. */
 root
-    : (statement SEMI?)* EOF
+    : statement (SEMI statement)* SEMI? EOF
     ;
 
 /** Single-statement entry point. */
@@ -433,8 +433,8 @@ expr
     | expr OR expr                                                                       # orExpr
     | CAST_KW LPAREN expr AS typeName RPAREN                                             # sqlCastExpr
     | EXISTS LPAREN selectStatement RPAREN                                               # existsExpr
-    | CASE_KW caseCondition* ELSE expr? END_KW                                          # searchedCaseExpr
-    | CASE_KW expr caseCondition* ELSE expr? END_KW                                     # simpleCaseExpr
+    | CASE_KW caseCondition* (ELSE expr)? END_KW                                        # searchedCaseExpr
+    | CASE_KW expr caseCondition* (ELSE expr)? END_KW                                   # simpleCaseExpr
     | functionCall                                                                       # funcCallExpr
     | LPAREN selectStatement RPAREN                                                      # scalarSubquery
     | ARRAY LBRACKET (expr (COMMA expr)*)? RBRACKET                                     # arrayExpr
