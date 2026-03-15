@@ -652,7 +652,7 @@ Each dialect requires three modules:
 
 ## 19. Recommended Immediate Next Step
 
-Milestones 0–5 are complete. The library is ready for release or next-phase work. Potential next steps:
+Milestones 0–5 are complete. The library is ready for release or next-phase work. For a consolidated list of follow-ups and optional work (M2/M0 items, M5 normalization follow-ups), see [Post-M5 Roadmap](post-m5-roadmap.md). Potential next steps:
 
 1. **Expand normalized AST coverage** — normalize INSERT/UPDATE/DELETE for PostgreSQL and Oracle to reduce raw statement fallbacks.
 2. **Expand SQLite expression mapper** — extend the v1 expression mapper to handle binary comparisons in WHERE and JOIN conditions, enabling more SELECT queries to produce `SelectStatement` instead of `SqliteRawStatement`.

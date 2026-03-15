@@ -27,7 +27,7 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
   - Parser in `sqool-dialect-oracle` with SLL/LL fallback pattern and `ParseMetrics`. Normalized AST: SELECT (single-table and JOIN queries); all other statements fall back to `OracleRawStatement`. Conformance suite in `sqool-conformance` and JMH benchmark in `sqool-bench`.
   - See [Oracle Risk and Scope](docs/oracle-risk-and-scope.md) for scope limitations and risk mitigation details.
 
-See [Dialect Coverage Matrix](docs/dialect-coverage.md) for a full breakdown of supported constructs and normalization level per dialect.
+See [Dialect Coverage Matrix](docs/dialect-coverage.md) for a full breakdown of supported constructs and normalization level per dialect. **Usage examples** (parsing each dialect, script mode, inspecting `ParseSuccess`/`ParseFailure`) are in the [Dialect Coverage Matrix – Usage examples](docs/dialect-coverage.md#usage-examples) section.
 
 ## Common commands
 
@@ -53,3 +53,9 @@ See [Benchmarks](docs/benchmarks.md) for how to run and capture baseline results
 - [Oracle Risk and Scope](docs/oracle-risk-and-scope.md)
 - [Milestone 5 Cross-Dialect Backlog](docs/milestone-5-cross-dialect-backlog.md)
 - [Milestone 5 Review Checklist](docs/milestone-5-review-checklist.md)
+- [Post-M5 Roadmap and Follow-ups](docs/post-m5-roadmap.md)
+- [Next Milestone Checklist](docs/next-milestone-checklist.md)
+- [Parser Abstractions (design note)](docs/parser-abstractions.md)
+- [Release Readiness](docs/release-readiness.md)
+- [Milestone 6: Remaining Implementation Plan](docs/milestone-6-remaining-implementation-plan.md)
+- [Upstream Grammar Refresh Process](docs/upstream-grammar-refresh.md)
