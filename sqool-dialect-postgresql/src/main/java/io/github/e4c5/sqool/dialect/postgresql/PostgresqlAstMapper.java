@@ -377,14 +377,17 @@ final class PostgresqlAstMapper {
     return Optional.of(rows);
   }
 
-  /** Returns the SELECT statement for INSERT...SELECT, or null if not parseable or not normalized. */
+  /**
+   * Returns the SELECT statement for INSERT...SELECT, or null if not parseable or not normalized.
+   */
   private static Statement mapInsertSelect(
       PostgreSQLParser.InsertSelectContext selectCtx, ParseOptions options) {
     ParseResult selectResult = mapSelectStatement(selectCtx.selectStatement(), options);
     if (!(selectResult instanceof ParseSuccess success)) {
       return null;
     }
-    // Unsupported SELECT shapes are returned as PostgresqlRawStatement; require actual SelectStatement.
+    // Unsupported SELECT shapes are returned as PostgresqlRawStatement; require actual
+    // SelectStatement.
     if (!(success.root() instanceof SelectStatement selectStmt)) {
       return null;
     }

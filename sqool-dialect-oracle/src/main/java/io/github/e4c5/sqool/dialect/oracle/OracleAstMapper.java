@@ -364,14 +364,20 @@ final class OracleAstMapper {
     return Optional.of(rows);
   }
 
-  /** Returns the SELECT statement for INSERT...SELECT, or null if not parseable. */
+  /**
+   * Returns the SELECT statement for INSERT...SELECT, or null if not parseable or not normalized.
+   */
   private static Statement mapInsertSelect(
       OracleParser.InsertSelectContext selectCtx, ParseOptions options) {
     ParseResult selectResult = mapSelectStatement(selectCtx.selectStatement(), options);
     if (!(selectResult instanceof ParseSuccess success)) {
       return null;
     }
-    return (Statement) success.root();
+    // Unsupported SELECT shapes are returned as OracleRawStatement; require actual SelectStatement.
+    if (!(success.root() instanceof SelectStatement selectStmt)) {
+      return null;
+    }
+    return selectStmt;
   }
 
   private static ParseResult mapUpdateStatement(
