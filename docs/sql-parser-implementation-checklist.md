@@ -114,14 +114,14 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 8. PostgreSQL implementation
 
-- [ ] Import the PostgreSQL grammar as an internal fork
-- [ ] Identify and fix grammar quality and ambiguity issues
-- [ ] Validate Java-target generation stability
-- [ ] Implement PostgreSQL parser integration
-- [ ] Map the initial PostgreSQL subset into the normalized AST
-- [ ] Add PostgreSQL conformance and regression tests
-- [ ] Add PostgreSQL benchmarks against JSqlParser
-- [ ] Optimize ambiguity-heavy rules as needed
+- [x] Import the PostgreSQL grammar as an internal fork
+- [x] Identify and fix grammar quality and ambiguity issues
+- [x] Validate Java-target generation stability
+- [x] Implement PostgreSQL parser integration
+- [x] Map the initial PostgreSQL subset into the normalized AST
+- [x] Add PostgreSQL conformance and regression tests
+- [x] Add PostgreSQL benchmarks against JSqlParser
+- [x] Optimize ambiguity-heavy rules as needed
 
 ### Exit criteria
 
