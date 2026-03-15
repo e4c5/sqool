@@ -216,8 +216,26 @@ project(":sqool-grammar-postgresql") {
 }
 
 project(":sqool-grammar-oracle") {
+    apply(plugin = "antlr")
+
     dependencies {
+        "antlr"(libsCatalog.findLibrary("antlr-tool").get())
         "api"(libsCatalog.findLibrary("antlr-runtime").get())
+    }
+
+    tasks.withType<AntlrTask>().configureEach {
+        arguments = arguments + listOf(
+            "-visitor",
+            "-long-messages",
+        )
+    }
+
+    tasks.named<Checkstyle>("checkstyleMain") {
+        source = files().asFileTree
+    }
+
+    tasks.named<Javadoc>("javadoc") {
+        source = files().asFileTree
     }
 }
 
@@ -266,6 +284,7 @@ project(":sqool-conformance") {
         "testImplementation"(project(":sqool-dialect-mysql"))
         "testImplementation"(project(":sqool-dialect-postgresql"))
         "testImplementation"(project(":sqool-dialect-sqlite"))
+        "testImplementation"(project(":sqool-dialect-oracle"))
     }
 
     tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
@@ -282,6 +301,10 @@ project(":sqool-conformance") {
         val sqliteJavaExt = sqliteDialect.extensions.getByType<JavaPluginExtension>()
         sourceDirectories.from(sqliteJavaExt.sourceSets.getByName("main").allSource.srcDirs)
         classDirectories.from(sqliteJavaExt.sourceSets.getByName("main").output)
+        val oracleDialect = project(":sqool-dialect-oracle")
+        val oracleJavaExt = oracleDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(oracleJavaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(oracleJavaExt.sourceSets.getByName("main").output)
     }
 }
 
@@ -301,6 +324,7 @@ project(":sqool-bench") {
         "implementation"(project(":sqool-dialect-mysql"))
         "implementation"(project(":sqool-dialect-postgresql"))
         "implementation"(project(":sqool-dialect-sqlite"))
+        "implementation"(project(":sqool-dialect-oracle"))
         "implementation"(libsCatalog.findLibrary("jsqlparser").get())
     }
 

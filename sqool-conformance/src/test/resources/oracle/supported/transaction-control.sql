@@ -1,0 +1,7 @@
+-- Transaction control
+COMMIT;
+ROLLBACK;
+SAVEPOINT my_save;
+ROLLBACK TO SAVEPOINT my_save;
+COMMIT WORK;
+ROLLBACK WORK;
