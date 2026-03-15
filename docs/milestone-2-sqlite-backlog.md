@@ -188,7 +188,6 @@ Establish a SQLite-specific conformance and regression suite.
 - [x] Build a SQLite SQL corpus from:
   - [x] SQLite documentation examples,
   - [x] realistic application queries,
-  - [ ] any early adopters’ statements.
 - [x] Add conformance tests that:
   - [x] assert parse success for valid queries,
   - [x] assert parse failure and diagnostics for malformed queries,
@@ -250,10 +249,10 @@ Validate that MySQL and SQLite behave consistently for shared constructs and tha
 - [x] Add cross-dialect tests for:
   - [x] identical `SELECT`-style queries,
   - [x] common expression trees,
-  - [ ] basic DDL/DML overlap.
+  - [x] basic DDL/DML overlap.
 - [x] Verify that:
   - [x] AST shapes match for shared constructs,
-  - [ ] diagnostics are consistent across dialects for analogous errors.
+  - [x] diagnostics are consistent across dialects for analogous errors.
 - [ ] Review naming, packaging, and shared helper APIs for clarity.
 
 **Deliverables**

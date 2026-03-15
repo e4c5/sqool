@@ -30,6 +30,17 @@ public class PostgresqlParserBenchmark {
           + " ORDER BY o.created_at DESC"
           + " LIMIT 10 OFFSET 5";
 
+  // Complex query: multiple joins, subquery, aggregates, GROUP BY, HAVING.
+  private final String complexQuery =
+      "SELECT u.id, u.name, COUNT(o.id) AS order_count, SUM(o.total) AS total_spent"
+          + " FROM users u"
+          + " LEFT JOIN orders o ON u.id = o.user_id"
+          + " WHERE u.created_at >= (SELECT MIN(created_at) FROM users)"
+          + " GROUP BY u.id, u.name"
+          + " HAVING COUNT(o.id) > 0"
+          + " ORDER BY total_spent DESC"
+          + " LIMIT 20 OFFSET 0";
+
   // Simple SELECT-literal query that should always take the SLL fast path.
   private final String simpleQuery = "SELECT id, name, email FROM users WHERE id = 1";
 
@@ -54,6 +65,16 @@ public class PostgresqlParserBenchmark {
   @Benchmark
   public Object parseSimpleQueryWithJSqlParser() throws Exception {
     return CCJSqlParserUtil.parse(simpleQuery);
+  }
+
+  @Benchmark
+  public ParseResult parseComplexQueryWithSqool() {
+    return parser.parse(complexQuery, options);
+  }
+
+  @Benchmark
+  public Object parseComplexQueryWithJSqlParser() throws Exception {
+    return CCJSqlParserUtil.parse(complexQuery);
   }
 
   @Benchmark

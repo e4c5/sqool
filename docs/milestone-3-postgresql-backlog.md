@@ -242,8 +242,8 @@ Add PostgreSQL benchmarks and capture initial performance characteristics.
   - [x] throughput,
   - [x] latency,
   - [ ] allocation and GC behavior (where practical).
-- [ ] Record baseline PostgreSQL metrics in a reproducible form.
-- [ ] Compare PostgreSQL performance to MySQL and SQLite to identify any obvious regressions from grammar complexity.
+- [x] Record baseline PostgreSQL metrics in a reproducible form.
+- [x] Compare PostgreSQL performance to MySQL and SQLite to identify any obvious regressions from grammar complexity.
 
 **Deliverables**
 

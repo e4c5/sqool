@@ -152,7 +152,7 @@ Reference documents:
 - [x] A PostgreSQL benchmark corpus is defined for:
   - [x] small,
   - [x] medium,
-  - [ ] large/complex,
+  - [x] large/complex,
   - [x] error-path statements.
 - [x] JMH benchmarks in `sqool-bench` exercise PostgreSQL parsing using:
   - [x] the `sqool` PostgreSQL dialect,
@@ -161,10 +161,10 @@ Reference documents:
   - [x] throughput,
   - [x] latency,
   - [ ] allocation/GC behavior (where practical).
-- [ ] Baseline PostgreSQL metrics are recorded in a way that allows comparison with:
-  - [ ] MySQL,
-  - [ ] SQLite,
-  - [ ] future PostgreSQL optimizations.
+- [x] Baseline PostgreSQL metrics are recorded in a way that allows comparison with:
+  - [x] MySQL,
+  - [x] SQLite,
+  - [x] future PostgreSQL optimizations.
 
 ### Evidence to review
 
@@ -202,9 +202,9 @@ Reference documents:
   - [x] explains how to run PostgreSQL tests,
   - [x] explains how to run PostgreSQL benchmarks.
 - [x] Known PostgreSQL limitations and unsupported features are easy to find.
-- [ ] Contributor guidance explains:
-  - [ ] how to extend PostgreSQL grammar or mapping,
-  - [ ] how to add tests and benchmarks for new features.
+- [x] Contributor guidance explains:
+  - [x] how to extend PostgreSQL grammar or mapping,
+  - [x] how to add tests and benchmarks for new features.
 
 ### Evidence to review
 
