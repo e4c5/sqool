@@ -196,7 +196,28 @@ final class SqliteAstMapper {
     }
 
     List<SQLiteParser.Join_operatorContext> operators = context.join_operator();
-    List<SQLiteParser.Join_constraintContext> constraints = context.join_constraint();
+
+    // Build a per-join constraint list by walking the parse tree children so that
+    // optional constraints are correctly matched to their join operator even in mixed
+    // chains (some joins constrained, some not).
+    // join_clause: table_or_subquery (join_operator table_or_subquery join_constraint?)*
+    List<SQLiteParser.Join_constraintContext> constraintPerJoin = new ArrayList<>();
+    int childPos = 1; // skip the leading table_or_subquery
+    int treeChildCount = context.getChildCount();
+    while (childPos < treeChildCount) {
+      if (context.getChild(childPos) instanceof SQLiteParser.Join_operatorContext) {
+        childPos += 2; // skip join_operator and the following table_or_subquery
+        if (childPos < treeChildCount
+            && context.getChild(childPos) instanceof SQLiteParser.Join_constraintContext jcc) {
+          constraintPerJoin.add(jcc);
+          childPos++;
+        } else {
+          constraintPerJoin.add(null);
+        }
+      } else {
+        childPos++;
+      }
+    }
 
     for (int i = 0; i < operators.size(); i++) {
       JoinType joinType = mapJoinOperator(operators.get(i));
@@ -214,8 +235,9 @@ final class SqliteAstMapper {
       List<String> usingColumns = List.of();
       boolean natural = operators.get(i).NATURAL_() != null;
 
-      if (i < constraints.size()) {
-        SQLiteParser.Join_constraintContext constraint = constraints.get(i);
+      SQLiteParser.Join_constraintContext constraint =
+          i < constraintPerJoin.size() ? constraintPerJoin.get(i) : null;
+      if (constraint != null) {
         if (constraint.ON_() != null) {
           condition = mapExpr(constraint.expr(), options);
           if (condition == null) {
@@ -374,7 +396,12 @@ final class SqliteAstMapper {
     // In SQLite grammar, expr_binary has a list of expr_comparison and some operators between them.
     // We need to fold them.
     int childCount = context.getChildCount();
-    int compIndex = 1;
+    // Only simple (op expr_comparison)* chains are supported; postfix/complex forms
+    // like ISNULL, NOTNULL, BETWEEN, IN, etc. fall back to null.
+    int comparisons = context.expr_comparison().size();
+    if (childCount != 2 * comparisons - 1) {
+      return null;
+    }
     for (int i = 1; i < childCount; i++) {
       var child = context.getChild(i);
       if (child instanceof SQLiteParser.Expr_comparisonContext nextCompCtx) {
@@ -389,7 +416,6 @@ final class SqliteAstMapper {
         current =
             new io.github.e4c5.sqool.ast.BinaryExpression(
                 current, op, rhs, SourceSpans.fromTokens(context.start, nextCompCtx.stop, options));
-        compIndex++;
       }
     }
 
@@ -463,7 +489,17 @@ final class SqliteAstMapper {
   private static Expression mapUnary(SQLiteParser.Expr_unaryContext context, ParseOptions options) {
     if (context == null || context.expr_base() == null) return null;
     Expression base = mapBase(context.expr_base(), options);
-    // Ignore unary PLUS/MINUS/TILDE for now
+    if (base == null) return null;
+    // TILDE is bitwise complement — not in the supported AST subset.
+    if (!context.TILDE().isEmpty()) return null;
+    // PLUS is a no-op; an odd number of MINUS operators negates the expression.
+    int minusCount = context.MINUS().size();
+    if (minusCount % 2 == 1) {
+      return new io.github.e4c5.sqool.ast.UnaryExpression(
+          io.github.e4c5.sqool.ast.UnaryOperator.MINUS,
+          base,
+          SourceSpans.fromTokens(context.start, context.stop, options));
+    }
     return base;
   }
 
@@ -481,10 +517,11 @@ final class SqliteAstMapper {
           SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.table_name() != null && context.DOT() != null && context.column_name() != null) {
-      String table = context.table_name().getText();
-      String column = context.column_name().getText();
+      String prefix = context.schema_name() != null
+          ? context.schema_name().getText() + "." : "";
+      String ref = prefix + context.table_name().getText() + "." + context.column_name().getText();
       return new io.github.e4c5.sqool.ast.IdentifierExpression(
-          table + "." + column, SourceSpans.fromTokens(context.start, context.stop, options));
+          ref, SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.OPEN_PAR() != null && context.select_stmt() != null) {
       // Subqueries are not yet supported

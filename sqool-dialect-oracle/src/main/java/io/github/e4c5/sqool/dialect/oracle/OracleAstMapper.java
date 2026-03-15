@@ -346,6 +346,11 @@ final class OracleAstMapper {
       if (!(selectResult instanceof ParseSuccess success)) {
         return rawStatement(ctx, OracleStatementKind.INSERT, options);
       }
+      // Only build a normalized INSERT when the source mapped to a fully-normalized
+      // SelectStatement; a raw-fallback root indicates an unsupported SELECT shape.
+      if (!(success.root() instanceof SelectStatement)) {
+        return rawStatement(ctx, OracleStatementKind.INSERT, options);
+      }
       return new ParseSuccess(
           SqlDialect.ORACLE,
           new InsertStatement(

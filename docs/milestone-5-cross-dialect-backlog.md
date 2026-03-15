@@ -94,7 +94,7 @@ Expand normalized AST mapping for shared constructs across dialects where gaps e
   - [x] consumer value,
   - [x] grammar/mapper complexity,
   - [x] consistency with existing patterns.
-- [/] Implement normalized mapping for the highest-priority shared constructs in each dialect.
+- [x] Implement normalized mapping for the highest-priority shared constructs in each dialect.
 - [x] Add golden tests for the expanded coverage.
 - [x] Document the expanded v1/v2 subset per dialect.
 

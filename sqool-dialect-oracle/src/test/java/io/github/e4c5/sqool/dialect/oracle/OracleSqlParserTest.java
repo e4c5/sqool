@@ -111,9 +111,8 @@ class OracleSqlParserTest {
             "INSERT INTO employees (name) VALUES ('Alice')",
             ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    OracleRawStatement raw = assertInstanceOf(OracleRawStatement.class, success.root());
-    assertEquals(OracleStatementKind.INSERT, raw.kind());
-    assertTrue(raw.sqlText().contains("INSERT"));
+    // INSERT is now normalized
+    assertInstanceOf(io.github.e4c5.sqool.ast.InsertStatement.class, success.root());
   }
 
   @Test
@@ -123,8 +122,8 @@ class OracleSqlParserTest {
             "UPDATE employees SET name = 'Bob' WHERE id = 1",
             ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    OracleRawStatement raw = assertInstanceOf(OracleRawStatement.class, success.root());
-    assertEquals(OracleStatementKind.UPDATE, raw.kind());
+    // UPDATE is now normalized
+    assertInstanceOf(io.github.e4c5.sqool.ast.UpdateStatement.class, success.root());
   }
 
   @Test
@@ -133,8 +132,8 @@ class OracleSqlParserTest {
         PARSER.parse(
             "DELETE FROM employees WHERE id = 1", ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    OracleRawStatement raw = assertInstanceOf(OracleRawStatement.class, success.root());
-    assertEquals(OracleStatementKind.DELETE, raw.kind());
+    // DELETE is now normalized
+    assertInstanceOf(io.github.e4c5.sqool.ast.DeleteStatement.class, success.root());
   }
 
   @Test

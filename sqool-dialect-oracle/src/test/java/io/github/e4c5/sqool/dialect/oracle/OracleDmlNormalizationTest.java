@@ -21,7 +21,7 @@ class OracleDmlNormalizationTest {
     Statement stmt = (Statement) ((ParseSuccess) result).root();
     io.github.e4c5.sqool.ast.InsertStatement insert =
         assertOf(io.github.e4c5.sqool.ast.InsertStatement.class, stmt);
-    assertEquals("T", insert.tableName().toUpperCase());
+    assertEquals("t", insert.tableName());
     assertEquals(2, insert.columns().size());
   }
 

@@ -120,9 +120,8 @@ class PostgresqlSqlParserTest {
             "INSERT INTO users (name) VALUES ('Alice')",
             ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    PostgresqlRawStatement raw = assertInstanceOf(PostgresqlRawStatement.class, success.root());
-    assertEquals(PostgresqlStatementKind.INSERT, raw.kind());
-    assertTrue(raw.sqlText().contains("INSERT"));
+    // INSERT is now normalized
+    assertInstanceOf(io.github.e4c5.sqool.ast.InsertStatement.class, success.root());
   }
 
   @Test
@@ -132,8 +131,8 @@ class PostgresqlSqlParserTest {
             "UPDATE users SET name = 'Bob' WHERE id = 1",
             ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    PostgresqlRawStatement raw = assertInstanceOf(PostgresqlRawStatement.class, success.root());
-    assertEquals(PostgresqlStatementKind.UPDATE, raw.kind());
+    // UPDATE is now normalized
+    assertInstanceOf(io.github.e4c5.sqool.ast.UpdateStatement.class, success.root());
   }
 
   @Test
@@ -142,8 +141,8 @@ class PostgresqlSqlParserTest {
         PARSER.parse(
             "DELETE FROM users WHERE id = 1", ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    PostgresqlRawStatement raw = assertInstanceOf(PostgresqlRawStatement.class, success.root());
-    assertEquals(PostgresqlStatementKind.DELETE, raw.kind());
+    // DELETE is now normalized
+    assertInstanceOf(io.github.e4c5.sqool.ast.DeleteStatement.class, success.root());
   }
 
   @Test

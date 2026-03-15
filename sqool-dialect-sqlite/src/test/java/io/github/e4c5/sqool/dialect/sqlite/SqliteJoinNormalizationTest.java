@@ -2,10 +2,10 @@ package io.github.e4c5.sqool.dialect.sqlite;
 
 import static org.junit.jupiter.api.Assertions.assertInstanceOf;
 import static org.junit.jupiter.api.Assertions.assertNotNull;
+import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.SelectStatement;
-import io.github.e4c5.sqool.ast.SqliteRawStatement;
 import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
@@ -25,18 +25,19 @@ class SqliteJoinNormalizationTest {
     Statement stmt = (Statement) ((ParseSuccess) result).root();
 
     SelectStatement select = assertOf(SelectStatement.class, stmt);
-    JoinTableReference join = assertOf(JoinTableReference.class, select.from());
+    assertOf(JoinTableReference.class, select.from());
   }
 
   @Test
-  void naturalJoinFallsBackToRaw() {
+  void naturalJoinIsNormalized() {
     String sql = "SELECT * FROM t1 NATURAL JOIN t2";
     ParseResult result = PARSER.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
     assertInstanceOf(ParseSuccess.class, result);
     Statement stmt = (Statement) ((ParseSuccess) result).root();
 
-    // NATURAL JOIN is not yet normalized per backlog
-    assertInstanceOf(SqliteRawStatement.class, stmt);
+    SelectStatement select = assertOf(SelectStatement.class, stmt);
+    JoinTableReference join = assertOf(JoinTableReference.class, select.from());
+    assertTrue(join.natural(), "NATURAL JOIN flag should be set");
   }
 
   private <T> T assertOf(Class<T> type, Object obj) {

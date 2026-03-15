@@ -360,6 +360,11 @@ final class PostgresqlAstMapper {
       if (!(selectResult instanceof ParseSuccess success)) {
         return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
       }
+      // Only build a normalized INSERT when the source mapped to a fully-normalized
+      // SelectStatement; a raw-fallback root indicates an unsupported SELECT shape.
+      if (!(success.root() instanceof SelectStatement)) {
+        return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
+      }
       return new ParseSuccess(
           SqlDialect.POSTGRESQL,
           new InsertStatement(
