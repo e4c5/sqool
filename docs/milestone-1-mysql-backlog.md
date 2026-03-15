@@ -122,16 +122,16 @@ Map a well-defined subset of MySQL constructs into the normalized AST model.
 
 **Tasks**
 
-- [ ] Define the initial MySQL v1 subset (e.g.:
-  - [ ] basic DDL: `CREATE TABLE`, `DROP TABLE`,
-  - [ ] core DML: `INSERT`, `UPDATE`, `DELETE`,
-  - [ ] `SELECT` with joins, predicates, and ordering,
-  - [ ] simple expressions, literals, identifiers).
-- [ ] Implement visitors or mappers from MySQL parser contexts to AST nodes.
-- [ ] Implement dialect extension nodes for MySQL-specific syntax that cannot cleanly fit into the shared AST.
-- [ ] Ensure AST nodes are immutable, compact, and do not retain ANTLR contexts.
-- [ ] Attach source spans when enabled by `ParseOptions`.
-- [ ] Add or update AST golden tests covering MySQL constructs.
+- [x] Define the initial MySQL v1 subset (e.g.:
+  - [x] basic DDL: `CREATE TABLE`, `DROP TABLE`,
+  - [x] core DML: `INSERT`, `UPDATE`, `DELETE`,
+  - [x] `SELECT` with joins, predicates, and ordering,
+  - [x] simple expressions, literals, identifiers).
+- [x] Implement visitors or mappers from MySQL parser contexts to AST nodes.
+- [x] Implement dialect extension nodes for MySQL-specific syntax that cannot cleanly fit into the shared AST.
+- [x] Ensure AST nodes are immutable, compact, and do not retain ANTLR contexts.
+- [x] Attach source spans when enabled by `ParseOptions`.
+- [x] Add or update AST golden tests covering MySQL constructs.
 
 **Deliverables**
 
@@ -155,16 +155,16 @@ Establish a reproducible conformance and regression test suite for MySQL.
 
 **Tasks**
 
-- [ ] Build a MySQL-focused SQL corpus based on:
-  - [ ] vendor documentation examples,
-  - [ ] representative application queries,
+- [x] Build a MySQL-focused SQL corpus based on:
+  - [x] vendor documentation examples,
+  - [x] representative application queries,
   - [ ] any early consumer feedback.
-- [ ] Add conformance tests that:
-  - [ ] validate parse success for valid queries,
-  - [ ] validate parse failure and diagnostics for malformed queries,
-  - [ ] verify AST shapes via golden tests.
-- [ ] Add regression tests for any bugs found during Milestone 1.
-- [ ] Organize corpus and test assets under `sqool-conformance`.
+- [x] Add conformance tests that:
+  - [x] validate parse success for valid queries,
+  - [x] validate parse failure and diagnostics for malformed queries,
+  - [x] verify AST shapes via golden tests.
+- [x] Add regression tests for any bugs found during Milestone 1.
+- [x] Organize corpus and test assets under `sqool-conformance`.
 
 **Deliverables**
 
@@ -188,13 +188,13 @@ Establish meaningful MySQL performance measurements against JSqlParser.
 
 **Tasks**
 
-- [ ] Define a MySQL benchmark corpus (small, medium, large, and error-path statements).
-- [ ] Implement JMH benchmarks in `sqool-bench` that:
-  - [ ] parse the corpus with `sqool`,
-  - [ ] parse the same corpus with JSqlParser where applicable,
-  - [ ] record throughput, latency, and allocation metrics.
-- [ ] Capture baseline measurements on a reference machine / CI configuration.
-- [ ] Document how to run and interpret MySQL benchmarks.
+- [x] Define a MySQL benchmark corpus (small, medium, large, and error-path statements).
+- [x] Implement JMH benchmarks in `sqool-bench` that:
+  - [x] parse the corpus with `sqool`,
+  - [x] parse the same corpus with JSqlParser where applicable,
+  - [x] record throughput, latency, and allocation metrics.
+- [x] Capture baseline measurements on a reference machine / CI configuration.
+- [x] Document how to run and interpret MySQL benchmarks.
 
 **Deliverables**
 
@@ -218,12 +218,12 @@ Document MySQL support and make it easy for contributors and early adopters to u
 
 **Tasks**
 
-- [ ] Update `README.md` to describe:
-  - [ ] the current scope of MySQL support,
-  - [ ] how to run MySQL-specific tests and benchmarks.
+- [x] Update `README.md` to describe:
+  - [x] the current scope of MySQL support,
+  - [x] how to run MySQL-specific tests and benchmarks.
 - [ ] Add short usage examples for parsing MySQL SQL via the public API.
-- [ ] Document known limitations, unsupported syntax, and performance caveats.
-- [ ] Ensure contributor guidelines reference MySQL-specific conventions where necessary.
+- [x] Document known limitations, unsupported syntax, and performance caveats.
+- [x] Ensure contributor guidelines reference MySQL-specific conventions where necessary.
 
 **Deliverables**
 
