@@ -459,8 +459,7 @@ final class SqliteAstMapper {
       SQLiteParser.Expr_bitwiseContext context, ParseOptions options) {
     if (context == null || context.expr_addition().isEmpty()) return null;
     Expression current = mapAddition(context.expr_addition(0), options);
-    // Folding similar to above... but for simplicity of this task, I'll only do comparison for now
-    // as it's the blocking issue for JOIN ON.
+    // Multi-term bitwise (e.g. a | b, a + b) not yet normalized; fall back to raw.
     if (context.expr_addition().size() > 1) return null;
     return current;
   }
