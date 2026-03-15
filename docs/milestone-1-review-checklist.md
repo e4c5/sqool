@@ -35,14 +35,14 @@ Reference documents:
 
 ## 1. MySQL grammar vendoring and ANTLR integration
 
-- [ ] The MySQL grammar is vendored into `sqool-grammar-mysql` with clear provenance.
-- [ ] `UPSTREAM.md` or equivalent documentation records:
-  - [ ] upstream source repo and path,
-  - [ ] commit hash,
-  - [ ] local patches and rationale.
-- [ ] ANTLR generation for MySQL runs as part of the normal Gradle build.
-- [ ] Generated sources are not hand-edited and compile cleanly.
-- [ ] The grammar layout is compatible with formatting and static analysis rules.
+- [x] The MySQL grammar is vendored into `sqool-grammar-mysql` with clear provenance.
+- [x] `UPSTREAM.md` or equivalent documentation records:
+  - [x] upstream source repo and path,
+  - [x] commit hash,
+  - [x] local patches and rationale.
+- [x] ANTLR generation for MySQL runs as part of the normal Gradle build.
+- [x] Generated sources are not hand-edited and compile cleanly.
+- [x] The grammar layout is compatible with formatting and static analysis rules.
 
 ### Evidence to review
 
@@ -58,16 +58,16 @@ Reference documents:
 
 ## 2. MySQL parser pipeline (SLL-first, LL-fallback)
 
-- [ ] The MySQL parser implementation lives in `sqool-dialect-mysql`.
-- [ ] Lexer and token stream setup is clearly encapsulated and reusable.
-- [ ] The SLL-fast path is configured with:
-  - [ ] parse tree creation disabled,
-  - [ ] a bail-fast error strategy.
-- [ ] The LL-fallback path is configured with:
-  - [ ] structured diagnostic collection,
-  - [ ] richer error messages.
-- [ ] Single-statement and script entry points are clearly separated where relevant.
-- [ ] Parser metrics (e.g., prediction mode, timing) are wired into `ParseMetrics`.
+- [x] The MySQL parser implementation lives in `sqool-dialect-mysql`.
+- [x] Lexer and token stream setup is clearly encapsulated and reusable.
+- [x] The SLL-fast path is configured with:
+  - [x] parse tree creation disabled,
+  - [x] a bail-fast error strategy.
+- [x] The LL-fallback path is configured with:
+  - [x] structured diagnostic collection,
+  - [x] richer error messages.
+- [x] Single-statement and script entry points are clearly separated where relevant.
+- [x] Parser metrics (e.g., prediction mode, timing) are wired into `ParseMetrics`.
 
 ### Evidence to review
 
@@ -82,19 +82,19 @@ Reference documents:
 
 ## 3. MySQL AST mapping and dialect extensions
 
-- [ ] The initial MySQL v1 subset is defined and documented.
-- [ ] AST mappings cover:
-  - [ ] basic DDL (`CREATE TABLE`, `DROP TABLE`),
-  - [ ] core DML (`INSERT`, `UPDATE`, `DELETE`),
-  - [ ] `SELECT` with joins, predicates, ordering,
-  - [ ] common expressions, literals, identifiers.
-- [ ] AST nodes:
-  - [ ] are immutable (e.g., records),
-  - [ ] store only semantically relevant fields,
-  - [ ] do not retain ANTLR contexts,
-  - [ ] optionally carry source spans.
-- [ ] MySQL-specific constructs use explicit dialect extension nodes instead of string payloads.
-- [ ] AST golden tests exist for representative MySQL statements.
+- [x] The initial MySQL v1 subset is defined and documented.
+- [x] AST mappings cover:
+  - [x] basic DDL (`CREATE TABLE`, `DROP TABLE`),
+  - [x] core DML (`INSERT`, `UPDATE`, `DELETE`),
+  - [x] `SELECT` with joins, predicates, ordering,
+  - [x] common expressions, literals, identifiers.
+- [x] AST nodes:
+  - [x] are immutable (e.g., records),
+  - [x] store only semantically relevant fields,
+  - [x] do not retain ANTLR contexts,
+  - [x] optionally carry source spans.
+- [x] MySQL-specific constructs use explicit dialect extension nodes instead of string payloads.
+- [x] AST golden tests exist for representative MySQL statements.
 
 ### Evidence to review
 
@@ -109,15 +109,15 @@ Reference documents:
 
 ## 4. MySQL conformance and regression quality
 
-- [ ] A MySQL SQL corpus exists and is:
-  - [ ] organized, versioned, and reproducible,
-  - [ ] clearly sourced (vendor docs, examples, etc.).
-- [ ] Conformance tests assert:
-  - [ ] parse success for valid queries,
-  - [ ] parse failure and diagnostics for malformed queries,
-  - [ ] structural AST expectations where appropriate.
-- [ ] Regression tests are added for any MySQL bugs discovered during implementation.
-- [ ] Test naming and directory layout make it easy to add more coverage.
+- [x] A MySQL SQL corpus exists and is:
+  - [x] organized, versioned, and reproducible,
+  - [x] clearly sourced (vendor docs, examples, etc.).
+- [x] Conformance tests assert:
+  - [x] parse success for valid queries,
+  - [x] parse failure and diagnostics for malformed queries,
+  - [x] structural AST expectations where appropriate.
+- [x] Regression tests are added for any MySQL bugs discovered during implementation.
+- [x] Test naming and directory layout make it easy to add more coverage.
 
 ### Evidence to review
 
@@ -131,20 +131,20 @@ Reference documents:
 
 ## 5. MySQL performance and benchmarks
 
-- [ ] A MySQL benchmark corpus is defined with:
-  - [ ] small statements,
-  - [ ] medium statements,
-  - [ ] large / complex statements,
-  - [ ] error-path statements.
-- [ ] JMH benchmarks in `sqool-bench` exercise the MySQL corpus using:
-  - [ ] `sqool`,
-  - [ ] JSqlParser (where applicable).
-- [ ] Benchmarks report:
-  - [ ] throughput (operations per second),
-  - [ ] latency,
-  - [ ] allocation and GC behavior (where available).
-- [ ] Baseline numbers are captured in a way that can be compared over time.
-- [ ] Running MySQL benchmarks is documented for contributors.
+- [x] A MySQL benchmark corpus is defined with:
+  - [x] small statements,
+  - [x] medium statements,
+  - [x] large / complex statements,
+  - [x] error-path statements.
+- [x] JMH benchmarks in `sqool-bench` exercise the MySQL corpus using:
+  - [x] `sqool`,
+  - [x] JSqlParser (where applicable).
+- [x] Benchmarks report:
+  - [x] throughput (operations per second),
+  - [x] latency,
+  - [x] allocation and GC behavior (where available).
+- [x] Baseline numbers are captured in a way that can be compared over time.
+- [x] Running MySQL benchmarks is documented for contributors.
 
 ### Evidence to review
 
@@ -159,13 +159,13 @@ Reference documents:
 
 ## 6. Public API behavior and diagnostics for MySQL
 
-- [ ] The public API (`SqlParser`, `ParseOptions`, `ParseResult`, diagnostics model) works end to end for MySQL.
-- [ ] No ANTLR types leak into public interfaces.
-- [ ] Diagnostics are:
-  - [ ] structured,
-  - [ ] informative (offending token, expected tokens, spans when enabled),
-  - [ ] clear about unsupported vs invalid syntax.
-- [ ] The API is narrow and predictable for calling code.
+- [x] The public API (`SqlParser`, `ParseOptions`, `ParseResult`, diagnostics model) works end to end for MySQL.
+- [x] No ANTLR types leak into public interfaces.
+- [x] Diagnostics are:
+  - [x] structured,
+  - [x] informative (offending token, expected tokens, spans when enabled),
+  - [x] clear about unsupported vs invalid syntax.
+- [x] The API is narrow and predictable for calling code.
 
 ### Evidence to review
 
@@ -179,12 +179,12 @@ Reference documents:
 
 ## 7. Documentation and onboarding
 
-- [ ] The README or related docs:
-  - [ ] describe the current MySQL feature surface,
-  - [ ] explain how to run MySQL tests,
-  - [ ] explain how to run MySQL benchmarks.
-- [ ] Known limitations and unsupported MySQL features are clearly documented.
-- [ ] Contributor expectations for touching MySQL code are clear (tests, benchmarks, formatting).
+- [x] The README or related docs:
+  - [x] describe the current MySQL feature surface,
+  - [x] explain how to run MySQL tests,
+  - [x] explain how to run MySQL benchmarks.
+- [x] Known limitations and unsupported MySQL features are clearly documented.
+- [x] Contributor expectations for touching MySQL code are clear (tests, benchmarks, formatting).
 
 ### Evidence to review
 

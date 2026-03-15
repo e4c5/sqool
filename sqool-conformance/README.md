@@ -4,6 +4,8 @@ SQL corpora, conformance tests, and regression fixtures.
 
 Current contents:
 
-- curated MySQL-supported corpus
-- curated MySQL-unsupported corpus
-- regression-style resource-backed tests that exercise the dialect parser facade
+- Curated MySQL-supported and MySQL-unsupported corpora
+- Curated PostgreSQL-supported and PostgreSQL-unsupported corpora
+- Curated SQLite-supported and SQLite-unsupported corpora
+- Cross-dialect tests (MySQL vs SQLite) for shared constructs
+- Resource-backed conformance tests that exercise each dialect parser facade
