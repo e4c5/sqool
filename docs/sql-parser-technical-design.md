@@ -596,19 +596,21 @@ Resolved:
 - implement AST mapping for the common subset
 - expand conformance corpus
 
-### Milestone 4: Oracle SQL MVP
+### Milestone 4: Oracle SQL MVP ✓
 
 - vendor Oracle grammar base
 - subset to SQL-first support
 - implement AST mapping
 - benchmark the supported subset
 
-### Milestone 5: Cross-dialect stabilization
+### Milestone 5: Cross-dialect stabilization ✓
 
-- unify diagnostics behavior
-- expand AST coverage
-- improve documentation
-- publish benchmark reports in CI
+- unified diagnostics behavior via shared `AntlrSyntaxErrorListener` across all four dialects (documented in `docs/diagnostics.md`)
+- expanded AST coverage: JOIN queries normalized to `SelectStatement + JoinTableReference` in PostgreSQL and Oracle (matching MySQL); added `JoinType.FULL` to support FULL OUTER JOIN
+- cross-dialect golden tests in `CrossDialectConformanceTest` covering all four dialects for common constructs (simple SELECT, SELECT with WHERE, SELECT with JOIN, INSERT, CREATE TABLE, diagnostic consistency)
+- dialect coverage matrix published in `docs/dialect-coverage.md`
+- benchmark reports published in CI as artifacts on `main` branch; format and comparison process documented in `docs/benchmarks.md`
+- naming and packaging reviewed; conventions documented in `CONTRIBUTING.md`
 
 ## 18. How to Implement a New Dialect
 
@@ -650,8 +652,10 @@ Each dialect requires three modules:
 
 ## 19. Recommended Immediate Next Step
 
-Milestones 0–3 are complete. The next steps are:
+Milestones 0–5 are complete. The library is ready for release or next-phase work. Potential next steps:
 
-1. **Milestone 4: Oracle SQL MVP** — vendor Oracle grammar, subset to SQL-first, implement AST mapping and benchmarks. See `milestone-4-oracle-backlog.md` and `milestone-4-review-checklist.md`.
-2. **Milestone 5: Cross-dialect stabilization** — unify diagnostics, expand AST coverage, publish benchmark reports. See `milestone-5-cross-dialect-backlog.md` and `milestone-5-review-checklist.md`.
-3. **Optional enhancements** — add `collectComments` and `ErrorTolerance` to `ParseOptions` if needed; extend `SyntaxDiagnostic` with `SourceSpan` and `expectedTokens`
+1. **Expand normalized AST coverage** — normalize INSERT/UPDATE/DELETE for PostgreSQL and Oracle to reduce raw statement fallbacks.
+2. **Expand SQLite expression mapper** — extend the v1 expression mapper to handle binary comparisons in WHERE and JOIN conditions, enabling more SELECT queries to produce `SelectStatement` instead of `SqliteRawStatement`.
+3. **CTEs and subqueries** — add normalized AST nodes for `WITH` (CTEs) and subquery expressions across dialects.
+4. **`ParseOptions` extensions** — add `collectComments` and `ErrorTolerance` if needed; extend `SyntaxDiagnostic` with `SourceSpan` and `expectedTokens`.
+5. **Release readiness** — publishing to Maven Central, API stability review, and semantic versioning.

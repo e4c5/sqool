@@ -26,6 +26,7 @@ class OracleConformanceTest {
           new ResourceCase("oracle/supported/basic-select.sql", true),
           new ResourceCase("oracle/supported/select-where.sql", true),
           new ResourceCase("oracle/supported/select-order.sql", true),
+          new ResourceCase("oracle/supported/select-join.sql", true),
           new ResourceCase("oracle/supported/insert-statement.sql", true),
           new ResourceCase("oracle/supported/update-statement.sql", true),
           new ResourceCase("oracle/supported/delete-statement.sql", true),

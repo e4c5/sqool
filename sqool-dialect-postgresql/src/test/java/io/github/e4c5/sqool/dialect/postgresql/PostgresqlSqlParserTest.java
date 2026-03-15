@@ -183,14 +183,19 @@ class PostgresqlSqlParserTest {
   // =========================================================================
 
   @Test
-  void parseSelectWithJoinFallsBackToRaw() {
+  void parseSelectWithJoinProducesSelectStatement() {
     ParseResult result =
         PARSER.parse(
             "SELECT u.id, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id",
             ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    // Joins are not yet supported in the normalized AST; falls back to raw.
-    assertInstanceOf(PostgresqlRawStatement.class, success.root());
+    // Joins are now normalized to SelectStatement + JoinTableReference.
+    assertInstanceOf(SelectStatement.class, success.root());
+    SelectStatement stmt = (SelectStatement) success.root();
+    assertInstanceOf(
+        io.github.e4c5.sqool.ast.JoinTableReference.class,
+        stmt.from(),
+        "FROM clause should be a JoinTableReference");
   }
 
   @Test
