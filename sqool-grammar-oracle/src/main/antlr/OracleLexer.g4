@@ -109,6 +109,7 @@ INTO        : 'INTO';
 IS          : 'IS';
 JOIN        : 'JOIN';
 KEY         : 'KEY';
+LAST_KW     : 'LAST';
 LEFT        : 'LEFT';
 LIKE        : 'LIKE';
 MERGE       : 'MERGE';

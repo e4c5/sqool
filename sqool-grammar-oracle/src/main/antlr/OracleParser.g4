@@ -150,7 +150,7 @@ orderByClause
     ;
 
 orderByItem
-    : expr direction = (ASC | DESC)? (NULLS (FIRST_KW | NULL_KW))?
+    : expr direction = (ASC | DESC)? (NULLS (FIRST_KW | LAST_KW))?
     ;
 
 /** Oracle 12c+ row limiting clause: FETCH FIRST n ROWS ONLY */
@@ -511,6 +511,7 @@ unreservedKeyword
     | INTEGER_KW
     | INTERVAL
     | KEY
+    | LAST_KW
     | LEFT
     | LONG_KW
     | MINUTE
