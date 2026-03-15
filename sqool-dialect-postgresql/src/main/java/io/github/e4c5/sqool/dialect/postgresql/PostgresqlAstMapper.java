@@ -6,6 +6,8 @@ import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.JoinTableReference;
+import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
@@ -30,6 +32,7 @@ import io.github.e4c5.sqool.core.SqlDialect;
 import io.github.e4c5.sqool.grammar.postgresql.generated.PostgreSQLParser;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.Interval;
 
 /** Maps the PostgreSQL ANTLR parse tree to the normalized sqool AST for the v1 subset. */
@@ -185,8 +188,8 @@ final class PostgresqlAstMapper {
   // =========================================================================
 
   /**
-   * Maps a simple FROM clause (single named table, no joins) to a {@link NamedTableReference}.
-   * Returns null for joins or derived tables to trigger a raw fallback.
+   * Maps a FROM clause to a {@link TableReference}. Supports single named tables and JOIN chains.
+   * Returns null for derived tables or unsupported shapes to trigger a raw fallback.
    */
   private static TableReference mapFromClause(
       PostgreSQLParser.FromClauseContext ctx, ParseOptions options) {
@@ -197,11 +200,27 @@ final class PostgresqlAstMapper {
     if (refs.size() != 1) {
       return null;
     }
-    PostgreSQLParser.TableReferenceContext ref = refs.get(0);
-    if (!ref.joinClause().isEmpty()) {
+    return mapTableReference(refs.get(0), options);
+  }
+
+  private static TableReference mapTableReference(
+      PostgreSQLParser.TableReferenceContext ref, ParseOptions options) {
+    PostgreSQLParser.TablePrimaryContext primary = ref.tablePrimary();
+    TableReference current = mapTablePrimary(primary, options);
+    if (current == null) {
       return null;
     }
-    PostgreSQLParser.TablePrimaryContext primary = ref.tablePrimary();
+    for (PostgreSQLParser.JoinClauseContext joinClause : ref.joinClause()) {
+      current = mapJoinClause(current, joinClause, options);
+      if (current == null) {
+        return null;
+      }
+    }
+    return current;
+  }
+
+  private static TableReference mapTablePrimary(
+      PostgreSQLParser.TablePrimaryContext primary, ParseOptions options) {
     if (!(primary instanceof PostgreSQLParser.NamedTableContext namedCtx)) {
       return null;
     }
@@ -209,6 +228,74 @@ final class PostgresqlAstMapper {
     String alias = namedCtx.alias != null ? namedCtx.alias.getText() : null;
     return new NamedTableReference(
         tableName, alias, SourceSpans.fromTokens(primary.start, primary.stop, options));
+  }
+
+  private static TableReference mapJoinClause(
+      TableReference left, PostgreSQLParser.JoinClauseContext joinCtx, ParseOptions options) {
+    if (joinCtx instanceof PostgreSQLParser.CrossJoinContext crossCtx) {
+      TableReference right = mapTablePrimary(crossCtx.tablePrimary(), options);
+      if (right == null) {
+        return null;
+      }
+      return new JoinTableReference(
+          left,
+          JoinType.CROSS,
+          right,
+          null,
+          List.of(),
+          SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
+    }
+    if (joinCtx instanceof PostgreSQLParser.NaturalJoinContext) {
+      // NATURAL JOIN is not yet normalized; fall back to raw.
+      return null;
+    }
+    if (joinCtx instanceof PostgreSQLParser.QualifiedJoinContext qualCtx) {
+      JoinType joinType = mapJoinKind(qualCtx.joinKind());
+      TableReference right = mapTablePrimary(qualCtx.tablePrimary(), options);
+      if (right == null) {
+        return null;
+      }
+      Expression condition = null;
+      List<String> usingColumns = List.of();
+      if (qualCtx.expr() != null) {
+        condition = mapExpr(qualCtx.expr(), options);
+        if (condition == null) {
+          return null;
+        }
+      } else if (qualCtx.columnList() != null) {
+        usingColumns =
+            qualCtx.columnList().columnName().stream()
+                .map(n -> n.getText())
+                .collect(Collectors.toList());
+      }
+      return new JoinTableReference(
+          left,
+          joinType,
+          right,
+          condition,
+          usingColumns,
+          SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
+    }
+    return null;
+  }
+
+  private static JoinType mapJoinKind(PostgreSQLParser.JoinKindContext ctx) {
+    if (ctx == null) {
+      return JoinType.INNER;
+    }
+    if (ctx.INNER() != null) {
+      return JoinType.INNER;
+    }
+    if (ctx.LEFT() != null) {
+      return JoinType.LEFT;
+    }
+    if (ctx.RIGHT() != null) {
+      return JoinType.RIGHT;
+    }
+    if (ctx.FULL() != null) {
+      return JoinType.FULL;
+    }
+    return JoinType.INNER;
   }
 
   // =========================================================================

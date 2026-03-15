@@ -26,6 +26,7 @@ class PostgresqlConformanceTest {
           new ResourceCase("postgresql/supported/basic-select.sql", true),
           new ResourceCase("postgresql/supported/select-where.sql", true),
           new ResourceCase("postgresql/supported/select-order-limit.sql", true),
+          new ResourceCase("postgresql/supported/select-join.sql", true),
           new ResourceCase("postgresql/supported/insert-statement.sql", true),
           new ResourceCase("postgresql/supported/insert-returning.sql", true),
           new ResourceCase("postgresql/supported/update-statement.sql", true),

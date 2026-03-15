@@ -6,6 +6,8 @@ import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.JoinTableReference;
+import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OracleRawStatement;
@@ -29,6 +31,7 @@ import io.github.e4c5.sqool.core.SqlDialect;
 import io.github.e4c5.sqool.grammar.oracle.generated.OracleParser;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.stream.Collectors;
 import org.antlr.v4.runtime.misc.Interval;
 
 /** Maps the Oracle ANTLR parse tree to the normalized sqool AST for the v1 subset. */
@@ -176,8 +179,8 @@ final class OracleAstMapper {
   // =========================================================================
 
   /**
-   * Maps a simple FROM clause (single named table, no joins) to a {@link NamedTableReference}.
-   * Returns null for joins or derived tables to trigger a raw fallback.
+   * Maps a FROM clause to a {@link TableReference}. Supports single named tables and JOIN chains.
+   * Returns null for derived tables or unsupported shapes to trigger a raw fallback.
    */
   private static TableReference mapFromClause(
       OracleParser.FromClauseContext ctx, ParseOptions options) {
@@ -188,11 +191,27 @@ final class OracleAstMapper {
     if (refs.size() != 1) {
       return null;
     }
-    OracleParser.TableReferenceContext ref = refs.get(0);
-    if (!ref.joinClause().isEmpty()) {
+    return mapTableReference(refs.get(0), options);
+  }
+
+  private static TableReference mapTableReference(
+      OracleParser.TableReferenceContext ref, ParseOptions options) {
+    OracleParser.TablePrimaryContext primary = ref.tablePrimary();
+    TableReference current = mapTablePrimary(primary, options);
+    if (current == null) {
       return null;
     }
-    OracleParser.TablePrimaryContext primary = ref.tablePrimary();
+    for (OracleParser.JoinClauseContext joinClause : ref.joinClause()) {
+      current = mapJoinClause(current, joinClause, options);
+      if (current == null) {
+        return null;
+      }
+    }
+    return current;
+  }
+
+  private static TableReference mapTablePrimary(
+      OracleParser.TablePrimaryContext primary, ParseOptions options) {
     if (!(primary instanceof OracleParser.NamedTableContext namedCtx)) {
       return null;
     }
@@ -200,6 +219,74 @@ final class OracleAstMapper {
     String alias = namedCtx.alias != null ? namedCtx.alias.getText() : null;
     return new NamedTableReference(
         tableName, alias, SourceSpans.fromTokens(primary.start, primary.stop, options));
+  }
+
+  private static TableReference mapJoinClause(
+      TableReference left, OracleParser.JoinClauseContext joinCtx, ParseOptions options) {
+    if (joinCtx instanceof OracleParser.CrossJoinContext crossCtx) {
+      TableReference right = mapTablePrimary(crossCtx.tablePrimary(), options);
+      if (right == null) {
+        return null;
+      }
+      return new JoinTableReference(
+          left,
+          JoinType.CROSS,
+          right,
+          null,
+          List.of(),
+          SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
+    }
+    if (joinCtx instanceof OracleParser.NaturalJoinContext) {
+      // NATURAL JOIN is not yet normalized; fall back to raw.
+      return null;
+    }
+    if (joinCtx instanceof OracleParser.QualifiedJoinContext qualCtx) {
+      JoinType joinType = mapJoinKind(qualCtx.joinKind());
+      TableReference right = mapTablePrimary(qualCtx.tablePrimary(), options);
+      if (right == null) {
+        return null;
+      }
+      Expression condition = null;
+      List<String> usingColumns = List.of();
+      if (qualCtx.expr() != null) {
+        condition = mapExpr(qualCtx.expr(), options);
+        if (condition == null) {
+          return null;
+        }
+      } else if (qualCtx.columnList() != null) {
+        usingColumns =
+            qualCtx.columnList().columnName().stream()
+                .map(n -> n.getText())
+                .collect(Collectors.toList());
+      }
+      return new JoinTableReference(
+          left,
+          joinType,
+          right,
+          condition,
+          usingColumns,
+          SourceSpans.fromTokens(joinCtx.start, joinCtx.stop, options));
+    }
+    return null;
+  }
+
+  private static JoinType mapJoinKind(OracleParser.JoinKindContext ctx) {
+    if (ctx == null) {
+      return JoinType.INNER;
+    }
+    if (ctx.INNER() != null) {
+      return JoinType.INNER;
+    }
+    if (ctx.LEFT() != null) {
+      return JoinType.LEFT;
+    }
+    if (ctx.RIGHT() != null) {
+      return JoinType.RIGHT;
+    }
+    if (ctx.FULL() != null) {
+      return JoinType.FULL;
+    }
+    return JoinType.INNER;
   }
 
   // =========================================================================
