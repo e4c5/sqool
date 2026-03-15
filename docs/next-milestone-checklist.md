@@ -11,7 +11,7 @@ This checklist covers the **next phase** of work after Milestones 0–5: follow-
 
 ## 1. M5 follow-ups (normalization)
 
-- [x] **SQLite JOIN normalization** — Extend SQLite v1 expression mapper so JOIN queries and complex WHERE produce `SelectStatement` + `JoinTableReference` instead of `SqliteRawStatement`. Add/update golden tests. *(Already implemented; dialect-coverage and checklist updated.)*
+- [x] **SQLite JOIN normalization** — Extend SQLite v1 expression mapper so JOIN queries and basic/supported WHERE shapes produce `SelectStatement` + `JoinTableReference` instead of `SqliteRawStatement` (see [Dialect Coverage](dialect-coverage.md) for raw fallbacks on more complex expressions). Add/update golden tests. *(Already implemented; dialect-coverage and checklist updated.)*
 - [x] **PostgreSQL / Oracle DML normalization** — Map INSERT, UPDATE, DELETE to shared AST nodes (e.g. `InsertStatement`, `UpdateStatement`, `DeleteStatement`) where practical; add golden tests. *(Already implemented; dialect-coverage updated.)*
 - [x] **NATURAL JOIN** — Normalize NATURAL JOIN to a shared AST representation across dialects (or document as raw-only and close as deferred). *(Already normalized: all four dialects produce `JoinTableReference` with `natural == true`. Dialect-coverage and Known limitations updated.)*
 
