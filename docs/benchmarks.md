@@ -1,6 +1,6 @@
 # Parser Benchmarks
 
-The `sqool-bench` module provides JMH benchmarks comparing `sqool` dialect parsers against JSqlParser for MySQL, SQLite, and PostgreSQL.
+The `sqool-bench` module provides JMH benchmarks comparing `sqool` dialect parsers against JSqlParser for MySQL, SQLite, PostgreSQL, and Oracle.
 
 ## Running benchmarks
 
@@ -8,10 +8,11 @@ The `sqool-bench` module provides JMH benchmarks comparing `sqool` dialect parse
 ./gradlew :sqool-bench:jmh
 ```
 
-To run a subset of benchmarks (e.g. PostgreSQL only):
+To run a subset of benchmarks (e.g. PostgreSQL or Oracle only):
 
 ```bash
 ./gradlew :sqool-bench:jmh -Pjmh.includes=".*PostgresqlParserBenchmark.*"
+./gradlew :sqool-bench:jmh -Pjmh.includes=".*OracleParserBenchmark.*"
 ```
 
 ## Capturing baseline results
@@ -31,8 +32,9 @@ Each dialect has its own benchmark class:
 - `MysqlParserBenchmark` – MySQL
 - `SqliteParserBenchmark` – SQLite
 - `PostgresqlParserBenchmark` – PostgreSQL
+- `OracleParserBenchmark` – Oracle (v1 subset: simple/join/complex/error-path; vs JSqlParser where supported)
 
-Benchmark categories vary by dialect today. PostgreSQL includes simple/join/complex/error-path scenarios; MySQL and SQLite currently cover a smaller subset. Run all benchmarks to compare currently implemented scenarios across dialects:
+Benchmark categories vary by dialect today. PostgreSQL and Oracle include simple/join/complex/error-path scenarios; MySQL and SQLite currently cover a smaller subset. Run all benchmarks to compare currently implemented scenarios across dialects:
 
 ```bash
 ./gradlew :sqool-bench:jmh
