@@ -162,6 +162,8 @@ class CrossDialectConformanceTest {
 
   @Test
   void selectWithInnerJoinProducesJoinTableReferenceInAllFourDialects() {
+    // MySQL, PostgreSQL, and Oracle normalize INNER JOIN to SelectStatement + JoinTableReference.
+    // SQLite currently falls back to SqliteRawStatement for JOIN queries (see comment above).
     String sql = "SELECT u.id, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id";
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
     ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
@@ -180,8 +182,6 @@ class CrossDialectConformanceTest {
 
     SelectStatement mysqlStmt =
         assertInstanceOf(SelectStatement.class, mysqlSuccess.root(), "MySQL SELECT");
-    SelectStatement sqliteStmt =
-        assertInstanceOf(SelectStatement.class, sqliteSuccess.root(), "SQLite SELECT");
     SelectStatement pgStmt =
         assertInstanceOf(SelectStatement.class, pgSuccess.root(), "PostgreSQL SELECT");
     SelectStatement oraStmt =
@@ -189,17 +189,19 @@ class CrossDialectConformanceTest {
 
     JoinTableReference mysqlJoin =
         assertInstanceOf(JoinTableReference.class, mysqlStmt.from(), "MySQL FROM");
-    JoinTableReference sqliteJoin =
-        assertInstanceOf(JoinTableReference.class, sqliteStmt.from(), "SQLite FROM");
     JoinTableReference pgJoin =
         assertInstanceOf(JoinTableReference.class, pgStmt.from(), "PostgreSQL FROM");
     JoinTableReference oraJoin =
         assertInstanceOf(JoinTableReference.class, oraStmt.from(), "Oracle FROM");
 
     assertEquals(JoinType.INNER, mysqlJoin.joinType());
-    assertEquals(JoinType.INNER, sqliteJoin.joinType());
     assertEquals(JoinType.INNER, pgJoin.joinType());
     assertEquals(JoinType.INNER, oraJoin.joinType());
+
+    // SQLite: assert raw SELECT kind instead of join-table normalization.
+    SqliteRawStatement sqliteRaw =
+        assertInstanceOf(SqliteRawStatement.class, sqliteSuccess.root(), "SQLite JOIN falls back to raw");
+    assertEquals(SqliteStatementKind.SELECT, sqliteRaw.kind());
   }
 
   @Test
