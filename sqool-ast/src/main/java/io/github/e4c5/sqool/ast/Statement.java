@@ -9,6 +9,7 @@ public sealed interface Statement extends AstNode
         DropTableStatement,
         InsertStatement,
         MySqlRawStatement,
+        PostgresqlRawStatement,
         ReplaceStatement,
         SelectStatement,
         SetOperationStatement,
