@@ -491,7 +491,9 @@ final class SqliteAstMapper {
   private static Expression mapCollate(
       SQLiteParser.Expr_collateContext context, ParseOptions options) {
     if (context == null || context.expr_unary() == null) return null;
-    // Ignore COLLATE for now
+    if (context.COLLATE_() != null && !context.COLLATE_().isEmpty()) {
+      return null; // COLLATE not supported; fall back to raw
+    }
     return mapUnary(context.expr_unary(), options);
   }
 
@@ -553,8 +555,8 @@ final class SqliteAstMapper {
     if (context.expr_recursive() != null) {
       return mapRecursiveExpr(context.expr_recursive(), options);
     }
-    return new LiteralExpression(
-        context.getText(), SourceSpans.fromTokens(context.start, context.stop, options));
+    // Unsupported expr_base (e.g. raise_function); do not invent a literal
+    return null;
   }
 
   private static Expression mapRecursiveExpr(

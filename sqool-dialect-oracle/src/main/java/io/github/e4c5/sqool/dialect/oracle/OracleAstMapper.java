@@ -4,11 +4,10 @@ import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.BinaryExpression;
 import io.github.e4c5.sqool.ast.BinaryOperator;
 import io.github.e4c5.sqool.ast.ColumnAssignment;
-import io.github.e4c5.sqool.ast.DeleteStatement;
+import io.github.e4c5.sqool.ast.DmlAstBuilder;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
-import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LiteralExpression;
@@ -25,7 +24,6 @@ import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
-import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.MappingResult;
 import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
@@ -317,14 +315,11 @@ final class OracleAstMapper {
       if (rowsOpt.isPresent()) {
         return new ParseSuccess(
             SqlDialect.ORACLE,
-            new InsertStatement(
+            DmlAstBuilder.buildInsert(
                 tableName,
                 columns,
                 rowsOpt.get(),
-                List.of(),
                 null,
-                List.of(),
-                false,
                 SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
             List.of(),
             ParseMetrics.unknown());
@@ -334,14 +329,11 @@ final class OracleAstMapper {
       if (selectStmt != null) {
         return new ParseSuccess(
             SqlDialect.ORACLE,
-            new InsertStatement(
+            DmlAstBuilder.buildInsert(
                 tableName,
                 columns,
                 List.of(),
-                List.of(),
                 selectStmt,
-                List.of(),
-                false,
                 SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
             List.of(),
             ParseMetrics.unknown());
@@ -415,13 +407,8 @@ final class OracleAstMapper {
 
     return new ParseSuccess(
         SqlDialect.ORACLE,
-        new UpdateStatement(
-            target,
-            assignments,
-            whereResult.value(),
-            List.of(),
-            null,
-            false,
+        DmlAstBuilder.buildUpdate(
+            target, assignments, whereResult.value(),
             SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
         List.of(),
         ParseMetrics.unknown());
@@ -444,12 +431,8 @@ final class OracleAstMapper {
 
     return new ParseSuccess(
         SqlDialect.ORACLE,
-        new DeleteStatement(
-            target,
-            whereResult.value(),
-            List.of(),
-            null,
-            SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+        DmlAstBuilder.buildDelete(
+            target, whereResult.value(), SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
         List.of(),
         ParseMetrics.unknown());
   }
