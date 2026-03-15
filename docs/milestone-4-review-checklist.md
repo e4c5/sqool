@@ -21,7 +21,7 @@ The review should not spend much time on:
 
 At the end of the review, classify Milestone 4 as one of:
 
-- [ ] **Approved**: Oracle grammar and parser are stable enough to proceed to cross-dialect stabilization.
+- [x] **Approved**: Oracle grammar and parser are stable enough to proceed to cross-dialect stabilization.
 - [ ] **Approved with follow-ups**: M4 is acceptable, but some non-blocking improvements should be addressed.
 - [ ] **Changes required**: structural or correctness issues must be fixed before starting Milestone 5.
 
@@ -34,16 +34,16 @@ Reference documents:
 
 ## 1. Oracle grammar vendoring and subset quality
 
-- [ ] Oracle grammar is vendored into `sqool-grammar-oracle`.
-- [ ] `UPSTREAM.md` (or equivalent) documents:
-  - [ ] upstream repository and path,
-  - [ ] chosen commit hash,
-  - [ ] known upstream issues,
-  - [ ] local goals (SQL-first subset).
-- [ ] Grammar is subset or gated to exclude broad PL/SQL (anonymous blocks, procedural constructs).
-- [ ] Grammar source layout (lexer/parser `.g4` files) is clear and consistent with other grammar modules.
-- [ ] ANTLR generation for Oracle is integrated into the normal Gradle build.
-- [ ] Generated sources compile cleanly without manual edits.
+- [x] Oracle grammar is vendored into `sqool-grammar-oracle`.
+- [x] `UPSTREAM.md` (or equivalent) documents:
+  - [x] upstream repository and path,
+  - [x] chosen commit hash,
+  - [x] known upstream issues,
+  - [x] local goals (SQL-first subset).
+- [x] Grammar is subset or gated to exclude broad PL/SQL (anonymous blocks, procedural constructs).
+- [x] Grammar source layout (lexer/parser `.g4` files) is clear and consistent with other grammar modules.
+- [x] ANTLR generation for Oracle is integrated into the normal Gradle build.
+- [x] Generated sources compile cleanly without manual edits.
 
 ### Evidence to review
 
@@ -58,14 +58,14 @@ Reference documents:
 
 ## 2. Oracle parser pipeline
 
-- [ ] Oracle dialect implementation resides in `sqool-dialect-oracle`.
-- [ ] Parser setup follows the established pattern:
-  - [ ] SLL-fast path with bail-fast error strategy,
-  - [ ] LL-fallback path with structured diagnostics.
-- [ ] Shared parser utilities are used wherever reasonable (lexer/parser setup, error listeners, metrics).
-- [ ] Single-statement vs script entry points are defined where applicable.
-- [ ] `SqlDialect` and `ParseOptions` support Oracle cleanly.
-- [ ] `ParseMetrics` capture Oracle behavior for benchmarking and debugging.
+- [x] Oracle dialect implementation resides in `sqool-dialect-oracle`.
+- [x] Parser setup follows the established pattern:
+  - [x] SLL-fast path with bail-fast error strategy,
+  - [x] LL-fallback path with structured diagnostics.
+- [x] Shared parser utilities are used wherever reasonable (lexer/parser setup, error listeners, metrics).
+- [x] Single-statement vs script entry points are defined where applicable.
+- [x] `SqlDialect` and `ParseOptions` support Oracle cleanly.
+- [x] `ParseMetrics` capture Oracle behavior for benchmarking and debugging.
 
 ### Evidence to review
 
@@ -79,17 +79,17 @@ Reference documents:
 
 ## 3. Oracle v1 subset and AST mapping
 
-- [ ] The Oracle SQL v1 subset is explicitly defined (in docs or code comments).
-- [ ] For the v1 subset:
-  - [ ] AST mapping covers basic DDL, DML, and `SELECT`-style queries,
-  - [ ] common constructs reuse the normalized AST model and shared helpers,
-  - [ ] Oracle-specific constructs are represented via extension nodes.
-- [ ] AST nodes remain:
-  - [ ] immutable,
-  - [ ] compact,
-  - [ ] free of ANTLR context references.
-- [ ] Source spans are attached properly when `ParseOptions` request them.
-- [ ] Golden tests exist for representative Oracle statements in the v1 subset.
+- [x] The Oracle SQL v1 subset is explicitly defined (in docs or code comments).
+- [x] For the v1 subset:
+  - [x] AST mapping covers basic DDL, DML, and `SELECT`-style queries,
+  - [x] common constructs reuse the normalized AST model and shared helpers,
+  - [x] Oracle-specific constructs are represented via extension nodes.
+- [x] AST nodes remain:
+  - [x] immutable,
+  - [x] compact,
+  - [x] free of ANTLR context references.
+- [x] Source spans are attached properly when `ParseOptions` request them.
+- [x] Golden tests exist for representative Oracle statements in the v1 subset.
 
 ### Evidence to review
 
@@ -104,15 +104,15 @@ Reference documents:
 
 ## 4. Oracle conformance and regression quality
 
-- [ ] An Oracle SQL corpus exists and is:
-  - [ ] sourced from vendor docs and realistic examples,
-  - [ ] organized clearly with version control.
-- [ ] Conformance tests:
-  - [ ] cover core v1 constructs,
-  - [ ] verify both successful parses and expected failures,
-  - [ ] validate AST structures where appropriate.
-- [ ] Regression tests cover grammar or mapping bugs found during M4.
-- [ ] Test structure is consistent with MySQL, SQLite, and PostgreSQL suites.
+- [x] An Oracle SQL corpus exists and is:
+  - [x] sourced from vendor docs and realistic examples,
+  - [x] organized clearly with version control.
+- [x] Conformance tests:
+  - [x] cover core v1 constructs,
+  - [x] verify both successful parses and expected failures,
+  - [x] validate AST structures where appropriate.
+- [x] Regression tests cover grammar or mapping bugs found during M4.
+- [x] Test structure is consistent with MySQL, SQLite, and PostgreSQL suites.
 
 ### Evidence to review
 
@@ -126,15 +126,15 @@ Reference documents:
 
 ## 5. Oracle performance and benchmarks
 
-- [ ] An Oracle benchmark corpus is defined for:
-  - [ ] small,
-  - [ ] medium,
-  - [ ] error-path statements.
-- [ ] JMH benchmarks in `sqool-bench` exercise Oracle parsing using:
-  - [ ] the `sqool` Oracle dialect,
-  - [ ] JSqlParser where the same statements are supported.
-- [ ] Benchmarks report throughput and latency.
-- [ ] How to run Oracle benchmarks and capture baseline is documented.
+- [x] An Oracle benchmark corpus is defined for:
+  - [x] small,
+  - [x] medium,
+  - [x] error-path statements.
+- [x] JMH benchmarks in `sqool-bench` exercise Oracle parsing using:
+  - [x] the `sqool` Oracle dialect,
+  - [x] JSqlParser where the same statements are supported.
+- [x] Benchmarks report throughput and latency.
+- [x] How to run Oracle benchmarks and capture baseline is documented.
 
 ### Evidence to review
 
@@ -148,12 +148,12 @@ Reference documents:
 
 ## 6. Risk and scope documentation
 
-- [ ] Oracle-specific risks from the technical design have been reviewed against actual M4 work.
-- [ ] A short **Oracle risk and scope** note exists and:
-  - [ ] lists risks mitigated in M4,
-  - [ ] lists remaining risks and future work,
-  - [ ] records deliberate scope limitations (SQL-only v1, no PL/SQL).
-- [ ] Design or planning documents have been updated if important assumptions changed.
+- [x] Oracle-specific risks from the technical design have been reviewed against actual M4 work.
+- [x] A short **Oracle risk and scope** note exists and:
+  - [x] lists risks mitigated in M4,
+  - [x] lists remaining risks and future work,
+  - [x] records deliberate scope limitations (SQL-only v1, no PL/SQL).
+- [x] Design or planning documents have been updated if important assumptions changed.
 
 ### Evidence to review
 
@@ -167,12 +167,12 @@ Reference documents:
 
 ## 7. Documentation and onboarding
 
-- [ ] Documentation:
-  - [ ] describes the Oracle v1 subset,
-  - [ ] explains how to run Oracle tests,
-  - [ ] explains how to run Oracle benchmarks.
-- [ ] Known Oracle limitations and unsupported features are easy to find.
-- [ ] Contributor guidance explains how to extend Oracle grammar or mapping (or references `CONTRIBUTING.md`).
+- [x] Documentation:
+  - [x] describes the Oracle v1 subset,
+  - [x] explains how to run Oracle tests,
+  - [x] explains how to run Oracle benchmarks.
+- [x] Known Oracle limitations and unsupported features are easy to find.
+- [x] Contributor guidance explains how to extend Oracle grammar or mapping (or references `CONTRIBUTING.md`).
 
 ### Evidence to review
 
