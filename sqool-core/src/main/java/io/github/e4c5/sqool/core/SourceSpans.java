@@ -1,12 +1,26 @@
 package io.github.e4c5.sqool.core;
 
 import io.github.e4c5.sqool.ast.SourceSpan;
+import org.antlr.v4.runtime.ParserRuleContext;
 import org.antlr.v4.runtime.Token;
+import org.antlr.v4.runtime.misc.Interval;
 
 /** Shared utilities for building {@link SourceSpan} from ANTLR tokens. */
 public final class SourceSpans {
 
   private SourceSpans() {}
+
+  /**
+   * Extracts the original SQL text for a parse-tree node by reading directly from the input stream.
+   * Returns an empty string when the context or its tokens are absent.
+   */
+  public static String textOf(ParserRuleContext ctx) {
+    if (ctx == null || ctx.start == null || ctx.stop == null) {
+      return "";
+    }
+    Interval interval = Interval.of(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
+    return ctx.start.getInputStream().getText(interval);
+  }
 
   /**
    * Builds a source span from ANTLR start/stop tokens when {@link

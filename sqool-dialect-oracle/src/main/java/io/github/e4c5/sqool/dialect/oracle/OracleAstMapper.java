@@ -22,6 +22,7 @@ import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
+import io.github.e4c5.sqool.core.MappingResult;
 import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
@@ -32,7 +33,6 @@ import io.github.e4c5.sqool.grammar.oracle.generated.OracleParser;
 import java.util.ArrayList;
 import java.util.List;
 import java.util.stream.Collectors;
-import org.antlr.v4.runtime.misc.Interval;
 
 /** Maps the Oracle ANTLR parse tree to the normalized sqool AST for the v1 subset. */
 final class OracleAstMapper {
@@ -154,7 +154,7 @@ final class OracleAstMapper {
         items.add(
             new AllColumnsSelectItem(null, SourceSpans.fromTokens(item.start, item.stop, options)));
       } else if (item instanceof OracleParser.TableAllColumnsItemContext tableAll) {
-        String table = textOf(tableAll.tableRef());
+        String table = SourceSpans.textOf(tableAll.tableRef());
         items.add(
             new AllColumnsSelectItem(
                 table, SourceSpans.fromTokens(item.start, item.stop, options)));
@@ -274,19 +274,7 @@ final class OracleAstMapper {
     if (ctx == null) {
       return JoinType.INNER;
     }
-    if (ctx.INNER() != null) {
-      return JoinType.INNER;
-    }
-    if (ctx.LEFT() != null) {
-      return JoinType.LEFT;
-    }
-    if (ctx.RIGHT() != null) {
-      return JoinType.RIGHT;
-    }
-    if (ctx.FULL() != null) {
-      return JoinType.FULL;
-    }
-    return JoinType.INNER;
+    return JoinType.fromKind(ctx.LEFT() != null, ctx.RIGHT() != null, ctx.FULL() != null);
   }
 
   // =========================================================================
@@ -545,7 +533,7 @@ final class OracleAstMapper {
     return new ParseSuccess(
         SqlDialect.ORACLE,
         new OracleRawStatement(
-            kind, textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
+            kind, SourceSpans.textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
         List.of(),
         ParseMetrics.unknown());
   }
@@ -563,14 +551,4 @@ final class OracleAstMapper {
     if (stmt.savepointStatement() != null) return OracleStatementKind.SAVEPOINT;
     return OracleStatementKind.OTHER;
   }
-
-  private static String textOf(org.antlr.v4.runtime.ParserRuleContext ctx) {
-    if (ctx == null || ctx.start == null || ctx.stop == null) {
-      return "";
-    }
-    Interval interval = Interval.of(ctx.start.getStartIndex(), ctx.stop.getStopIndex());
-    return ctx.start.getInputStream().getText(interval);
-  }
-
-  private record MappingResult<T>(boolean supported, T value) {}
 }
