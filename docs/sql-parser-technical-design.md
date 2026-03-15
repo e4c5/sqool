@@ -652,6 +652,6 @@ Each dialect requires three modules:
 
 Milestones 0–3 are complete. The next steps are:
 
-1. **Milestone 4: Oracle SQL MVP** — vendor Oracle grammar, subset to SQL-first, implement AST mapping and benchmarks
-2. **Milestone 5: Cross-dialect stabilization** — unify diagnostics, expand AST coverage, publish benchmark reports
+1. **Milestone 4: Oracle SQL MVP** — vendor Oracle grammar, subset to SQL-first, implement AST mapping and benchmarks. See `milestone-4-oracle-backlog.md` and `milestone-4-review-checklist.md`.
+2. **Milestone 5: Cross-dialect stabilization** — unify diagnostics, expand AST coverage, publish benchmark reports. See `milestone-5-cross-dialect-backlog.md` and `milestone-5-review-checklist.md`.
 3. **Optional enhancements** — add `collectComments` and `ErrorTolerance` to `ParseOptions` if needed; extend `SyntaxDiagnostic` with `SourceSpan` and `expectedTokens`

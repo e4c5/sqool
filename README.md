@@ -40,3 +40,7 @@ See [Benchmarks](docs/benchmarks.md) for how to run and capture baseline results
 - [Benchmarks](docs/benchmarks.md)
 - [Milestone 0 Bootstrap Backlog](docs/milestone-0-bootstrap-backlog.md)
 - [Milestone 0 Review Checklist](docs/milestone-0-review-checklist.md)
+- [Milestone 4 Oracle Backlog](docs/milestone-4-oracle-backlog.md)
+- [Milestone 4 Review Checklist](docs/milestone-4-review-checklist.md)
+- [Milestone 5 Cross-Dialect Backlog](docs/milestone-5-cross-dialect-backlog.md)
+- [Milestone 5 Review Checklist](docs/milestone-5-review-checklist.md)
