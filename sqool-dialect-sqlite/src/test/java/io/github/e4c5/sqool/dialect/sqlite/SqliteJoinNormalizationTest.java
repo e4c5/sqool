@@ -25,7 +25,7 @@ class SqliteJoinNormalizationTest {
     Statement stmt = (Statement) ((ParseSuccess) result).root();
 
     SelectStatement select = assertOf(SelectStatement.class, stmt);
-    JoinTableReference join = assertOf(JoinTableReference.class, select.from());
+    assertOf(JoinTableReference.class, select.from());
   }
 
   @Test

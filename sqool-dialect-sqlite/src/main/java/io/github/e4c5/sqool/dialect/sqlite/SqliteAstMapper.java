@@ -3,6 +3,7 @@ package io.github.e4c5.sqool.dialect.sqlite;
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
 import io.github.e4c5.sqool.ast.Expression;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
+import io.github.e4c5.sqool.ast.JoinTableReference;
 import io.github.e4c5.sqool.ast.JoinType;
 import io.github.e4c5.sqool.ast.LimitClause;
 import io.github.e4c5.sqool.ast.LiteralExpression;
@@ -201,7 +202,6 @@ final class SqliteAstMapper {
     for (int i = 0; i < operators.size(); i++) {
       JoinType joinType = mapJoinOperator(operators.get(i));
       if (joinType == null) {
-        // Unsupported join type (e.g. NATURAL JOIN fallback).
         return null;
       }
 
@@ -210,37 +210,54 @@ final class SqliteAstMapper {
         return null;
       }
 
-      Expression condition = null;
-      List<String> usingColumns = List.of();
-      boolean natural = operators.get(i).NATURAL_() != null;
-
-      if (i < constraints.size()) {
-        SQLiteParser.Join_constraintContext constraint = constraints.get(i);
-        if (constraint.ON_() != null) {
-          condition = mapExpr(constraint.expr(), options);
-          if (condition == null) {
-            return null;
-          }
-        } else if (constraint.USING_() != null) {
-          usingColumns =
-              constraint.column_name().stream()
-                  .map(SQLiteParser.Column_nameContext::getText)
-                  .toList();
-        }
+      SQLiteParser.Join_constraintContext constraint =
+          i < constraints.size() ? constraints.get(i) : null;
+      JoinTableReference nextRef =
+          buildJoinTableReference(
+              current, joinType, nextTable, constraint, operators.get(i), context, i + 1, options);
+      if (nextRef == null) {
+        return null;
       }
-
-      current =
-          new io.github.e4c5.sqool.ast.JoinTableReference(
-              current,
-              joinType,
-              nextTable,
-              condition,
-              usingColumns,
-              natural,
-              SourceSpans.fromTokens(context.start, tables.get(i + 1).stop, options));
+      current = nextRef;
     }
 
     return current;
+  }
+
+  /** Builds one JoinTableReference from left, operator, right and optional constraint. */
+  private static JoinTableReference buildJoinTableReference(
+      TableReference left,
+      JoinType joinType,
+      TableReference right,
+      SQLiteParser.Join_constraintContext constraint,
+      SQLiteParser.Join_operatorContext operatorContext,
+      SQLiteParser.Join_clauseContext context,
+      int rightTableIndex,
+      ParseOptions options) {
+    Expression condition = null;
+    List<String> usingColumns = List.of();
+    if (constraint != null) {
+      if (constraint.ON_() != null) {
+        condition = mapExpr(constraint.expr(), options);
+        if (condition == null) {
+          return null;
+        }
+      } else if (constraint.USING_() != null) {
+        usingColumns =
+            constraint.column_name().stream()
+                .map(SQLiteParser.Column_nameContext::getText)
+                .toList();
+      }
+    }
+    boolean natural = operatorContext.NATURAL_() != null;
+    return new JoinTableReference(
+        left,
+        joinType,
+        right,
+        condition,
+        usingColumns,
+        natural,
+        SourceSpans.fromTokens(context.start, context.table_or_subquery().get(rightTableIndex).stop, options));
   }
 
   private static io.github.e4c5.sqool.ast.JoinType mapJoinOperator(
@@ -374,7 +391,6 @@ final class SqliteAstMapper {
     // In SQLite grammar, expr_binary has a list of expr_comparison and some operators between them.
     // We need to fold them.
     int childCount = context.getChildCount();
-    int compIndex = 1;
     for (int i = 1; i < childCount; i++) {
       var child = context.getChild(i);
       if (child instanceof SQLiteParser.Expr_comparisonContext nextCompCtx) {
@@ -389,7 +405,6 @@ final class SqliteAstMapper {
         current =
             new io.github.e4c5.sqool.ast.BinaryExpression(
                 current, op, rhs, SourceSpans.fromTokens(context.start, nextCompCtx.stop, options));
-        compIndex++;
       }
     }
 
@@ -455,16 +470,14 @@ final class SqliteAstMapper {
   private static Expression mapCollate(
       SQLiteParser.Expr_collateContext context, ParseOptions options) {
     if (context == null || context.expr_unary() == null) return null;
-    Expression current = mapUnary(context.expr_unary(), options);
     // Ignore COLLATE for now
-    return current;
+    return mapUnary(context.expr_unary(), options);
   }
 
   private static Expression mapUnary(SQLiteParser.Expr_unaryContext context, ParseOptions options) {
     if (context == null || context.expr_base() == null) return null;
-    Expression base = mapBase(context.expr_base(), options);
     // Ignore unary PLUS/MINUS/TILDE for now
-    return base;
+    return mapBase(context.expr_base(), options);
   }
 
   private static Expression mapBase(SQLiteParser.Expr_baseContext context, ParseOptions options) {
@@ -712,14 +725,6 @@ final class SqliteAstMapper {
     }
     Interval interval = Interval.of(context.start.getStartIndex(), context.stop.getStopIndex());
     return context.start.getInputStream().getText(interval);
-  }
-
-  private static <T> T singleOrNull(
-      org.antlr.v4.runtime.ParserRuleContext owner, java.util.List<T> values) {
-    if (owner == null || values == null || values.isEmpty() || values.size() != 1) {
-      return null;
-    }
-    return values.get(0);
   }
 
   private record MappingResult<T>(boolean supported, T value) {}
