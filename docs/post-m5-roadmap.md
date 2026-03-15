@@ -2,6 +2,8 @@
 
 Milestones 0–5 are complete. This document records remaining follow-ups and optional work so the "next" steps are explicit. See also [SQL Parser Technical Design §19](sql-parser-technical-design.md#19-recommended-immediate-next-step) for recommended immediate next steps.
 
+**For an actionable checklist with checkboxes**, use [Next Milestone Checklist](next-milestone-checklist.md).
+
 ## 1. Milestone 5 follow-ups (non-blocking)
 
 These were noted in the [Milestone 5 Review Checklist](milestone-5-review-checklist.md) as acceptable follow-ups:
