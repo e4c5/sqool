@@ -256,7 +256,7 @@ final class OracleAstMapper {
       } else if (qualCtx.columnList() != null) {
         usingColumns =
             qualCtx.columnList().columnName().stream()
-                .map(n -> n.getText())
+                .map(OracleParser.ColumnNameContext::getText)
                 .collect(Collectors.toList());
       }
       return new JoinTableReference(

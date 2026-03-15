@@ -265,7 +265,7 @@ final class PostgresqlAstMapper {
       } else if (qualCtx.columnList() != null) {
         usingColumns =
             qualCtx.columnList().columnName().stream()
-                .map(n -> n.getText())
+                .map(PostgreSQLParser.ColumnNameContext::getText)
                 .collect(Collectors.toList());
       }
       return new JoinTableReference(
