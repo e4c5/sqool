@@ -8,8 +8,6 @@ import org.gradle.api.plugins.quality.Checkstyle
 import org.gradle.api.plugins.quality.CheckstyleExtension
 import org.gradle.api.tasks.compile.JavaCompile
 import org.gradle.api.tasks.javadoc.Javadoc
-import org.gradle.api.publish.MavenPublication
-import org.gradle.api.publish.PublishingExtension
 import org.gradle.api.tasks.testing.logging.TestExceptionFormat
 import org.gradle.api.tasks.testing.logging.TestLogEvent
 import org.gradle.jvm.toolchain.JavaLanguageVersion
@@ -375,9 +373,9 @@ project(":sqool-bench") {
 
 configure(publishableModules.map(::project)) {
     apply(plugin = "maven-publish")
-    extensions.configure<PublishingExtension> {
+    extensions.configure<org.gradle.api.publish.PublishingExtension> {
         publications {
-            create<MavenPublication>("maven") {
+            create("maven", org.gradle.api.publish.maven.MavenPublication::class.java) {
                 from(components["java"])
                 groupId = rootProject.group.toString()
                 artifactId = project.name
