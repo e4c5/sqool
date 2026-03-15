@@ -5,8 +5,12 @@ import static org.junit.jupiter.api.Assertions.assertNotNull;
 
 import io.github.e4c5.sqool.grammar.oracle.generated.OracleLexer;
 import io.github.e4c5.sqool.grammar.oracle.generated.OracleParser;
+import java.util.concurrent.atomic.AtomicInteger;
+import org.antlr.v4.runtime.BaseErrorListener;
 import org.antlr.v4.runtime.CharStreams;
 import org.antlr.v4.runtime.CommonTokenStream;
+import org.antlr.v4.runtime.RecognitionException;
+import org.antlr.v4.runtime.Recognizer;
 import org.antlr.v4.runtime.Token;
 import org.junit.jupiter.api.Test;
 
@@ -99,9 +103,24 @@ class OracleGrammarSmokeTest {
 
   private Parsed parse(String sql) {
     var lexer = new OracleLexer(CharStreams.fromString(sql));
+    var lexerErrors = new AtomicInteger(0);
+    lexer.addErrorListener(
+        new BaseErrorListener() {
+          @Override
+          public void syntaxError(
+              Recognizer<?, ?> recognizer,
+              Object offendingSymbol,
+              int line,
+              int charPositionInLine,
+              String msg,
+              RecognitionException e) {
+            lexerErrors.incrementAndGet();
+          }
+        });
     var parser = new OracleParser(new CommonTokenStream(lexer));
     parser.setBuildParseTree(true);
     OracleParser.SingleStatementContext context = parser.singleStatement();
+    assertEquals(0, lexerErrors.get(), "Lexer reported syntax errors");
     assertEquals(
         Token.EOF, parser.getCurrentToken().getType(), "Parser did not consume the full SQL input");
     return new Parsed(parser, context);

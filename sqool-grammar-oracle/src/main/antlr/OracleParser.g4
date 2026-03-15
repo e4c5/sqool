@@ -62,7 +62,7 @@ selectStatement
     ;
 
 withClause
-    : WITH RECURSIVE? cteDefinition (COMMA cteDefinition)*
+    : WITH cteDefinition (COMMA cteDefinition)*
     ;
 
 cteDefinition
@@ -320,7 +320,7 @@ typeName
     : NUMBER_KW (LPAREN INTEGER_LITERAL (COMMA INTEGER_LITERAL)? RPAREN)?
     | VARCHAR2 LPAREN INTEGER_LITERAL (BYTE | CHAR_KW)? RPAREN
     | NVARCHAR2 LPAREN INTEGER_LITERAL RPAREN
-    | CHAR_KW (LPAREN INTEGER_LITERAL (BYTE | CHAR_KW)? RPAREN)?
+    | CHAR_KW VARYING? (LPAREN INTEGER_LITERAL (BYTE | CHAR_KW)? RPAREN)?
     | NCHAR (LPAREN INTEGER_LITERAL RPAREN)?
     | VARCHAR (LPAREN INTEGER_LITERAL RPAREN)?
     | DATE_KW
@@ -388,8 +388,8 @@ expr
     | NOT expr                                                                   # notExpr
     | expr AND expr                                                              # andExpr
     | expr OR expr                                                               # orExpr
-    | CASE_KW caseCondition* (ELSE expr)? END_KW                                # searchedCaseExpr
-    | CASE_KW expr caseCondition* (ELSE expr)? END_KW                           # simpleCaseExpr
+    | CASE_KW caseCondition+ (ELSE expr)? END_KW                                # searchedCaseExpr
+    | CASE_KW expr caseCondition+ (ELSE expr)? END_KW                           # simpleCaseExpr
     | EXISTS LPAREN selectStatement RPAREN                                       # existsExpr
     | functionCall                                                               # funcCallExpr
     | LPAREN selectStatement RPAREN                                              # scalarSubquery

@@ -31,7 +31,7 @@ public class OracleParserBenchmark {
 
   // Complex query within the v1 normalized subset: single table, predicates, GROUP BY, ORDER BY.
   private final String complexQuery =
-      "SELECT department_id, COUNT(*) FROM employees"
+      "SELECT department_id FROM employees"
           + " WHERE hire_date >= '2020-01-01' AND salary > 0"
           + " GROUP BY department_id"
           + " ORDER BY department_id ASC";

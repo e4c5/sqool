@@ -200,7 +200,6 @@ TIME            : 'TIME';
 ZONE            : 'ZONE';
 PRECISION       : 'PRECISION';
 DOUBLE          : 'DOUBLE';
-CHAR_VARYING    : 'CHAR VARYING';
 CHARACTER       : 'CHARACTER';
 VARYING         : 'VARYING';
 NATIONAL        : 'NATIONAL';
