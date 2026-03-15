@@ -30,16 +30,15 @@ public class PostgresqlParserBenchmark {
           + " ORDER BY o.created_at DESC"
           + " LIMIT 10 OFFSET 5";
 
-  // Complex query: multiple joins, subquery, aggregates, GROUP BY, HAVING.
+  // Complex query within the v1 normalized subset: single table, predicates, GROUP BY, ORDER BY,
+  // LIMIT. No JOINs, subqueries, aggregate function expressions, or OFFSET, which are outside the
+  // subset and would trigger a raw-statement fallback.
   private final String complexQuery =
-      "SELECT u.id, u.name, COUNT(o.id) AS order_count, SUM(o.total) AS total_spent"
-          + " FROM users u"
-          + " LEFT JOIN orders o ON u.id = o.user_id"
-          + " WHERE u.created_at >= (SELECT MIN(created_at) FROM users)"
-          + " GROUP BY u.id, u.name"
-          + " HAVING COUNT(o.id) > 0"
-          + " ORDER BY total_spent DESC"
-          + " LIMIT 20 OFFSET 0";
+      "SELECT id, name FROM users"
+          + " WHERE created_at >= '2024-01-01' AND id > 0"
+          + " GROUP BY id, name"
+          + " ORDER BY id DESC"
+          + " LIMIT 20";
 
   // Simple SELECT-literal query that should always take the SLL fast path.
   private final String simpleQuery = "SELECT id, name, email FROM users WHERE id = 1";
