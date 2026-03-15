@@ -46,8 +46,7 @@ public final class PostgresqlSqlParser implements SqlParser {
               outcome.usedSll() ? ParseMetrics.PredictionMode.SLL : ParseMetrics.PredictionMode.LL,
               System.nanoTime() - startNanos);
       if (!outcome.attempt().diagnostics().isEmpty()) {
-        return new ParseFailure(
-            SqlDialect.POSTGRESQL, outcome.attempt().diagnostics(), metrics);
+        return new ParseFailure(SqlDialect.POSTGRESQL, outcome.attempt().diagnostics(), metrics);
       }
       return PostgresqlAstMapper.mapRoot(outcome.attempt().context(), effectiveOptions)
           .withMetrics(metrics);
@@ -71,8 +70,7 @@ public final class PostgresqlSqlParser implements SqlParser {
   private ParseOutcome<PostgreSQLParser.RootContext> parseRootWithMode(
       String sql, boolean enableFallback) {
     try {
-      return new ParseOutcome<>(
-          parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
+      return new ParseOutcome<>(parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       ParseAttempt<PostgreSQLParser.RootContext> llAttempt =
           parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
@@ -118,7 +116,11 @@ public final class PostgresqlSqlParser implements SqlParser {
             ParseAttempt.failure(
                 List.of(
                     new SyntaxDiagnostic(
-                        DiagnosticSeverity.ERROR, "Fast-path PostgreSQL parse failed.", 1, 0, null))),
+                        DiagnosticSeverity.ERROR,
+                        "Fast-path PostgreSQL parse failed.",
+                        1,
+                        0,
+                        null))),
             false);
       }
       return new ParseOutcome<>(llAttempt, false);

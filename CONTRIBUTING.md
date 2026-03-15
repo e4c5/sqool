@@ -21,6 +21,16 @@ We prioritize build stability and reproducibility. The `antlr` tool and runtime,
 - Version updates for parser toolchains (like ANTLR) should be treated cautiously and only happen when addressing a critical bug or taking advantage of a major performance feature.
 - Dependency locks (via Gradle's native dependency locking) must be updated by running `./gradlew dependencies --write-locks` whenever modifying dependencies. Commit the resulting `gradle.lockfile` changes.
 
+## Extending PostgreSQL (or other dialects)
+
+To add support for new PostgreSQL syntax or mapping:
+
+1. **Grammar**: Edit `sqool-grammar-postgresql/src/main/antlr/*.g4`. Document changes in `sqool-grammar-postgresql/UPSTREAM.md` and `docs/postgresql-grammar-notes.md`.
+2. **Shared abstractions first**: Before adding dialect-local logic, consult and reuse shared parser flow, diagnostic, and mapping helpers in `sqool-core` and `sqool-ast`. Prefer adding normalized AST nodes or extending shared mappers rather than creating new dialect-specific copies. Only fall back to `PostgresqlRawStatement` or dialect-local logic when no shared abstraction can be adapted.
+3. **AST mapping**: Extend `PostgresqlAstMapper` in `sqool-dialect-postgresql`. Use `PostgresqlRawStatement` for unsupported constructs; add normalized AST nodes when the construct is shared across dialects.
+4. **Tests**: Add SQL to `sqool-conformance/src/test/resources/postgresql/supported/` or `unsupported/`, and ensure `PostgresqlConformanceTest` covers it. Add unit tests in `PostgresqlSqlParserTest` for AST structure.
+5. **Benchmarks**: Add representative queries to `PostgresqlParserBenchmark` if they exercise new code paths. See `docs/benchmarks.md` for baseline capture.
+
 ## Contributor Expectations
 
 Before merging any code, you are expected to:

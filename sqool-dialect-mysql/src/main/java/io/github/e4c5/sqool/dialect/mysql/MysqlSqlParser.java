@@ -46,8 +46,12 @@ public final class MysqlSqlParser implements SqlParser {
       if (!outcome.attempt().diagnostics().isEmpty()) {
         return new ParseFailure(SqlDialect.MYSQL, outcome.attempt().diagnostics(), metrics);
       }
-      return MysqlAstMapper.mapQueries(outcome.attempt().context(), effectiveOptions)
-          .withMetrics(metrics);
+      try {
+        return MysqlAstMapper.mapQueries(outcome.attempt().context(), effectiveOptions)
+            .withMetrics(metrics);
+      } catch (MysqlAstMapper.UnsupportedFeatureException exception) {
+        return unsupportedFeatureFailure(exception, metrics);
+      }
     }
 
     var outcome = parseSimpleStatementWithMode(sql, effectiveOptions.enableFallback());
@@ -58,8 +62,12 @@ public final class MysqlSqlParser implements SqlParser {
     if (!outcome.attempt().diagnostics().isEmpty()) {
       return new ParseFailure(SqlDialect.MYSQL, outcome.attempt().diagnostics(), metrics);
     }
-    return MysqlAstMapper.mapSimpleStatement(outcome.attempt().context(), effectiveOptions)
-        .withMetrics(metrics);
+    try {
+      return MysqlAstMapper.mapSimpleStatement(outcome.attempt().context(), effectiveOptions)
+          .withMetrics(metrics);
+    } catch (MysqlAstMapper.UnsupportedFeatureException exception) {
+      return unsupportedFeatureFailure(exception, metrics);
+    }
   }
 
   private record ParseOutcome<C>(ParseAttempt<C> attempt, boolean usedSll) {}
@@ -172,6 +180,21 @@ public final class MysqlSqlParser implements SqlParser {
           "Unexpected trailing tokens after statement.",
           null);
     }
+  }
+
+  private static ParseFailure unsupportedFeatureFailure(
+      MysqlAstMapper.UnsupportedFeatureException exception, ParseMetrics metrics) {
+    Token token = exception.token();
+    return new ParseFailure(
+        SqlDialect.MYSQL,
+        List.of(
+            new SyntaxDiagnostic(
+                DiagnosticSeverity.ERROR,
+                exception.getMessage(),
+                token == null ? 1 : token.getLine(),
+                token == null ? 0 : token.getCharPositionInLine(),
+                token == null ? null : token.getText())),
+        metrics);
   }
 
   private static ParseFailure failure(String message, int line, int column, String offendingToken) {

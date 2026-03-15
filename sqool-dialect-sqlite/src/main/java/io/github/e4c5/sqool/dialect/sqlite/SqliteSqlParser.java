@@ -68,8 +68,7 @@ public final class SqliteSqlParser implements SqlParser {
   private ParseOutcome<SQLiteParser.ParseContext> parseRootWithMode(
       String sql, boolean enableFallback) {
     try {
-      return new ParseOutcome<>(
-          parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
+      return new ParseOutcome<>(parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       // SLL fast-path failed; run an LL pass to surface real syntax diagnostics.
       ParseAttempt<SQLiteParser.ParseContext> llAttempt =

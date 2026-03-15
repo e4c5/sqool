@@ -6,10 +6,7 @@ import java.util.Objects;
 
 /** Successful parse result with a normalized AST root. */
 public record ParseSuccess(
-    SqlDialect dialect,
-    AstNode root,
-    List<SyntaxDiagnostic> diagnostics,
-    ParseMetrics metrics)
+    SqlDialect dialect, AstNode root, List<SyntaxDiagnostic> diagnostics, ParseMetrics metrics)
     implements ParseResult {
 
   public ParseSuccess {

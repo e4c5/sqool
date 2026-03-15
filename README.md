@@ -31,9 +31,12 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
 ./gradlew :sqool-bench:jmh
 ```
 
+See [Benchmarks](docs/benchmarks.md) for how to run and capture baseline results.
+
 ## Design documents
 
 - [SQL Parser Technical Design](docs/sql-parser-technical-design.md)
 - [SQL Parser High-Level Implementation Checklist](docs/sql-parser-implementation-checklist.md)
+- [Benchmarks](docs/benchmarks.md)
 - [Milestone 0 Bootstrap Backlog](docs/milestone-0-bootstrap-backlog.md)
 - [Milestone 0 Review Checklist](docs/milestone-0-review-checklist.md)

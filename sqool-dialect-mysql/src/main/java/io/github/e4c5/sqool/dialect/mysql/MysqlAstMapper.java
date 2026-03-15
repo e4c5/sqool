@@ -43,15 +43,12 @@ import io.github.e4c5.sqool.ast.TruncateTableStatement;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
 import io.github.e4c5.sqool.ast.UpdateStatement;
-import io.github.e4c5.sqool.core.DiagnosticSeverity;
-import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
 import io.github.e4c5.sqool.core.SourceSpans;
 import io.github.e4c5.sqool.core.SqlDialect;
-import io.github.e4c5.sqool.core.SyntaxDiagnostic;
 import io.github.e4c5.sqool.grammar.mysql.generated.MySQLParser;
 import java.util.ArrayList;
 import java.util.List;
@@ -114,74 +111,35 @@ final class MysqlAstMapper {
   private MysqlAstMapper() {}
 
   static ParseResult mapQueries(MySQLParser.QueriesContext context, ParseOptions options) {
-    try {
-      var statements = new ArrayList<Statement>();
-      for (var query : context.query()) {
-        statements.add(mapQuery(query, options));
-      }
-      SourceSpan sourceSpan =
-          statements.isEmpty()
-              ? null
-              : SourceSpans.fromTokens(
-                  context.query().getFirst().start, context.query().getLast().stop, options);
-      return new ParseSuccess(
-          SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of(), ParseMetrics.unknown());
-    } catch (UnsupportedFeatureException exception) {
-      return new ParseFailure(
-          SqlDialect.MYSQL,
-          List.of(
-              new SyntaxDiagnostic(
-                  DiagnosticSeverity.ERROR,
-                  exception.getMessage(),
-                  exception.token == null ? 1 : exception.token.getLine(),
-                  exception.token == null ? 0 : exception.token.getCharPositionInLine(),
-                  exception.token == null ? null : exception.token.getText())),
-          ParseMetrics.unknown());
+    var statements = new ArrayList<Statement>();
+    for (var query : context.query()) {
+      statements.add(mapQuery(query, options));
     }
+    SourceSpan sourceSpan =
+        statements.isEmpty()
+            ? null
+            : SourceSpans.fromTokens(
+                context.query().getFirst().start, context.query().getLast().stop, options);
+    return new ParseSuccess(
+        SqlDialect.MYSQL, new SqlScript(statements, sourceSpan), List.of(), ParseMetrics.unknown());
   }
 
   static ParseResult mapSimpleStatement(
       MySQLParser.SimpleStatementContext context, ParseOptions options) {
-    try {
-      return new ParseSuccess(
-          SqlDialect.MYSQL,
-          mapSimpleStatementInternal(context, options),
-          List.of(),
-          ParseMetrics.unknown());
-    } catch (UnsupportedFeatureException exception) {
-      return new ParseFailure(
-          SqlDialect.MYSQL,
-          List.of(
-              new SyntaxDiagnostic(
-                  DiagnosticSeverity.ERROR,
-                  exception.getMessage(),
-                  exception.token == null ? 1 : exception.token.getLine(),
-                  exception.token == null ? 0 : exception.token.getCharPositionInLine(),
-                  exception.token == null ? null : exception.token.getText())),
-          ParseMetrics.unknown());
-    }
+    return new ParseSuccess(
+        SqlDialect.MYSQL,
+        mapSimpleStatementInternal(context, options),
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   static ParseResult mapQueryExpression(
       MySQLParser.QueryExpressionContext context, ParseOptions options) {
-    try {
-      return new ParseSuccess(
-          SqlDialect.MYSQL,
-          mapQueryExpressionInternal(context, options),
-          List.of(),
-          ParseMetrics.unknown());
-    } catch (UnsupportedFeatureException exception) {
-      return new ParseFailure(
-          SqlDialect.MYSQL,
-          List.of(
-              new SyntaxDiagnostic(
-                  DiagnosticSeverity.ERROR,
-                  exception.getMessage(),
-                  exception.token == null ? 1 : exception.token.getLine(),
-                  exception.token == null ? 0 : exception.token.getCharPositionInLine(),
-                  exception.token == null ? null : exception.token.getText())),
-          ParseMetrics.unknown());
-    }
+    return new ParseSuccess(
+        SqlDialect.MYSQL,
+        mapQueryExpressionInternal(context, options),
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   private static QuerySpecificationMapping mapQuerySpecification(
@@ -1767,12 +1725,16 @@ final class MysqlAstMapper {
       List<Expression> groupBy,
       Expression having) {}
 
-  private static final class UnsupportedFeatureException extends RuntimeException {
+  static final class UnsupportedFeatureException extends RuntimeException {
     private final Token token;
 
     private UnsupportedFeatureException(String message, Token token) {
       super(message);
       this.token = token;
+    }
+
+    Token token() {
+      return token;
     }
   }
 }

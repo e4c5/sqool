@@ -58,17 +58,19 @@ Identify MySQL-specific parser and mapper logic that should be generalized for r
 
 **Tasks**
 
-- [ ] Survey `sqool-dialect-mysql` and related helpers for:
-  - [ ] parser setup and configuration,
-  - [ ] error listener and diagnostic construction,
-  - [ ] AST mapping patterns for common SQL constructs,
-  - [ ] source-span handling and metrics.
+- [x] Survey `sqool-dialect-mysql` and related helpers for:
+  - [x] parser setup and configuration,
+  - [x] error listener and diagnostic construction,
+  - [x] AST mapping patterns for common SQL constructs,
+  - [x] source-span handling and metrics.
 - [ ] Propose a short design note for:
   - [ ] `AntlrParserFacade` or equivalent shared parser entry abstraction,
   - [ ] shared error listener / diagnostic utilities,
   - [ ] shared mapping helpers for expressions, literals, identifiers, and common clauses.
 - [ ] Refactor MySQL to use the new shared abstractions without changing observable behavior.
 - [ ] Identify clearly which parts remain dialect-specific and why.
+
+*Note: Both dialects use `AntlrSyntaxErrorListener`, `ParseAttempt`, `SourceSpans`, and `ParseMetrics` from sqool-core, but each has its own parser implementation. No `AntlrParserFacade` abstraction exists yet.*
 
 **Deliverables**
 
@@ -92,13 +94,13 @@ Vendor and validate the SQLite grammar in `sqool-grammar-sqlite`.
 
 **Tasks**
 
-- [ ] Confirm the upstream SQLite grammar source and revision.
-- [ ] Vendor `.g4` grammar files into `sqool-grammar-sqlite`.
-- [ ] Configure grammar source directories for SQLite.
-- [ ] Configure generated-source output directories.
-- [ ] Validate Java target generation and ensure SQLite grammar compiles.
-- [ ] Add a minimal SQLite parser smoke test (e.g., a basic `SELECT` or DDL).
-- [ ] Add `UPSTREAM.md` documenting provenance and local patches.
+- [x] Confirm the upstream SQLite grammar source and revision.
+- [x] Vendor `.g4` grammar files into `sqool-grammar-sqlite`.
+- [x] Configure grammar source directories for SQLite.
+- [x] Configure generated-source output directories.
+- [x] Validate Java target generation and ensure SQLite grammar compiles.
+- [x] Add a minimal SQLite parser smoke test (e.g., a basic `SELECT` or DDL).
+- [x] Add `UPSTREAM.md` documenting provenance and local patches.
 
 **Deliverables**
 
@@ -121,12 +123,12 @@ Implement the SQLite-specific parser pipeline behind the public API, reusing gen
 
 **Tasks**
 
-- [ ] Implement a SQLite `SqlParser` dialect implementation in `sqool-dialect-sqlite`.
-- [ ] Configure lexer and token stream setup for SQLite via shared parser utilities where appropriate.
-- [ ] Implement SLL-fast / LL-fallback behavior using the same pattern as MySQL.
-- [ ] Ensure diagnostics construction reuses shared error helper code.
-- [ ] Wire SQLite into `ParseOptions` / `SqlDialect`.
-- [ ] Add parser metrics for SQLite.
+- [x] Implement a SQLite `SqlParser` dialect implementation in `sqool-dialect-sqlite`.
+- [x] Configure lexer and token stream setup for SQLite via shared parser utilities where appropriate.
+- [x] Implement SLL-fast / LL-fallback behavior using the same pattern as MySQL.
+- [x] Ensure diagnostics construction reuses shared error helper code.
+- [x] Wire SQLite into `ParseOptions` / `SqlDialect`.
+- [x] Add parser metrics for SQLite.
 
 **Deliverables**
 
@@ -150,17 +152,16 @@ Map an initial SQLite SQL subset into the normalized AST model, reusing existing
 
 **Tasks**
 
-- [ ] Define the SQLite v1 subset (e.g.:
-  - [ ] `CREATE TABLE`, `DROP TABLE`,
-  - [ ] `INSERT`, `UPDATE`, `DELETE`,
-  - [ ] `SELECT` with joins, predicates, ordering,
+- [x] Define the SQLite v1 subset (e.g.:
+  - [x] `SELECT` with joins, predicates, ordering → normalized `SelectStatement`,
+  - [x] `CREATE TABLE`, `DROP TABLE`, `INSERT`, `UPDATE`, `DELETE` → `SqliteRawStatement` extension nodes (not yet normalized),
   - [ ] SQLite-specific conflict resolution clauses as extension nodes).
-- [ ] Implement SQLite mapping in terms of:
-  - [ ] shared mapping helpers for common expressions and clauses,
-  - [ ] SQLite-specific extension nodes where needed.
-- [ ] Ensure AST nodes remain immutable, compact, and ANTLR-free.
-- [ ] Attach source spans for SQLite when enabled.
-- [ ] Add or extend AST golden tests to cover SQLite statements.
+- [x] Implement SQLite mapping in terms of:
+  - [x] shared `SourceSpans` and AST types from sqool-ast,
+  - [x] SQLite-specific extension nodes where needed (`SqliteRawStatement`).
+- [x] Ensure AST nodes remain immutable, compact, and ANTLR-free.
+- [x] Attach source spans for SQLite when enabled.
+- [x] Add or extend AST golden tests to cover SQLite statements (`SqliteSqlParserTest`).
 
 **Deliverables**
 
@@ -184,16 +185,15 @@ Establish a SQLite-specific conformance and regression suite.
 
 **Tasks**
 
-- [ ] Build a SQLite SQL corpus from:
-  - [ ] SQLite documentation examples,
-  - [ ] realistic application queries,
-  - [ ] any early adopters’ statements.
-- [ ] Add conformance tests that:
-  - [ ] assert parse success for valid queries,
-  - [ ] assert parse failure and diagnostics for malformed queries,
-  - [ ] verify AST structures where relevant.
-- [ ] Add regression tests for any SQLite issues found during implementation.
-- [ ] Align directory and naming conventions with the MySQL conformance suite.
+- [x] Build a SQLite SQL corpus from:
+  - [x] SQLite documentation examples,
+  - [x] realistic application queries,
+- [x] Add conformance tests that:
+  - [x] assert parse success for valid queries,
+  - [x] assert parse failure and diagnostics for malformed queries,
+  - [x] verify AST structures where relevant.
+- [x] Add regression tests for any SQLite issues found during implementation.
+- [x] Align directory and naming conventions with the MySQL conformance suite.
 
 **Deliverables**
 
@@ -216,13 +216,13 @@ Add SQLite benchmarks and compare `sqool` to JSqlParser where appropriate.
 
 **Tasks**
 
-- [ ] Define a SQLite benchmark corpus with small, medium, large, and error-path statements.
-- [ ] Add JMH benchmarks that:
-  - [ ] parse the SQLite corpus via `sqool`,
-  - [ ] parse via JSqlParser when the same statements are supported.
-- [ ] Measure throughput, latency, and allocations.
+- [x] Define a SQLite benchmark corpus with small, medium, large, and error-path statements.
+- [x] Add JMH benchmarks that:
+  - [x] parse the SQLite corpus via `sqool`,
+  - [x] parse via JSqlParser when the same statements are supported.
+- [x] Measure throughput, latency, and allocations.
 - [ ] Capture baseline SQLite benchmark results in a reproducible form.
-- [ ] Document how to run SQLite benchmarks.
+- [x] Document how to run SQLite benchmarks.
 
 **Deliverables**
 
@@ -246,13 +246,13 @@ Validate that MySQL and SQLite behave consistently for shared constructs and tha
 
 **Tasks**
 
-- [ ] Add cross-dialect tests for:
-  - [ ] identical `SELECT`-style queries,
-  - [ ] common expression trees,
-  - [ ] basic DDL/DML overlap.
-- [ ] Verify that:
-  - [ ] AST shapes match for shared constructs,
-  - [ ] diagnostics are consistent across dialects for analogous errors.
+- [x] Add cross-dialect tests for:
+  - [x] identical `SELECT`-style queries,
+  - [x] common expression trees,
+  - [x] basic DDL/DML overlap.
+- [x] Verify that:
+  - [x] AST shapes match for shared constructs,
+  - [x] diagnostics are consistent across dialects for analogous errors.
 - [ ] Review naming, packaging, and shared helper APIs for clarity.
 
 **Deliverables**

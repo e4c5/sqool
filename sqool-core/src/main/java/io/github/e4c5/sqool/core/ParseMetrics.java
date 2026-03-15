@@ -30,8 +30,7 @@ public record ParseMetrics(PredictionMode predictionMode, long parseTimeNanos) {
   }
 
   /** Sentinel used when metrics were not recorded (e.g. from AST mapper). */
-  private static final ParseMetrics UNKNOWN =
-      new ParseMetrics(PredictionMode.UNKNOWN, 0L);
+  private static final ParseMetrics UNKNOWN = new ParseMetrics(PredictionMode.UNKNOWN, 0L);
 
   /** Returns metrics for when prediction mode and timing were not recorded. */
   public static ParseMetrics unknown() {

@@ -47,7 +47,10 @@ final class SqliteAstMapper {
             : SourceSpans.fromTokens(
                 stmtList.sql_stmt(0).start, stmtList.sql_stmt(statements.size() - 1).stop, options);
     return new ParseSuccess(
-        SqlDialect.SQLITE, new SqlScript(statements, scriptSpan), List.of(), ParseMetrics.unknown());
+        SqlDialect.SQLITE,
+        new SqlScript(statements, scriptSpan),
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   static ParseResult mapSqlStmt(SQLiteParser.Sql_stmtContext stmt, ParseOptions options) {

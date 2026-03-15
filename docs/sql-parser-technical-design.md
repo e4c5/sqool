@@ -6,6 +6,7 @@
 - Target runtime: Java 25
 - Parser generator: ANTLR 4
 - Primary goal: build a high-performance SQL parser library for MySQL, PostgreSQL, Oracle, and SQLite
+- Implementation status: MySQL, SQLite, and PostgreSQL have MVP implementations; Oracle is planned
 
 ## 1. Overview
 
@@ -55,10 +56,10 @@ The parser will source initial grammars from `antlr/grammars-v4`, with dialect-s
 
 | Dialect | Upstream path | Planned use | Notes |
 | --- | --- | --- | --- |
-| MySQL | `sql/mysql/Oracle` | Direct import, then harden | Best provenance and likely the fastest route to a stable parser. |
-| PostgreSQL | `sql/postgresql` | Import and fork | Known grammar quality issues require cleanup before production use. |
-| Oracle | `sql/plsql` | Import, then subset or gate features | Use Oracle SQL first; defer broad PL/SQL support. |
-| SQLite | `sql/sqlite` | Direct import, then validate | Good base candidate with targeted regression coverage. |
+| MySQL | `sql/mysql/Oracle` (grammars-v4) | Direct import, then harden | Best provenance and likely the fastest route to a stable parser. |
+| PostgreSQL | `sql/postgresql` (grammars-v4) | Import and fork | Known grammar quality issues require cleanup before production use. |
+| Oracle | `sql/plsql` (grammars-v4) | Import, then subset or gate features | Use Oracle SQL first; defer broad PL/SQL support. |
+| SQLite | `bkiers/sqlite-parser` | Direct import, then validate | Community grammar; see `sqool-grammar-sqlite/UPSTREAM.md`. |
 
 ### 3.2 Grammar policy
 
@@ -93,8 +94,8 @@ For a single parse request:
 2. Lex input into a token stream.
 3. Attempt fast-path parse with:
    - SLL prediction
-   - parse tree creation disabled
    - bail-fast error strategy
+   - parse tree built (required for AST mapping; future optimization may explore alternatives)
 4. If the fast path fails with a recoverable syntax issue, retry with:
    - LL prediction
    - structured error collection
@@ -215,11 +216,13 @@ public enum SqlDialect {
 public record ParseOptions(
         SqlDialect dialect,
         boolean scriptMode,
-        boolean collectComments,
         boolean includeSourceSpans,
-        boolean enableFallback,
-        ErrorTolerance errorTolerance
+        boolean enableFallback
 ) {}
+
+/** Metrics captured during a parse (prediction mode, elapsed time). */
+public record ParseMetrics(PredictionMode predictionMode, long parseTimeNanos) {}
+public enum PredictionMode { SLL, LL, UNKNOWN }
 
 public sealed interface ParseResult permits ParseSuccess, ParseFailure {}
 
@@ -281,10 +284,12 @@ public sealed interface Statement extends AstNode
         DropTableStatement,
         InsertStatement,
         MySqlRawStatement,
+        PostgresqlRawStatement,
         ReplaceStatement,
         SelectStatement,
         SetOperationStatement,
         ShowStatement,
+        SqliteRawStatement,
         TruncateTableStatement,
         UpdateStatement {}
 
@@ -331,11 +336,11 @@ public record SyntaxDiagnostic(
         String message,
         int line,
         int column,
-        SourceSpan span,
-        String offendingToken,
-        List<String> expectedTokens
+        String offendingToken
 ) {}
 ```
+
+*(Future: `SourceSpan span` and `List<String> expectedTokens` may be added.)*
 
 ### 9.2 Error policy
 
@@ -353,7 +358,7 @@ Performance work starts in the first implementation milestone.
 
 ### 10.1 Primary tactics
 
-1. Disable parse tree construction by default.
+1. Parse tree is built for AST mapping; consider disabling where optimization justifies it.
 2. Use SLL-first with LL fallback.
 3. Maintain dialect-specific entry points.
 4. Avoid general-purpose intermediate models between ANTLR contexts and AST nodes.
@@ -552,13 +557,16 @@ Do not float critical parser toolchain versions.
 
 The following decisions should be finalized before dialect implementation expands beyond the bootstrap baseline:
 1. Oracle v1 scope: SQL only or partial PL/SQL
-2. Whether comment preservation is required in v1
-3. Whether generated ANTLR sources are committed
-4. Whether script parsing is required in the first public milestone or may follow single-statement parsing
+2. Whether comment preservation (`collectComments`) is required in v1
+3. Whether `ErrorTolerance` is needed in `ParseOptions`
+
+Resolved:
+- Generated ANTLR sources: produced during build, not committed
+- Script parsing: implemented; supported for MySQL, SQLite, and PostgreSQL
 
 ## 17. Implementation Milestones
 
-### Milestone 0: Project skeleton
+### Milestone 0: Project skeleton ✓
 
 - create multi-module build
 - add Java 25 baseline
@@ -566,7 +574,7 @@ The following decisions should be finalized before dialect implementation expand
 - add core API and empty dialect stubs
 - add JMH harness
 
-### Milestone 1: MySQL MVP
+### Milestone 1: MySQL MVP ✓
 
 - vendor MySQL grammar
 - generate parser
@@ -574,14 +582,14 @@ The following decisions should be finalized before dialect implementation expand
 - map a supported subset to normalized AST
 - add first JSqlParser benchmarks
 
-### Milestone 2: SQLite MVP
+### Milestone 2: SQLite MVP ✓
 
 - vendor SQLite grammar
 - harden grammar with regression tests
 - implement AST mapping
 - benchmark and optimize against JSqlParser
 
-### Milestone 3: PostgreSQL grammar hardening
+### Milestone 3: PostgreSQL grammar hardening ✓
 
 - vendor grammar
 - clean up ambiguity and non-idiomatic constructs
@@ -602,15 +610,48 @@ The following decisions should be finalized before dialect implementation expand
 - improve documentation
 - publish benchmark reports in CI
 
-## 18. Recommended Immediate Next Step
+## 18. How to Implement a New Dialect
 
-The next implementation document should be a bootstrap specification covering:
+Use the following checklist when adding a new SQL dialect to the project.
 
-1. build tool selection
-2. exact module names and dependency graph
-3. initial public API package layout
-4. normalized AST v0 schema
-5. benchmark corpus format
-6. grammar vendoring workflow
+### Module structure
 
-That bootstrap spec should be detailed enough to begin Milestone 0 directly.
+Each dialect requires three modules:
+- `sqool-grammar-<dialect>` — vendored ANTLR grammar and generated parser/lexer
+- `sqool-dialect-<dialect>` — parser facade and AST mapper
+- Conformance test resources under `sqool-conformance/src/test/resources/<dialect>/`
+
+### Implementation checklist
+
+1. **Vendor grammar**: Place `.g4` files in `sqool-grammar-<dialect>/src/main/antlr/`. Document provenance in `UPSTREAM.md`. Validate with grammar smoke tests.
+
+2. **Parser facade** (`<Dialect>SqlParser implements SqlParser`):
+   - Use SLL-first parse with `BailErrorStrategy`, fall back to LL with `DefaultErrorStrategy` on `ParseCancellationException` or `InputMismatchException`.
+   - Record `ParseMetrics` (prediction mode and elapsed nanos) around the parse.
+   - Return `ParseFailure` only at this facade boundary; do not catch exceptions and return `ParseResult` in inner mapper helpers.
+
+3. **Shared abstractions first**: Before adding dialect-local logic, reuse helpers in `sqool-core` (e.g., `AntlrSyntaxErrorListener`, `SourceSpans`, `ParseAttempt`) and normalized AST types in `sqool-ast`. Add normalized AST nodes when a construct is shared across dialects. Use dialect-specific raw statement wrappers only for constructs not yet normalized.
+
+4. **AST mapper** (`<Dialect>AstMapper`):
+   - Map the supported subset to normalized AST nodes from `sqool-ast`.
+   - Return a dialect-specific raw statement (e.g., `SqliteRawStatement`, `PostgresqlRawStatement`) for valid syntax outside the normalized subset; do not throw for unsupported shapes.
+   - Throw (do not catch) domain exceptions so that the facade boundary handles `ParseResult` construction.
+
+5. **`ParseOptions` flags**: Implement `scriptMode()` (multi-statement) and `enableFallback()` (SLL→LL). Optionally implement `collectComments` and `ErrorTolerance` if required.
+
+6. **`SyntaxDiagnostic`**: Populate `line`, `column`, `message`, and `severity` for every error. Optionally include `offendingToken`. Consider adding `SourceSpan` and `expectedTokens` for richer IDE integration.
+
+7. **Tests**:
+   - Add SQL files to `sqool-conformance/src/test/resources/<dialect>/supported/` and `unsupported/` and cover them in a conformance test class.
+   - Add unit tests for AST structure in `<Dialect>SqlParserTest`.
+   - Add cross-dialect tests in `CrossDialectConformanceTest` for constructs shared with other dialects.
+
+8. **Benchmarks**: Add JMH benchmarks in `sqool-bench` covering at least simple, join, and error-path query shapes. Run `./gradlew :sqool-bench:jmh` to capture a baseline. See `docs/benchmarks.md` for details.
+
+## 19. Recommended Immediate Next Step
+
+Milestones 0–3 are complete. The next steps are:
+
+1. **Milestone 4: Oracle SQL MVP** — vendor Oracle grammar, subset to SQL-first, implement AST mapping and benchmarks
+2. **Milestone 5: Cross-dialect stabilization** — unify diagnostics, expand AST coverage, publish benchmark reports
+3. **Optional enhancements** — add `collectComments` and `ErrorTolerance` to `ParseOptions` if needed; extend `SyntaxDiagnostic` with `SourceSpan` and `expectedTokens`

@@ -64,16 +64,16 @@ Vendor the PostgreSQL grammar into `sqool-grammar-postgresql` as an internal for
 
 **Tasks**
 
-- [ ] Identify the upstream PostgreSQL grammar source and path in `antlr/grammars-v4`.
-- [ ] Vendor the grammar into `sqool-grammar-postgresql` (lexer/parser `.g4` files).
-- [ ] Add `UPSTREAM.md` for PostgreSQL including:
-  - [ ] source repo,
-  - [ ] upstream path,
-  - [ ] commit hash,
-  - [ ] summary of known upstream issues and local goals.
-- [ ] Configure grammar source directories and generated-source output paths.
-- [ ] Validate Java target generation and basic compilation.
-- [ ] Add a minimal PostgreSQL parser smoke test (e.g., simple `SELECT`, basic DDL).
+- [x] Identify the upstream PostgreSQL grammar source and path in `antlr/grammars-v4`.
+- [x] Vendor the grammar into `sqool-grammar-postgresql` (lexer/parser `.g4` files).
+- [x] Add `UPSTREAM.md` for PostgreSQL including:
+  - [x] source repo,
+  - [x] upstream path,
+  - [x] commit hash,
+  - [x] summary of known upstream issues and local goals.
+- [x] Configure grammar source directories and generated-source output paths.
+- [x] Validate Java target generation and basic compilation.
+- [x] Add a minimal PostgreSQL parser smoke test (e.g., simple `SELECT`, basic DDL).
 
 **Deliverables**
 
@@ -97,17 +97,17 @@ Systematically identify, document, and address PostgreSQL grammar quality and am
 
 **Tasks**
 
-- [ ] Perform a focused audit of the vendored PostgreSQL grammar to identify:
-  - [ ] ambiguous productions,
-  - [ ] deeply left-recursive or awkward constructs,
-  - [ ] rules that are known to cause performance or prediction issues.
-- [ ] Create a short **PostgreSQL Grammar Notes** document (or section) summarizing key findings.
-- [ ] Prioritize issues into:
-  - [ ] must-fix for the v1 subset,
-  - [ ] acceptable but tracked for later,
-  - [ ] out of scope.
-- [ ] Implement targeted grammar refactors for the must-fix set, preserving correctness while improving predictability.
-- [ ] Add regression SQL examples for any fixed ambiguity or quality issue.
+- [x] Perform a focused audit of the vendored PostgreSQL grammar to identify:
+  - [x] ambiguous productions,
+  - [x] deeply left-recursive or awkward constructs,
+  - [x] rules that are known to cause performance or prediction issues.
+- [x] Create a short **PostgreSQL Grammar Notes** document (or section) summarizing key findings.
+- [x] Prioritize issues into:
+  - [x] must-fix for the v1 subset,
+  - [x] acceptable but tracked for later,
+  - [x] out of scope.
+- [x] Implement targeted grammar refactors for the must-fix set, preserving correctness while improving predictability.
+- [x] Add regression SQL examples for any fixed ambiguity or quality issue.
 
 **Deliverables**
 
@@ -131,17 +131,17 @@ Integrate the hardened PostgreSQL grammar into the shared parser infrastructure 
 
 **Tasks**
 
-- [ ] Implement the PostgreSQL dialect implementation in `sqool-dialect-postgresql`.
-- [ ] Use shared parser helpers for:
-  - [ ] lexer/parser instantiation,
-  - [ ] token stream and channel configuration,
-  - [ ] error listeners and diagnostics.
-- [ ] Implement SLL-first parsing with LL fallback, mirroring the MySQL/SQLite pattern.
-- [ ] Ensure diagnostics for PostgreSQL:
-  - [ ] include offending token, expected tokens, and spans when enabled,
-  - [ ] clearly differentiate invalid syntax from unsupported syntax (for the current v1 subset).
-- [ ] Wire PostgreSQL into `SqlDialect` and `ParseOptions`.
-- [ ] Record parser metrics via `ParseMetrics`.
+- [x] Implement the PostgreSQL dialect implementation in `sqool-dialect-postgresql`.
+- [x] Use shared parser helpers for:
+  - [x] lexer/parser instantiation,
+  - [x] token stream and channel configuration,
+  - [x] error listeners and diagnostics.
+- [x] Implement SLL-first parsing with LL fallback, mirroring the MySQL/SQLite pattern.
+- [x] Ensure diagnostics for PostgreSQL:
+  - [x] include offending token, expected tokens, and spans when enabled,
+  - [x] clearly differentiate invalid syntax from unsupported syntax (for the current v1 subset).
+- [x] Wire PostgreSQL into `SqlDialect` and `ParseOptions`.
+- [x] Record parser metrics via `ParseMetrics`.
 
 **Deliverables**
 
@@ -164,20 +164,20 @@ Define and implement a stable v1 subset of PostgreSQL SQL mapped into the normal
 
 **Tasks**
 
-- [ ] Decide and document the PostgreSQL v1 subset (examples, not exhaustive):
-  - [ ] core DDL (e.g., `CREATE TABLE`, `DROP TABLE`),
-  - [ ] core DML (`INSERT`, `UPDATE`, `DELETE`),
-  - [ ] `SELECT` with joins, predicates, and ordering,
-  - [ ] basic CTEs and subqueries where feasible,
-  - [ ] a minimal set of PostgreSQL-specific constructs (e.g., `RETURNING`) as extension nodes.
-- [ ] Implement AST mapping for the v1 subset using:
-  - [ ] shared mapping helpers for common constructs,
-  - [ ] PostgreSQL-specific extension nodes for features that cannot be normalized.
-- [ ] Ensure mapping:
-  - [ ] does not retain ANTLR contexts,
-  - [ ] produces immutable AST nodes,
-  - [ ] attaches source spans correctly when enabled.
-- [ ] Add AST golden tests for representative PostgreSQL statements in the v1 subset.
+- [x] Decide and document the PostgreSQL v1 subset (examples, not exhaustive):
+  - [x] core DDL (e.g., `CREATE TABLE`, `DROP TABLE`),
+  - [x] core DML (`INSERT`, `UPDATE`, `DELETE`),
+  - [x] `SELECT` with joins, predicates, and ordering,
+  - [ ] basic CTEs and subqueries where feasible (deferred to M4),
+  - [x] a minimal set of PostgreSQL-specific constructs (e.g., `RETURNING`) as extension nodes.
+- [x] Implement AST mapping for the v1 subset using:
+  - [x] shared mapping helpers for common constructs,
+  - [x] PostgreSQL-specific extension nodes for features that cannot be normalized.
+- [x] Ensure mapping:
+  - [x] does not retain ANTLR contexts,
+  - [x] produces immutable AST nodes,
+  - [x] attaches source spans correctly when enabled.
+- [x] Add AST golden tests for representative PostgreSQL statements in the v1 subset.
 
 **Deliverables**
 
@@ -201,17 +201,17 @@ Establish a PostgreSQL-focused conformance and regression suite aligned with the
 
 **Tasks**
 
-- [ ] Build a PostgreSQL SQL corpus from:
-  - [ ] PostgreSQL documentation examples,
-  - [ ] realistic application queries,
+- [x] Build a PostgreSQL SQL corpus from:
+  - [x] PostgreSQL documentation examples,
+  - [x] realistic application queries,
   - [ ] any bug reports or discovered corner cases.
-- [ ] Add conformance tests that:
-  - [ ] assert parse success and AST structure for valid v1 queries,
-  - [ ] assert diagnostics for malformed or unsupported queries.
-- [ ] Add regression tests for:
-  - [ ] each grammar ambiguity or bug fixed in M3-2,
-  - [ ] any parser or mapping bugs found during M3.
-- [ ] Align directory and naming conventions with MySQL/SQLite suites.
+- [x] Add conformance tests that:
+  - [x] assert parse success and AST structure for valid v1 queries,
+  - [x] assert diagnostics for malformed or unsupported queries.
+- [x] Add regression tests for:
+  - [x] each grammar ambiguity or bug fixed in M3-2,
+  - [x] any parser or mapping bugs found during M3.
+- [x] Align directory and naming conventions with MySQL/SQLite suites.
 
 **Deliverables**
 
@@ -234,16 +234,16 @@ Add PostgreSQL benchmarks and capture initial performance characteristics.
 
 **Tasks**
 
-- [ ] Define a PostgreSQL benchmark corpus aligned with the v1 subset, plus error-path statements.
-- [ ] Add JMH benchmarks that:
-  - [ ] parse the corpus using the PostgreSQL dialect,
-  - [ ] parse the same corpus using JSqlParser where supported.
-- [ ] Measure:
-  - [ ] throughput,
-  - [ ] latency,
+- [x] Define a PostgreSQL benchmark corpus aligned with the v1 subset, plus error-path statements.
+- [x] Add JMH benchmarks that:
+  - [x] parse the corpus using the PostgreSQL dialect,
+  - [x] parse the same corpus using JSqlParser where supported.
+- [x] Measure:
+  - [x] throughput,
+  - [x] latency,
   - [ ] allocation and GC behavior (where practical).
-- [ ] Record baseline PostgreSQL metrics in a reproducible form.
-- [ ] Compare PostgreSQL performance to MySQL and SQLite to identify any obvious regressions from grammar complexity.
+- [x] Record baseline PostgreSQL metrics in a reproducible form.
+- [x] Compare PostgreSQL performance to MySQL and SQLite to identify any obvious regressions from grammar complexity.
 
 **Deliverables**
 
@@ -267,10 +267,10 @@ Explicitly review and document the PostgreSQL-specific risks identified in the t
 
 **Tasks**
 
-- [ ] Map technical-design PostgreSQL risks (e.g., grammar cleanup size, ambiguity) to:
-  - [ ] mitigation work completed in M3,
-  - [ ] remaining follow-ups with clear priority.
-- [ ] Record any deliberate scope limitations for PostgreSQL v1.
+- [x] Map technical-design PostgreSQL risks (e.g., grammar cleanup size, ambiguity) to:
+  - [x] mitigation work completed in M3,
+  - [x] remaining follow-ups with clear priority.
+- [x] Record any deliberate scope limitations for PostgreSQL v1.
 - [ ] Update design or planning docs if assumptions about PostgreSQL grammar or behavior have changed.
 
 **Deliverables**

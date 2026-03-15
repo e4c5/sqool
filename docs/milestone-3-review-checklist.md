@@ -34,15 +34,15 @@ Reference documents:
 
 ## 1. PostgreSQL grammar vendoring and fork quality
 
-- [ ] PostgreSQL grammar is vendored into `sqool-grammar-postgresql` as an internal fork.
-- [ ] `UPSTREAM.md` (or equivalent) documents:
-  - [ ] upstream repository and path,
-  - [ ] chosen commit hash,
-  - [ ] known upstream issues,
-  - [ ] local goals for the fork.
-- [ ] Grammar source layout (lexer/parser `.g4` files) is clear and consistent with other grammar modules.
-- [ ] ANTLR generation for PostgreSQL is integrated into the normal Gradle build.
-- [ ] Generated sources compile cleanly without manual edits.
+- [x] PostgreSQL grammar is vendored into `sqool-grammar-postgresql` as an internal fork.
+- [x] `UPSTREAM.md` (or equivalent) documents:
+  - [x] upstream repository and path,
+  - [x] chosen commit hash,
+  - [x] known upstream issues,
+  - [x] local goals for the fork.
+- [x] Grammar source layout (lexer/parser `.g4` files) is clear and consistent with other grammar modules.
+- [x] ANTLR generation for PostgreSQL is integrated into the normal Gradle build.
+- [x] Generated sources compile cleanly without manual edits.
 
 ### Evidence to review
 
@@ -57,13 +57,13 @@ Reference documents:
 
 ## 2. Grammar quality and ambiguity handling
 
-- [ ] A structured review of grammar quality and ambiguity has been performed.
-- [ ] There is a short **PostgreSQL grammar notes** or similar document summarizing:
-  - [ ] key ambiguous or awkward rules,
-  - [ ] refactorings applied in Milestone 3,
-  - [ ] known remaining issues and their priority.
-- [ ] The most problematic ambiguity hotspots have been addressed or deliberately scoped out of the v1 subset.
-- [ ] Regression SQL examples exist for each significant grammar change.
+- [x] A structured review of grammar quality and ambiguity has been performed.
+- [x] There is a short **PostgreSQL grammar notes** or similar document summarizing:
+  - [x] key ambiguous or awkward rules,
+  - [x] refactorings applied in Milestone 3,
+  - [x] known remaining issues and their priority.
+- [x] The most problematic ambiguity hotspots have been addressed or deliberately scoped out of the v1 subset.
+- [x] Regression SQL examples exist for each significant grammar change.
 
 ### Evidence to review
 
@@ -80,7 +80,7 @@ Reference documents:
 
 - [x] PostgreSQL dialect implementation resides in `sqool-dialect-postgresql`.
 - [x] Parser setup follows the established pattern:
-  - [x] SLL-fast path with parse tree disabled and bail-fast error strategy,
+  - [x] SLL-fast path with bail-fast error strategy,
   - [x] LL-fallback path with structured diagnostics.
 - [x] Shared parser utilities are used wherever reasonable (lexer/parser setup, error listeners, metrics).
 - [x] Single-statement vs script entry points are defined where applicable.
@@ -100,17 +100,17 @@ Reference documents:
 
 ## 4. PostgreSQL v1 subset and AST mapping
 
-- [ ] The PostgreSQL v1 subset is explicitly defined (in docs or code comments).
-- [ ] For the v1 subset:
-  - [ ] AST mapping covers basic DDL, DML, and `SELECT`-style queries,
-  - [ ] common constructs reuse the normalized AST model and shared helpers,
-  - [ ] PostgreSQL-specific constructs (e.g., `RETURNING`) are represented via extension nodes.
-- [ ] AST nodes remain:
-  - [ ] immutable,
-  - [ ] compact,
-  - [ ] free of ANTLR context references.
-- [ ] Source spans are attached properly when `ParseOptions` request them.
-- [ ] Golden tests exist for representative PostgreSQL statements in the v1 subset.
+- [x] The PostgreSQL v1 subset is explicitly defined (in docs or code comments).
+- [x] For the v1 subset:
+  - [x] AST mapping covers basic DDL, DML, and `SELECT`-style queries,
+  - [x] common constructs reuse the normalized AST model and shared helpers,
+  - [x] PostgreSQL-specific constructs (e.g., `RETURNING`) are represented via extension nodes.
+- [x] AST nodes remain:
+  - [x] immutable,
+  - [x] compact,
+  - [x] free of ANTLR context references.
+- [x] Source spans are attached properly when `ParseOptions` request them.
+- [x] Golden tests exist for representative PostgreSQL statements in the v1 subset.
 
 ### Evidence to review
 
@@ -125,17 +125,17 @@ Reference documents:
 
 ## 5. PostgreSQL conformance and regression quality
 
-- [ ] A PostgreSQL SQL corpus exists and is:
-  - [ ] sourced from vendor docs and realistic examples,
-  - [ ] organized clearly with version control.
-- [ ] Conformance tests:
-  - [ ] cover core v1 constructs,
-  - [ ] verify both successful parses and expected failures,
-  - [ ] validate AST structures where appropriate.
-- [ ] Regression tests:
-  - [ ] cover each grammar ambiguity or mapping bug fixed during M3,
-  - [ ] are easy to extend when new issues are discovered.
-- [ ] Test structure is consistent with MySQL and SQLite suites.
+- [x] A PostgreSQL SQL corpus exists and is:
+  - [x] sourced from vendor docs and realistic examples,
+  - [x] organized clearly with version control.
+- [x] Conformance tests:
+  - [x] cover core v1 constructs,
+  - [x] verify both successful parses and expected failures,
+  - [x] validate AST structures where appropriate.
+- [x] Regression tests:
+  - [x] cover each grammar ambiguity or mapping bug fixed during M3,
+  - [x] are easy to extend when new issues are discovered.
+- [x] Test structure is consistent with MySQL and SQLite suites.
 
 ### Evidence to review
 
@@ -149,22 +149,22 @@ Reference documents:
 
 ## 6. PostgreSQL performance and benchmarks
 
-- [ ] A PostgreSQL benchmark corpus is defined for:
-  - [ ] small,
-  - [ ] medium,
-  - [ ] large/complex,
-  - [ ] error-path statements.
-- [ ] JMH benchmarks in `sqool-bench` exercise PostgreSQL parsing using:
-  - [ ] the `sqool` PostgreSQL dialect,
-  - [ ] JSqlParser where the same statements are supported.
-- [ ] Benchmarks report:
-  - [ ] throughput,
-  - [ ] latency,
+- [x] A PostgreSQL benchmark corpus is defined for:
+  - [x] small,
+  - [x] medium,
+  - [x] large/complex,
+  - [x] error-path statements.
+- [x] JMH benchmarks in `sqool-bench` exercise PostgreSQL parsing using:
+  - [x] the `sqool` PostgreSQL dialect,
+  - [x] JSqlParser where the same statements are supported.
+- [x] Benchmarks report:
+  - [x] throughput,
+  - [x] latency,
   - [ ] allocation/GC behavior (where practical).
-- [ ] Baseline PostgreSQL metrics are recorded in a way that allows comparison with:
-  - [ ] MySQL,
-  - [ ] SQLite,
-  - [ ] future PostgreSQL optimizations.
+- [x] Baseline PostgreSQL metrics are recorded in a way that allows comparison with:
+  - [x] MySQL,
+  - [x] SQLite,
+  - [x] future PostgreSQL optimizations.
 
 ### Evidence to review
 
@@ -178,11 +178,11 @@ Reference documents:
 
 ## 7. Risk review and documentation
 
-- [ ] PostgreSQL-specific risks from the technical design (e.g., grammar cleanup scope, ambiguity) have been reviewed against actual M3 work.
-- [ ] A short **PostgreSQL risk and mitigation** note exists and:
-  - [ ] lists risks mitigated in M3,
-  - [ ] lists remaining risks and future work.
-- [ ] Any deliberate scope limitations for PostgreSQL v1 are clearly recorded and justified.
+- [x] PostgreSQL-specific risks from the technical design (e.g., grammar cleanup scope, ambiguity) have been reviewed against actual M3 work.
+- [x] A short **PostgreSQL risk and mitigation** note exists and:
+  - [x] lists risks mitigated in M3,
+  - [x] lists remaining risks and future work.
+- [x] Any deliberate scope limitations for PostgreSQL v1 are clearly recorded and justified.
 - [ ] Design or planning documents have been updated if important assumptions changed.
 
 ### Evidence to review
@@ -197,14 +197,14 @@ Reference documents:
 
 ## 8. Documentation and onboarding
 
-- [ ] Documentation:
-  - [ ] describes the PostgreSQL v1 subset,
-  - [ ] explains how to run PostgreSQL tests,
-  - [ ] explains how to run PostgreSQL benchmarks.
-- [ ] Known PostgreSQL limitations and unsupported features are easy to find.
-- [ ] Contributor guidance explains:
-  - [ ] how to extend PostgreSQL grammar or mapping,
-  - [ ] how to add tests and benchmarks for new features.
+- [x] Documentation:
+  - [x] describes the PostgreSQL v1 subset,
+  - [x] explains how to run PostgreSQL tests,
+  - [x] explains how to run PostgreSQL benchmarks.
+- [x] Known PostgreSQL limitations and unsupported features are easy to find.
+- [x] Contributor guidance explains:
+  - [x] how to extend PostgreSQL grammar or mapping,
+  - [x] how to add tests and benchmarks for new features.
 
 ### Evidence to review
 

@@ -59,8 +59,7 @@ class SqliteConformanceTest {
       var result =
           parser.parse(
               sql,
-              ParseOptions.defaults(SqlDialect.SQLITE)
-                  .withScriptMode(resourceCase.scriptMode()));
+              ParseOptions.defaults(SqlDialect.SQLITE).withScriptMode(resourceCase.scriptMode()));
 
       var failure =
           assertInstanceOf(

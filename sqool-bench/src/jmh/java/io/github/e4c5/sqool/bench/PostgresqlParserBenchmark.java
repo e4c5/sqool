@@ -30,6 +30,16 @@ public class PostgresqlParserBenchmark {
           + " ORDER BY o.created_at DESC"
           + " LIMIT 10 OFFSET 5";
 
+  // Complex query within the v1 normalized subset: single table, predicates, GROUP BY, ORDER BY,
+  // LIMIT. No JOINs, subqueries, aggregate function expressions, or OFFSET, which are outside the
+  // subset and would trigger a raw-statement fallback.
+  private final String complexQuery =
+      "SELECT id, name FROM users"
+          + " WHERE created_at >= '2024-01-01' AND id > 0"
+          + " GROUP BY id, name"
+          + " ORDER BY id DESC"
+          + " LIMIT 20";
+
   // Simple SELECT-literal query that should always take the SLL fast path.
   private final String simpleQuery = "SELECT id, name, email FROM users WHERE id = 1";
 
@@ -54,6 +64,16 @@ public class PostgresqlParserBenchmark {
   @Benchmark
   public Object parseSimpleQueryWithJSqlParser() throws Exception {
     return CCJSqlParserUtil.parse(simpleQuery);
+  }
+
+  @Benchmark
+  public ParseResult parseComplexQueryWithSqool() {
+    return parser.parse(complexQuery, options);
+  }
+
+  @Benchmark
+  public Object parseComplexQueryWithJSqlParser() throws Exception {
+    return CCJSqlParserUtil.parse(complexQuery);
   }
 
   @Benchmark
