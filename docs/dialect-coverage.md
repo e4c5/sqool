@@ -17,28 +17,28 @@ This document summarizes the SQL constructs supported by each sqool dialect pars
 |-----------|-------|--------|------------|--------|
 | Simple SELECT (no FROM) | ✅ | ✅ | ✅ | ✅ (via DUAL) |
 | SELECT with FROM (single table) | ✅ | ✅ | ✅ | ✅ |
-| SELECT with WHERE | ✅ | ✅† | ✅ | ✅ |
-| SELECT with ORDER BY | ✅ | ✅† | ✅ | ✅ |
-| SELECT with GROUP BY / HAVING | ✅ | ✅† | ✅ | ✅ |
+| SELECT with WHERE | ✅ | ✅ | ✅ | ✅ |
+| SELECT with ORDER BY | ✅ | ✅ | ✅ | ✅ |
+| SELECT with GROUP BY / HAVING | ✅ | ✅ | ✅ | ✅ |
 | SELECT with LIMIT / OFFSET | ✅ | ✅ | ✅ | — |
 | SELECT with FETCH FIRST (Oracle) | — | — | — | ⚠ Raw |
-| SELECT with INNER JOIN | ✅ | ⚠ Raw† | ✅ | ✅ |
-| SELECT with LEFT / RIGHT JOIN | ✅ | ⚠ Raw† | ✅ | ✅ |
+| SELECT with INNER JOIN | ✅ | ✅ | ✅ | ✅ |
+| SELECT with LEFT / RIGHT JOIN | ✅ | ✅ | ✅ | ✅ |
 | SELECT with FULL OUTER JOIN | — | — | ✅ | ✅ |
-| SELECT with CROSS JOIN | ✅ | ⚠ Raw† | ✅ | ✅ |
-| SELECT with NATURAL JOIN | ⚠ Raw | ⚠ Raw† | ⚠ Raw | ⚠ Raw |
+| SELECT with CROSS JOIN | ✅ | ✅ | ✅ | ✅ |
+| SELECT with NATURAL JOIN | ✅ | ✅ | ✅ | ✅ |
 | SELECT DISTINCT | ✅ | ✅ | ✅ | ✅ |
 | UNION / UNION ALL / INTERSECT | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
 | MINUS (Oracle) | — | — | — | ⚠ Raw |
 | Subqueries in FROM (derived tables) | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
 | CTEs (WITH clause) | ⚠ Raw | ⚠ Raw | ⚠ Raw | ⚠ Raw |
-| INSERT … VALUES | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
-| INSERT … SELECT | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
+| INSERT … VALUES | ✅ | ⚠ Raw | ✅ | ✅ |
+| INSERT … SELECT | ✅ | ⚠ Raw | ✅ | ✅ |
 | INSERT … RETURNING (PostgreSQL) | — | — | ⚠ Raw | — |
 | REPLACE INTO (MySQL) | ✅ | — | — | — |
-| UPDATE | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
+| UPDATE | ✅ | ⚠ Raw | ✅ | ✅ |
 | UPDATE multi-table (MySQL) | ✅ | — | — | — |
-| DELETE | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
+| DELETE | ✅ | ⚠ Raw | ✅ | ✅ |
 | CREATE TABLE | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
 | CREATE TABLE … LIKE (MySQL) | ✅ | — | — | — |
 | CREATE TABLE … IF NOT EXISTS | ✅ | ⚠ Raw | ⚠ Raw | — |
@@ -51,8 +51,6 @@ This document summarizes the SQL constructs supported by each sqool dialect pars
 | Transaction control (BEGIN/COMMIT/ROLLBACK) | ✅ | ⚠ Raw | ⚠ Raw | ⚠ Raw |
 | SAVEPOINT | ⚠ Raw | ⚠ Raw | ⚠ Raw | ⚠ Raw |
 
-† SQLite's v1 expression mapper supports only simple expressions (literals, identifiers). Queries with binary comparisons in WHERE, join conditions in ON, or other complex expressions may fall back to `SqliteRawStatement`. See [Known Limitations](#known-limitations).
-
 ## Expression coverage
 
 | Expression | MySQL | SQLite | PostgreSQL | Oracle |
@@ -60,7 +58,7 @@ This document summarizes the SQL constructs supported by each sqool dialect pars
 | Column/table identifier | ✅ | ✅ | ✅ | ✅ |
 | String / number / NULL literals | ✅ | ✅ | ✅ | ✅ |
 | Arithmetic (`+`, `-`, `*`, `/`) | ✅ | ✅ | ✅ | ✅ |
-| Comparison (`=`, `<>`, `<`, `>`, etc.) | ✅ | ⚠ Limited | ✅ | ✅ |
+| Comparison (`=`, `<>`, `<`, `>`, etc.) | ✅ | ✅ | ✅ | ✅ |
 | Logical AND / OR | ✅ | ✅ | ✅ | ✅ |
 | NOT | ✅ | ✅ | ✅ | ✅ |
 | IS NULL / IS NOT NULL | ✅ | ✅ | ✅ | ✅ |
@@ -76,10 +74,10 @@ This document summarizes the SQL constructs supported by each sqool dialect pars
 
 | AST Node | MySQL | SQLite | PostgreSQL | Oracle |
 |----------|-------|--------|------------|--------|
-| `SelectStatement` | ✅ | ✅† | ✅ | ✅ |
-| `InsertStatement` | ✅ | — | — | — |
-| `UpdateStatement` | ✅ | — | — | — |
-| `DeleteStatement` | ✅ | — | — | — |
+| `SelectStatement` | ✅ | ✅ | ✅ | ✅ |
+| `InsertStatement` | ✅ | — | ✅ | ✅ |
+| `UpdateStatement` | ✅ | — | ✅ | ✅ |
+| `DeleteStatement` | ✅ | — | ✅ | ✅ |
 | `CreateTableStatement` | ✅ | — | — | — |
 | `DropTableStatement` | ✅ | — | — | — |
 | `CreateDatabaseStatement` | ✅ | — | — | — |
@@ -89,14 +87,12 @@ This document summarizes the SQL constructs supported by each sqool dialect pars
 | `ShowStatement` | ✅ | — | — | — |
 | `SetOperationStatement` | ✅ | — | — | — |
 | `NamedTableReference` | ✅ | ✅ | ✅ | ✅ |
-| `JoinTableReference` | ✅ | — | ✅ | ✅ |
+| `JoinTableReference` | ✅ | ✅ | ✅ | ✅ |
 | `DerivedTableReference` | ✅ | — | — | — |
 | `MySqlRawStatement` | ✅ | — | — | — |
 | `SqliteRawStatement` | — | ✅ | — | — |
 | `PostgresqlRawStatement` | — | — | ✅ | — |
 | `OracleRawStatement` | — | — | — | ✅ |
-
-† SQLite `SelectStatement` is produced for queries where the expression mapper can handle all expressions (no binary comparisons in WHERE, no explicit joins).
 
 ## Dialect-specific features
 
@@ -136,12 +132,12 @@ This document summarizes the SQL constructs supported by each sqool dialect pars
 ### Common
 - CTEs (`WITH` clause) are parsed but fall back to raw statements in all dialects.
 - Subqueries in `FROM` are normalized only in MySQL (`DerivedTableReference`); other dialects use raw.
-- `NATURAL JOIN` is parsed but falls back to raw in all dialects (not normalized to `JoinTableReference`).
+- `NATURAL JOIN` is normalized to `JoinTableReference` with `natural == true` in all four dialects.
 - Function calls in SELECT / WHERE are parsed but fall back to raw in all dialects except MySQL.
 
 ### SQLite
-- The v1 expression mapper navigates a strict single-path through the expression grammar. Queries with comparison operators in WHERE (e.g. `WHERE id = 1`), join ON conditions, or other expressions not at the terminal level fall back to `SqliteRawStatement`. This is a known v1 scope limitation; the parse always succeeds, but normalization is limited.
-- `JOIN` queries fall back to `SqliteRawStatement` because `JoinTableReference` is not yet implemented for SQLite.
+- INSERT, UPDATE, DELETE, CREATE TABLE, DROP TABLE, and transaction control are parsed but fall back to `SqliteRawStatement` (not normalized to shared DDL/DML AST nodes).
+- The v1 expression mapper supports basic comparisons, AND/OR, and literals/identifiers in SELECT, WHERE, and JOIN ON. More complex expressions (e.g. function calls, BETWEEN, IN, LIKE, bitwise, multiple arithmetic terms) may fall back to `SqliteRawStatement` for the whole SELECT.
 
 ### PostgreSQL
 - `OFFSET … FETCH FIRST` (SQL standard paging syntax) is parsed but returned as `PostgresqlRawStatement`.

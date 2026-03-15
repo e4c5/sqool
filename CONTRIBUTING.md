@@ -81,7 +81,7 @@ For example, to add normalized JOIN support to a dialect:
 
 1. Add helper methods: `mapTableReference(...)`, `mapTablePrimary(...)`, `mapJoinClause(...)`, `mapJoinKind(...)`.
 2. Update `mapFromClause(...)` to call `mapTableReference` instead of only handling the single-table case.
-3. Return `null` from the join helpers to fall back to raw for unsupported join shapes (e.g. NATURAL JOIN).
+3. Return `null` from the join helpers to fall back to raw for unsupported join shapes.
 4. Add SQL test resources and update conformance tests.
 
 See the Oracle and PostgreSQL `AstMapper` implementations for reference patterns.
@@ -95,6 +95,11 @@ To add support for new PostgreSQL syntax or mapping:
 3. **AST mapping**: Extend `PostgresqlAstMapper` in `sqool-dialect-postgresql`. Use `PostgresqlRawStatement` for unsupported constructs; add normalized AST nodes when the construct is shared across dialects.
 4. **Tests**: Add SQL to `sqool-conformance/src/test/resources/postgresql/supported/` or `unsupported/`, and ensure `PostgresqlConformanceTest` covers it. Add unit tests in `PostgresqlSqlParserTest` for AST structure.
 5. **Benchmarks**: Add representative queries to `PostgresqlParserBenchmark` if they exercise new code paths. See `docs/benchmarks.md` for baseline capture.
+
+## Quality gates for new syntax and bug fixes
+
+- **New syntax or normalized construct**: Must be covered by at least one conformance test (e.g. SQL in `sqool-conformance/src/test/resources/{dialect}/supported/` and an assertion in the dialect’s conformance test or `CrossDialectConformanceTest`). Update `docs/dialect-coverage.md` if the normalization level changes.
+- **Bug fix (grammar or AST mapping)**: Must include a regression test that would have failed before the fix (e.g. a test method or a new SQL file in the conformance suite).
 
 ## Shared helpers
 

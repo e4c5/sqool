@@ -55,3 +55,6 @@ See [Benchmarks](docs/benchmarks.md) for how to run and capture baseline results
 - [Milestone 5 Review Checklist](docs/milestone-5-review-checklist.md)
 - [Post-M5 Roadmap and Follow-ups](docs/post-m5-roadmap.md)
 - [Next Milestone Checklist](docs/next-milestone-checklist.md)
+- [Parser Abstractions (design note)](docs/parser-abstractions.md)
+- [Release Readiness](docs/release-readiness.md)
+- [Milestone 6: Remaining Implementation Plan](docs/milestone-6-remaining-implementation-plan.md)

@@ -116,8 +116,9 @@ class CrossDialectConformanceTest {
     assertSuccessNoDiagnostics(postgresqlResult, "PostgreSQL");
     assertSuccessNoDiagnostics(oracleResult, "Oracle");
 
-    // MySQL, PostgreSQL, and Oracle normalize to SelectStatement.
+    // All four dialects normalize to SelectStatement (SQLite v1 expression mapper supports basic WHERE).
     assertSuccessWithSelectStatement(mysqlResult, "MySQL");
+    assertSuccessWithSelectStatement(sqliteResult, "SQLite");
     assertSuccessWithSelectStatement(postgresqlResult, "PostgreSQL");
     assertSuccessWithSelectStatement(oracleResult, "Oracle");
   }
@@ -138,9 +139,7 @@ class CrossDialectConformanceTest {
 
   @Test
   void selectWithJoinParsesSuccessfullyInAllFourDialects() {
-    // All four dialects should parse this SQL successfully. MySQL, PostgreSQL, and Oracle
-    // normalize JOINs to SelectStatement + JoinTableReference; SQLite currently falls back
-    // to SqliteRawStatement for JOIN queries (known v1 limitation).
+    // All four dialects parse and normalize JOINs to SelectStatement + JoinTableReference.
     String sql = "SELECT u.id, o.total FROM users u INNER JOIN orders o ON u.id = o.user_id";
     ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
     ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
@@ -148,14 +147,13 @@ class CrossDialectConformanceTest {
         postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oracleResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
-    // All must succeed with no diagnostics.
     assertSuccessNoDiagnostics(mysqlResult, "MySQL");
     assertSuccessNoDiagnostics(sqliteResult, "SQLite");
     assertSuccessNoDiagnostics(postgresqlResult, "PostgreSQL");
     assertSuccessNoDiagnostics(oracleResult, "Oracle");
 
-    // MySQL, PostgreSQL, and Oracle normalize JOINs to SelectStatement.
     assertSuccessWithSelectStatement(mysqlResult, "MySQL");
+    assertSuccessWithSelectStatement(sqliteResult, "SQLite");
     assertSuccessWithSelectStatement(postgresqlResult, "PostgreSQL");
     assertSuccessWithSelectStatement(oracleResult, "Oracle");
   }

@@ -11,33 +11,35 @@ This checklist covers the **next phase** of work after Milestones 0–5: follow-
 
 ## 1. M5 follow-ups (normalization)
 
-- [ ] **SQLite JOIN normalization** — Extend SQLite v1 expression mapper so JOIN queries and complex WHERE produce `SelectStatement` + `JoinTableReference` instead of `SqliteRawStatement`. Add/update golden tests.
-- [ ] **PostgreSQL / Oracle DML normalization** — Map INSERT, UPDATE, DELETE to shared AST nodes (e.g. `InsertStatement`, `UpdateStatement`, `DeleteStatement`) where practical; add golden tests.
-- [ ] **NATURAL JOIN** — Normalize NATURAL JOIN to a shared AST representation across dialects (or document as raw-only and close as deferred).
+- [x] **SQLite JOIN normalization** — Extend SQLite v1 expression mapper so JOIN queries and complex WHERE produce `SelectStatement` + `JoinTableReference` instead of `SqliteRawStatement`. Add/update golden tests. *(Already implemented; dialect-coverage and checklist updated.)*
+- [x] **PostgreSQL / Oracle DML normalization** — Map INSERT, UPDATE, DELETE to shared AST nodes (e.g. `InsertStatement`, `UpdateStatement`, `DeleteStatement`) where practical; add golden tests. *(Already implemented; dialect-coverage updated.)*
+- [x] **NATURAL JOIN** — Normalize NATURAL JOIN to a shared AST representation across dialects (or document as raw-only and close as deferred). *(Already normalized: all four dialects produce `JoinTableReference` with `natural == true`. Dialect-coverage and Known limitations updated.)*
 
 ## 2. Optional M2 cleanup
 
-- [ ] **M2-1 design note** — Write a short design note for shared parser/mapper abstractions (`AntlrParserFacade` or equivalent, shared error/mapping helpers); refactor MySQL to use them; document dialect-specific vs shared.
-- [ ] **M2-6 SQLite baseline** — Capture baseline SQLite benchmark results in a reproducible form (CI artifact or committed report).
-- [ ] **M2-7 naming/API review** — Review naming, packaging, and shared helper APIs; document findings in CONTRIBUTING or a short doc.
+- [x] **M2-1 design note** — Write a short design note for shared parser/mapper abstractions (`AntlrParserFacade` or equivalent, shared error/mapping helpers); refactor MySQL to use them; document dialect-specific vs shared. *(Design note added: [parser-abstractions.md](parser-abstractions.md). Refactor deferred.)*
+- [x] **M2-6 SQLite baseline** — Capture baseline SQLite benchmark results in a reproducible form (CI artifact or committed report). *(Documented in [benchmarks.md](benchmarks.md): same capture process for all dialects; CI stores `jmh-results` artifact.)*
+- [x] **M2-7 naming/API review** — Review naming, packaging, and shared helper APIs; document findings in CONTRIBUTING or a short doc. *(CONTRIBUTING already has Module and naming conventions, Shared helpers; no change needed.)*
 
 ## 3. Optional M0 cleanup
 
-- [ ] **Placeholder modules** — Add `src/main` and `src/test` placeholders (and smoke tests) for any grammar/dialect modules that still lack them.
-- [ ] **Documentation** — Document: grammar generation workflow, benchmark reporting policy, dependency upgrade policy, contributor expectations (README or CONTRIBUTING).
-- [ ] **Dependency locking** — Add dependency locking or equivalent for build-critical dependencies.
+- [x] **Placeholder modules** — Add `src/main` and `src/test` placeholders (and smoke tests) for any grammar/dialect modules that still lack them. *(All modules have real source; placeholders superseded by full implementation.)*
+- [x] **Documentation** — Document: grammar generation workflow, benchmark reporting policy, dependency upgrade policy, contributor expectations (README or CONTRIBUTING). *(Documented in [CONTRIBUTING.md](../CONTRIBUTING.md).)*
+- [x] **Dependency locking** — Add dependency locking or equivalent for build-critical dependencies. *(Root `build.gradle.kts` has `dependencyLocking { lockAllConfigurations() }`. Run `./gradlew dependencies --write-locks` and commit lockfiles for reproducible builds.)*
 
 ## 4. Implementation checklist carryover (§11–§13)
 
 ### Performance and benchmarks (§11)
 
-- [ ] **Publish benchmark results** — Publish benchmark results in a reproducible form (CI artifact, report, or documented capture process). See [Benchmarks](benchmarks.md).
+- [x] **Publish benchmark results** — Publish benchmark results in a reproducible form (CI artifact, report, or documented capture process). See [Benchmarks](benchmarks.md). *(CI stores `jmh-results` artifact; capture and comparison documented in benchmarks.md.)*
 
 ### Conformance and quality (§12)
 
-- [ ] **Quality gates** — Define quality gates for adding new syntax coverage (e.g. conformance test required, regression test for bugs).
+- [x] **Quality gates** — Define quality gates for adding new syntax coverage (e.g. conformance test required, regression test for bugs). *(Added to [CONTRIBUTING.md](../CONTRIBUTING.md): Quality gates for new syntax and bug fixes.)*
 
 ### Packaging and release readiness (§13)
+
+Tracked in [release-readiness.md](release-readiness.md). Complete or defer when preparing to publish.
 
 - [ ] **Module publication layout** — Finalize which modules are published and under what coordinates.
 - [ ] **Versioning strategy** — Define versioning strategy (e.g. semver) and compatibility policy.

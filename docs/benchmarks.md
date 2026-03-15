@@ -34,7 +34,7 @@ The JSON output contains one entry per benchmark method with the following key f
 | `primaryMetric.scoreConfidence` | 99% confidence interval `[low, high]` |
 | `params` | Benchmark parameters (if any) |
 
-For CI, benchmark results are stored as workflow artifacts under the name `jmh-results` on `main` branch runs. See the `.github/workflows/ci.yml` `benchmark` job. Artifacts are retained for 90 days.
+For CI, benchmark results are stored as workflow artifacts under the name `jmh-results` on `main` branch runs. See the `.github/workflows/ci.yml` `benchmark` job. Artifacts are retained for 90 days. All dialects (MySQL, SQLite, PostgreSQL, Oracle) use the same capture process; run the full JMH suite and export JSON to obtain a reproducible baseline for all four.
 
 ## Comparing across dialects
 

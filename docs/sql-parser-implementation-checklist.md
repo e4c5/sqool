@@ -130,14 +130,14 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 9. Oracle implementation
 
-- [ ] Confirm Oracle v1 scope as SQL-only or broader
-- [ ] Import the Oracle grammar base
-- [ ] Trim or gate unsupported procedural constructs if needed
-- [ ] Implement Oracle parser integration
-- [ ] Map the initial Oracle SQL subset into the normalized AST
-- [ ] Add Oracle conformance and regression tests
-- [ ] Add Oracle benchmarks against JSqlParser
-- [ ] Tune Oracle parser hot paths
+- [x] Confirm Oracle v1 scope as SQL-only or broader
+- [x] Import the Oracle grammar base
+- [x] Trim or gate unsupported procedural constructs if needed
+- [x] Implement Oracle parser integration
+- [x] Map the initial Oracle SQL subset into the normalized AST
+- [x] Add Oracle conformance and regression tests
+- [x] Add Oracle benchmarks against JSqlParser
+- [x] Tune Oracle parser hot paths
 
 ### Exit criteria
 
@@ -146,11 +146,11 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 ## 10. Cross-dialect normalization
 
-- [ ] Verify consistent AST behavior across shared SQL constructs
-- [ ] Verify consistent diagnostic behavior across dialects
-- [ ] Add cross-dialect golden tests for the common subset
-- [ ] Reconcile dialect extension nodes with the public API
-- [ ] Review naming and package consistency
+- [x] Verify consistent AST behavior across shared SQL constructs
+- [x] Verify consistent diagnostic behavior across dialects
+- [x] Add cross-dialect golden tests for the common subset
+- [x] Reconcile dialect extension nodes with the public API
+- [x] Review naming and package consistency
 
 ### Exit criteria
 
@@ -165,7 +165,7 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 - [x] Optimize AST construction overhead
 - [x] Optimize fallback and error-path costs
 - [x] Review grammar hotspots causing prediction overhead
-- [ ] Publish benchmark results in a reproducible form
+- [x] Publish benchmark results in a reproducible form
 
 ### Exit criteria
 
@@ -178,7 +178,7 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 - [x] Add malformed SQL coverage per dialect
 - [x] Add regression tests for every grammar or AST bug fixed
 - [x] Add differential tests where practical
-- [ ] Define quality gates for adding new syntax coverage
+- [x] Define quality gates for adding new syntax coverage
 
 ### Exit criteria
 
@@ -188,7 +188,7 @@ This checklist captures the high-level implementation path for `sqool`. It is in
 
 - [ ] Finalize module publication layout
 - [ ] Define versioning strategy
-- [ ] Finalize documentation for supported dialect coverage
+- [x] Finalize documentation for supported dialect coverage
 - [ ] Publish benchmark and feature support reports
 - [ ] Prepare release automation and CI quality gates
 - [ ] Define the upstream grammar refresh process
@@ -237,3 +237,11 @@ Each checked item should eventually be expanded into:
 - a detailed design note,
 - a concrete implementation task list, or
 - a benchmark or conformance work item.
+
+---
+
+## 17. Remaining work and next milestone
+
+All items in **§1–§12** are complete. **§13** has five remaining items (module publication layout, versioning strategy, benchmark/feature reports, release automation, upstream grammar refresh). **§14** is deferred.
+
+**For the implementation plan covering the remaining §13 items and the deferred §14 items**, see [Milestone 6: Remaining Implementation Plan](milestone-6-remaining-implementation-plan.md).
