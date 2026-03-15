@@ -405,6 +405,7 @@ configure(publishableModules.map(::project)) {
                             name.set("Raditha Dissanayake")
                             email.set("raditha.d@gmail.com")
                             url.set("https://github.com/e4c5")
+                        }
                     }
                 }
             }
