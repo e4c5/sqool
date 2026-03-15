@@ -212,9 +212,10 @@ final class SqliteAstMapper {
 
       SQLiteParser.Join_constraintContext constraint =
           i < constraints.size() ? constraints.get(i) : null;
+      JoinStepContext stepContext =
+          new JoinStepContext(constraint, operators.get(i), context, i + 1);
       JoinTableReference nextRef =
-          buildJoinTableReference(
-              current, joinType, nextTable, constraint, operators.get(i), context, i + 1, options);
+          buildJoinTableReference(current, joinType, nextTable, stepContext, options);
       if (nextRef == null) {
         return null;
       }
@@ -229,27 +230,24 @@ final class SqliteAstMapper {
       TableReference left,
       JoinType joinType,
       TableReference right,
-      SQLiteParser.Join_constraintContext constraint,
-      SQLiteParser.Join_operatorContext operatorContext,
-      SQLiteParser.Join_clauseContext context,
-      int rightTableIndex,
+      JoinStepContext step,
       ParseOptions options) {
     Expression condition = null;
     List<String> usingColumns = List.of();
-    if (constraint != null) {
-      if (constraint.ON_() != null) {
-        condition = mapExpr(constraint.expr(), options);
+    if (step.constraint() != null) {
+      if (step.constraint().ON_() != null) {
+        condition = mapExpr(step.constraint().expr(), options);
         if (condition == null) {
           return null;
         }
-      } else if (constraint.USING_() != null) {
+      } else if (step.constraint().USING_() != null) {
         usingColumns =
-            constraint.column_name().stream()
+            step.constraint().column_name().stream()
                 .map(SQLiteParser.Column_nameContext::getText)
                 .toList();
       }
     }
-    boolean natural = operatorContext.NATURAL_() != null;
+    boolean natural = step.operatorContext().NATURAL_() != null;
     return new JoinTableReference(
         left,
         joinType,
@@ -258,8 +256,16 @@ final class SqliteAstMapper {
         usingColumns,
         natural,
         SourceSpans.fromTokens(
-            context.start, context.table_or_subquery().get(rightTableIndex).stop, options));
+            step.joinClause().start,
+            step.joinClause().table_or_subquery().get(step.rightTableIndex()).stop,
+            options));
   }
+
+  private record JoinStepContext(
+      SQLiteParser.Join_constraintContext constraint,
+      SQLiteParser.Join_operatorContext operatorContext,
+      SQLiteParser.Join_clauseContext joinClause,
+      int rightTableIndex) {}
 
   private static io.github.e4c5.sqool.ast.JoinType mapJoinOperator(
       SQLiteParser.Join_operatorContext context) {

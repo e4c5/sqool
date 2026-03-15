@@ -37,6 +37,7 @@ import io.github.e4c5.sqool.core.SqlDialect;
 import io.github.e4c5.sqool.grammar.postgresql.generated.PostgreSQLParser;
 import java.util.ArrayList;
 import java.util.List;
+import java.util.Optional;
 import java.util.stream.Collectors;
 
 /** Maps the PostgreSQL ANTLR parse tree to the normalized sqool AST for the v1 subset. */
@@ -325,14 +326,14 @@ final class PostgresqlAstMapper {
 
     PostgreSQLParser.InsertSourceContext source = ctx.insertSource();
     if (source instanceof PostgreSQLParser.InsertValuesContext valuesCtx) {
-      List<List<Expression>> rows = mapInsertValues(valuesCtx, options);
-      if (rows != null) {
+      Optional<List<List<Expression>>> rowsOpt = mapInsertValues(valuesCtx, options);
+      if (rowsOpt.isPresent()) {
         return new ParseSuccess(
             SqlDialect.POSTGRESQL,
             new InsertStatement(
                 tableName,
                 columns,
-                rows,
+                rowsOpt.get(),
                 List.of(),
                 null,
                 List.of(),
@@ -363,25 +364,25 @@ final class PostgresqlAstMapper {
     return rawStatement(ctx, PostgresqlStatementKind.INSERT, options);
   }
 
-  /** Returns parsed value rows, or null if VALUES contain DEFAULT or unparseable expr. */
-  private static List<List<Expression>> mapInsertValues(
+  /** Returns parsed value rows, or empty if VALUES contain DEFAULT or unparseable expr. */
+  private static Optional<List<List<Expression>>> mapInsertValues(
       PostgreSQLParser.InsertValuesContext valuesCtx, ParseOptions options) {
     List<List<Expression>> rows = new ArrayList<>();
     for (PostgreSQLParser.RowValuesContext rowCtx : valuesCtx.rowValues()) {
       List<Expression> row = new ArrayList<>();
       for (PostgreSQLParser.InsertExprContext exprCtx : rowCtx.insertExpr()) {
         if (exprCtx instanceof PostgreSQLParser.DefaultExprContext) {
-          return null;
+          return Optional.empty();
         }
         Expression expr = mapExpr(((PostgreSQLParser.ValueExprContext) exprCtx).expr(), options);
         if (expr == null) {
-          return null;
+          return Optional.empty();
         }
         row.add(expr);
       }
       rows.add(List.copyOf(row));
     }
-    return rows;
+    return Optional.of(rows);
   }
 
   /** Returns the SELECT statement for INSERT...SELECT, or null if not parseable. */
