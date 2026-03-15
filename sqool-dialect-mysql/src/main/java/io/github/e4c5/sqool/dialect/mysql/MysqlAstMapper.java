@@ -802,10 +802,18 @@ final class MysqlAstMapper {
           mapTableReference(context.tableReference(), options),
           null,
           mapIdentifierListWithParentheses(context.identifierListWithParentheses()),
+          false,
           SourceSpans.fromTokens(context.start, context.stop, options));
     }
-    if (context.naturalJoinType() != null || context.tableFactor() != null) {
-      throw unsupportedFeature("MySQL MVP does not support NATURAL joins" + YET, context.start);
+    if (context.naturalJoinType() != null) {
+      return new JoinTableReference(
+          left,
+          mapNaturalJoinType(context.naturalJoinType()),
+          mapTableFactor(context.tableFactor(), options),
+          null,
+          List.of(),
+          true,
+          SourceSpans.fromTokens(context.start, context.stop, options));
     }
     if (context.tableReference() == null) {
       throw unsupportedFeature("MySQL MVP encountered an unsupported join target.", context.start);
@@ -817,6 +825,7 @@ final class MysqlAstMapper {
         mapTableReference(context.tableReference(), options),
         context.expr() == null ? null : mapExpr(context.expr(), options),
         List.of(),
+        false,
         SourceSpans.fromTokens(context.start, context.stop, options));
   }
 
@@ -841,6 +850,13 @@ final class MysqlAstMapper {
       }
     }
     throw unsupportedFeature("MySQL MVP encountered an unsupported join type.", context.start);
+  }
+
+  private static JoinType mapNaturalJoinType(MySQLParser.NaturalJoinTypeContext context) {
+    boolean left = context.LEFT_SYMBOL() != null;
+    boolean right = context.RIGHT_SYMBOL() != null;
+    boolean full = false; // MySQL doesn't support FULL OUTER JOIN directly in this way
+    return JoinType.fromKind(left, right, full);
   }
 
   private static List<OrderByItem> mapOrderBy(

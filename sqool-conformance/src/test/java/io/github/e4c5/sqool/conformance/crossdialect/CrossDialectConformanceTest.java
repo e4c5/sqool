@@ -180,7 +180,8 @@ class CrossDialectConformanceTest {
 
     SelectStatement mysqlStmt =
         assertInstanceOf(SelectStatement.class, mysqlSuccess.root(), "MySQL SELECT");
-    assertInstanceOf(SqliteRawStatement.class, sqliteSuccess.root(), "SQLite SELECT should remain raw");
+    SelectStatement sqliteStmt =
+        assertInstanceOf(SelectStatement.class, sqliteSuccess.root(), "SQLite SELECT");
     SelectStatement pgStmt =
         assertInstanceOf(SelectStatement.class, pgSuccess.root(), "PostgreSQL SELECT");
     SelectStatement oraStmt =
@@ -188,14 +189,59 @@ class CrossDialectConformanceTest {
 
     JoinTableReference mysqlJoin =
         assertInstanceOf(JoinTableReference.class, mysqlStmt.from(), "MySQL FROM");
+    JoinTableReference sqliteJoin =
+        assertInstanceOf(JoinTableReference.class, sqliteStmt.from(), "SQLite FROM");
     JoinTableReference pgJoin =
         assertInstanceOf(JoinTableReference.class, pgStmt.from(), "PostgreSQL FROM");
     JoinTableReference oraJoin =
         assertInstanceOf(JoinTableReference.class, oraStmt.from(), "Oracle FROM");
 
     assertEquals(JoinType.INNER, mysqlJoin.joinType());
+    assertEquals(JoinType.INNER, sqliteJoin.joinType());
     assertEquals(JoinType.INNER, pgJoin.joinType());
     assertEquals(JoinType.INNER, oraJoin.joinType());
+  }
+
+  @Test
+  void selectWithNaturalJoinProducesJoinTableReferenceInAllFourDialects() {
+    String sql = "SELECT u.id, o.total FROM users u NATURAL JOIN orders o";
+    ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
+    ParseResult sqliteResult = sqliteParser.parse(sql, ParseOptions.defaults(SqlDialect.SQLITE));
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
+
+    ParseSuccess mysqlSuccess =
+        assertInstanceOf(ParseSuccess.class, mysqlResult, "MySQL parse should succeed");
+    ParseSuccess sqliteSuccess =
+        assertInstanceOf(ParseSuccess.class, sqliteResult, "SQLite parse should succeed");
+    ParseSuccess pgSuccess =
+        assertInstanceOf(ParseSuccess.class, pgResult, "PostgreSQL parse should succeed");
+    ParseSuccess oraSuccess =
+        assertInstanceOf(ParseSuccess.class, oraResult, "Oracle parse should succeed");
+
+    SelectStatement mysqlStmt =
+        assertInstanceOf(SelectStatement.class, mysqlSuccess.root(), "MySQL SELECT");
+    SelectStatement sqliteStmt =
+        assertInstanceOf(SelectStatement.class, sqliteSuccess.root(), "SQLite SELECT");
+    SelectStatement pgStmt =
+        assertInstanceOf(SelectStatement.class, pgSuccess.root(), "PostgreSQL SELECT");
+    SelectStatement oraStmt =
+        assertInstanceOf(SelectStatement.class, oraSuccess.root(), "Oracle SELECT");
+
+    JoinTableReference mysqlJoin =
+        assertInstanceOf(JoinTableReference.class, mysqlStmt.from(), "MySQL FROM");
+    JoinTableReference sqliteJoin =
+        assertInstanceOf(JoinTableReference.class, sqliteStmt.from(), "SQLite FROM");
+    JoinTableReference pgJoin =
+        assertInstanceOf(JoinTableReference.class, pgStmt.from(), "PostgreSQL FROM");
+    JoinTableReference oraJoin =
+        assertInstanceOf(JoinTableReference.class, oraStmt.from(), "Oracle FROM");
+
+    assertTrue(mysqlJoin.natural(), "MySQL JOIN should be natural");
+    assertTrue(sqliteJoin.natural(), "SQLite JOIN should be natural");
+    assertTrue(pgJoin.natural(), "PostgreSQL JOIN should be natural");
+    assertTrue(oraJoin.natural(), "Oracle JOIN should be natural");
   }
 
   // =========================================================================
@@ -280,22 +326,45 @@ class CrossDialectConformanceTest {
   }
 
   @Test
-  void insertParsesInPostgresqlAndOracleAndProducesRawStatement() {
+  void insertStatementProducesNormalizedAstInAllFourDialects() {
     String sql = "INSERT INTO users (id, name) VALUES (1, 'alice')";
+
+    ParseResult mysqlResult = mysqlParser.parse(sql, ParseOptions.defaults(SqlDialect.MYSQL));
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
+
+    assertSuccessWithStatementClass(mysqlResult, InsertStatement.class, "MySQL");
+    assertSuccessWithStatementClass(pgResult, InsertStatement.class, "PostgreSQL");
+    assertSuccessWithStatementClass(oraResult, InsertStatement.class, "Oracle");
+  }
+
+  @Test
+  void updateStatementProducesNormalizedAstInPostgresqlAndOracle() {
+    String sql = "UPDATE users SET name = 'bob' WHERE id = 1";
 
     ParseResult pgResult =
         postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
     ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
 
-    ParseSuccess pgSuccess = assertInstanceOf(ParseSuccess.class, pgResult, "PostgreSQL INSERT");
-    assertTrue(pgSuccess.diagnostics().isEmpty());
-    PostgresqlRawStatement pgRaw = assertInstanceOf(PostgresqlRawStatement.class, pgSuccess.root());
-    assertEquals(PostgresqlStatementKind.INSERT, pgRaw.kind());
+    assertSuccessWithStatementClass(
+        pgResult, io.github.e4c5.sqool.ast.UpdateStatement.class, "PostgreSQL");
+    assertSuccessWithStatementClass(
+        oraResult, io.github.e4c5.sqool.ast.UpdateStatement.class, "Oracle");
+  }
 
-    ParseSuccess oraSuccess = assertInstanceOf(ParseSuccess.class, oraResult, "Oracle INSERT");
-    assertTrue(oraSuccess.diagnostics().isEmpty());
-    OracleRawStatement oraRaw = assertInstanceOf(OracleRawStatement.class, oraSuccess.root());
-    assertEquals(OracleStatementKind.INSERT, oraRaw.kind());
+  @Test
+  void deleteStatementProducesNormalizedAstInPostgresqlAndOracle() {
+    String sql = "DELETE FROM users WHERE id = 1";
+
+    ParseResult pgResult =
+        postgresqlParser.parse(sql, ParseOptions.defaults(SqlDialect.POSTGRESQL));
+    ParseResult oraResult = oracleParser.parse(sql, ParseOptions.defaults(SqlDialect.ORACLE));
+
+    assertSuccessWithStatementClass(
+        pgResult, io.github.e4c5.sqool.ast.DeleteStatement.class, "PostgreSQL");
+    assertSuccessWithStatementClass(
+        oraResult, io.github.e4c5.sqool.ast.DeleteStatement.class, "Oracle");
   }
 
   // =========================================================================
@@ -374,5 +443,14 @@ class CrossDialectConformanceTest {
     ParseSuccess success =
         assertInstanceOf(ParseSuccess.class, result, dialectLabel + " parse should succeed");
     assertTrue(success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
+  }
+
+  private static void assertSuccessWithStatementClass(
+      ParseResult result, Class<? extends Statement> clazz, String dialectLabel) {
+    ParseSuccess success =
+        assertInstanceOf(ParseSuccess.class, result, dialectLabel + " parse should succeed");
+    assertTrue(success.diagnostics().isEmpty(), dialectLabel + " parse should have no diagnostics");
+    assertInstanceOf(
+        clazz, success.root(), dialectLabel + " root should be " + clazz.getSimpleName());
   }
 }

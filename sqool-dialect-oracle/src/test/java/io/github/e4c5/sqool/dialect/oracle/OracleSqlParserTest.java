@@ -7,8 +7,10 @@ import static org.junit.jupiter.api.Assertions.assertNull;
 import static org.junit.jupiter.api.Assertions.assertTrue;
 
 import io.github.e4c5.sqool.ast.AllColumnsSelectItem;
+import io.github.e4c5.sqool.ast.DeleteStatement;
 import io.github.e4c5.sqool.ast.ExpressionSelectItem;
 import io.github.e4c5.sqool.ast.IdentifierExpression;
+import io.github.e4c5.sqool.ast.InsertStatement;
 import io.github.e4c5.sqool.ast.LiteralExpression;
 import io.github.e4c5.sqool.ast.NamedTableReference;
 import io.github.e4c5.sqool.ast.OracleRawStatement;
@@ -16,6 +18,7 @@ import io.github.e4c5.sqool.ast.OracleStatementKind;
 import io.github.e4c5.sqool.ast.SelectStatement;
 import io.github.e4c5.sqool.ast.SqlScript;
 import io.github.e4c5.sqool.ast.Statement;
+import io.github.e4c5.sqool.ast.UpdateStatement;
 import io.github.e4c5.sqool.core.ParseFailure;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
@@ -105,36 +108,32 @@ class OracleSqlParserTest {
   // =========================================================================
 
   @Test
-  void parseInsertAsRaw() {
+  void parseInsertProducesNormalizedAst() {
     ParseResult result =
         PARSER.parse(
             "INSERT INTO employees (name) VALUES ('Alice')",
             ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    OracleRawStatement raw = assertInstanceOf(OracleRawStatement.class, success.root());
-    assertEquals(OracleStatementKind.INSERT, raw.kind());
-    assertTrue(raw.sqlText().contains("INSERT"));
+    assertInstanceOf(InsertStatement.class, success.root());
   }
 
   @Test
-  void parseUpdateAsRaw() {
+  void parseUpdateProducesNormalizedAst() {
     ParseResult result =
         PARSER.parse(
             "UPDATE employees SET name = 'Bob' WHERE id = 1",
             ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    OracleRawStatement raw = assertInstanceOf(OracleRawStatement.class, success.root());
-    assertEquals(OracleStatementKind.UPDATE, raw.kind());
+    assertInstanceOf(UpdateStatement.class, success.root());
   }
 
   @Test
-  void parseDeleteAsRaw() {
+  void parseDeleteProducesNormalizedAst() {
     ParseResult result =
         PARSER.parse(
             "DELETE FROM employees WHERE id = 1", ParseOptions.defaults(SqlDialect.ORACLE));
     ParseSuccess success = assertInstanceOf(ParseSuccess.class, result);
-    OracleRawStatement raw = assertInstanceOf(OracleRawStatement.class, success.root());
-    assertEquals(OracleStatementKind.DELETE, raw.kind());
+    assertInstanceOf(DeleteStatement.class, success.root());
   }
 
   @Test
