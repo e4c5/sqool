@@ -450,10 +450,7 @@ final class OracleAstMapper {
       return true;
     }
     // FETCH FIRST / OFFSET not supported in normalized AST
-    if (ctx.fetchClause() != null || ctx.offsetFetchClause() != null) {
-      return true;
-    }
-    return false;
+    return ctx.fetchClause() != null || ctx.offsetFetchClause() != null;
   }
 
   private static ParseResult rawStatement(
