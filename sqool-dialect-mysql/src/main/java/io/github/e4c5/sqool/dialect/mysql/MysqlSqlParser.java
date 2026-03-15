@@ -4,6 +4,7 @@ import io.github.e4c5.sqool.core.AntlrSyntaxErrorListener;
 import io.github.e4c5.sqool.core.DiagnosticSeverity;
 import io.github.e4c5.sqool.core.ParseAttempt;
 import io.github.e4c5.sqool.core.ParseFailure;
+import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.SqlDialect;
@@ -35,33 +36,50 @@ public final class MysqlSqlParser implements SqlParser {
     if (effectiveOptions.dialect() != SqlDialect.MYSQL) {
       return failure("MysqlSqlParser only accepts MYSQL parse options.", 1, 0, null);
     }
+    long startNanos = System.nanoTime();
     if (effectiveOptions.scriptMode()) {
-      var attempt = parseQueries(sql, effectiveOptions.enableFallback());
-      if (!attempt.diagnostics().isEmpty()) {
-        return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
+      var outcome = parseQueriesWithMode(sql, effectiveOptions.enableFallback());
+      ParseMetrics metrics =
+          ParseMetrics.of(
+              outcome.usedSll() ? ParseMetrics.PredictionMode.SLL : ParseMetrics.PredictionMode.LL,
+              System.nanoTime() - startNanos);
+      if (!outcome.attempt().diagnostics().isEmpty()) {
+        return new ParseFailure(SqlDialect.MYSQL, outcome.attempt().diagnostics(), metrics);
       }
-      return MysqlAstMapper.mapQueries(attempt.context(), effectiveOptions);
+      return MysqlAstMapper.mapQueries(outcome.attempt().context(), effectiveOptions)
+          .withMetrics(metrics);
     }
 
-    var attempt = parseSimpleStatement(sql, effectiveOptions.enableFallback());
-    if (!attempt.diagnostics().isEmpty()) {
-      return new ParseFailure(SqlDialect.MYSQL, attempt.diagnostics());
+    var outcome = parseSimpleStatementWithMode(sql, effectiveOptions.enableFallback());
+    ParseMetrics metrics =
+        ParseMetrics.of(
+            outcome.usedSll() ? ParseMetrics.PredictionMode.SLL : ParseMetrics.PredictionMode.LL,
+            System.nanoTime() - startNanos);
+    if (!outcome.attempt().diagnostics().isEmpty()) {
+      return new ParseFailure(SqlDialect.MYSQL, outcome.attempt().diagnostics(), metrics);
     }
-    return MysqlAstMapper.mapSimpleStatement(attempt.context(), effectiveOptions);
+    return MysqlAstMapper.mapSimpleStatement(outcome.attempt().context(), effectiveOptions)
+        .withMetrics(metrics);
   }
 
-  private ParseAttempt<MySQLParser.SimpleStatementContext> parseSimpleStatement(
+  private record ParseOutcome<C>(ParseAttempt<C> attempt, boolean usedSll) {}
+
+  private ParseOutcome<MySQLParser.SimpleStatementContext> parseSimpleStatementWithMode(
       String sql, boolean enableFallback) {
     try {
-      return parseSimpleStatement(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return new ParseOutcome<>(
+          parseSimpleStatement(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
-        return ParseAttempt.failure(
-            List.of(
-                new SyntaxDiagnostic(
-                    DiagnosticSeverity.ERROR, "Fast-path MySQL parse failed.", 1, 0, null)));
+        return new ParseOutcome<>(
+            ParseAttempt.failure(
+                List.of(
+                    new SyntaxDiagnostic(
+                        DiagnosticSeverity.ERROR, "Fast-path MySQL parse failed.", 1, 0, null))),
+            false);
       }
-      return parseSimpleStatement(sql, PredictionMode.LL, new DefaultErrorStrategy());
+      return new ParseOutcome<>(
+          parseSimpleStatement(sql, PredictionMode.LL, new DefaultErrorStrategy()), false);
     }
   }
 
@@ -80,18 +98,26 @@ public final class MysqlSqlParser implements SqlParser {
         });
   }
 
-  private ParseAttempt<MySQLParser.QueriesContext> parseQueries(
+  private ParseOutcome<MySQLParser.QueriesContext> parseQueriesWithMode(
       String sql, boolean enableFallback) {
     try {
-      return parseQueries(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return new ParseOutcome<>(
+          parseQueries(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       if (!enableFallback) {
-        return ParseAttempt.failure(
-            List.of(
-                new SyntaxDiagnostic(
-                    DiagnosticSeverity.ERROR, "Fast-path MySQL script parse failed.", 1, 0, null)));
+        return new ParseOutcome<>(
+            ParseAttempt.failure(
+                List.of(
+                    new SyntaxDiagnostic(
+                        DiagnosticSeverity.ERROR,
+                        "Fast-path MySQL script parse failed.",
+                        1,
+                        0,
+                        null))),
+            false);
       }
-      return parseQueries(sql, PredictionMode.LL, new DefaultErrorStrategy());
+      return new ParseOutcome<>(
+          parseQueries(sql, PredictionMode.LL, new DefaultErrorStrategy()), false);
     }
   }
 
@@ -152,6 +178,7 @@ public final class MysqlSqlParser implements SqlParser {
     return new ParseFailure(
         SqlDialect.MYSQL,
         List.of(
-            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
+            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)),
+        ParseMetrics.unknown());
   }
 }

@@ -16,6 +16,7 @@ import io.github.e4c5.sqool.ast.SqliteRawStatement;
 import io.github.e4c5.sqool.ast.SqliteStatementKind;
 import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
+import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
@@ -45,7 +46,8 @@ final class SqliteAstMapper {
             ? null
             : SourceSpans.fromTokens(
                 stmtList.sql_stmt(0).start, stmtList.sql_stmt(statements.size() - 1).stop, options);
-    return new ParseSuccess(SqlDialect.SQLITE, new SqlScript(statements, scriptSpan), List.of());
+    return new ParseSuccess(
+        SqlDialect.SQLITE, new SqlScript(statements, scriptSpan), List.of(), ParseMetrics.unknown());
   }
 
   static ParseResult mapSqlStmt(SQLiteParser.Sql_stmtContext stmt, ParseOptions options) {
@@ -58,7 +60,8 @@ final class SqliteAstMapper {
         SqlDialect.SQLITE,
         new SqliteRawStatement(
             kind, sqlText, SourceSpans.fromTokens(stmt.start, stmt.stop, options)),
-        List.of());
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   private static ParseResult mapSelectStmt(
@@ -127,7 +130,8 @@ final class SqliteAstMapper {
             orderBy,
             limit,
             SourceSpans.fromTokens(context.start, context.stop, options)),
-        List.of());
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   private static ParseResult rawSelect(
@@ -138,7 +142,8 @@ final class SqliteAstMapper {
             SqliteStatementKind.SELECT,
             textOf(context),
             SourceSpans.fromTokens(context.start, context.stop, options)),
-        List.of());
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   private static MappingResult<List<SelectItem>> mapResultColumns(
