@@ -21,6 +21,7 @@ import io.github.e4c5.sqool.ast.Statement;
 import io.github.e4c5.sqool.ast.TableReference;
 import io.github.e4c5.sqool.ast.UnaryExpression;
 import io.github.e4c5.sqool.ast.UnaryOperator;
+import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.ParseSuccess;
@@ -55,7 +56,10 @@ final class PostgresqlAstMapper {
             ? null
             : SourceSpans.fromTokens(stmts.get(0).start, stmts.get(stmts.size() - 1).stop, options);
     return new ParseSuccess(
-        SqlDialect.POSTGRESQL, new SqlScript(statements, scriptSpan), List.of());
+        SqlDialect.POSTGRESQL,
+        new SqlScript(statements, scriptSpan),
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   static ParseResult mapSingleStatement(
@@ -137,7 +141,8 @@ final class PostgresqlAstMapper {
             orderByResult.value(),
             limit,
             SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
-        List.of());
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   // =========================================================================
@@ -473,7 +478,8 @@ final class PostgresqlAstMapper {
         SqlDialect.POSTGRESQL,
         new PostgresqlRawStatement(
             kind, textOf(ctx), SourceSpans.fromTokens(ctx.start, ctx.stop, options)),
-        List.of());
+        List.of(),
+        ParseMetrics.unknown());
   }
 
   private static PostgresqlStatementKind kindForStatement(PostgreSQLParser.StatementContext stmt) {

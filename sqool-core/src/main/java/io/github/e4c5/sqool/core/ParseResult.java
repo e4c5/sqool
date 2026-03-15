@@ -9,7 +9,12 @@ public sealed interface ParseResult permits ParseSuccess, ParseFailure {
 
   List<SyntaxDiagnostic> diagnostics();
 
+  ParseMetrics metrics();
+
   default boolean isSuccess() {
     return this instanceof ParseSuccess;
   }
+
+  /** Returns a copy of this result with the given metrics. */
+  ParseResult withMetrics(ParseMetrics metrics);
 }

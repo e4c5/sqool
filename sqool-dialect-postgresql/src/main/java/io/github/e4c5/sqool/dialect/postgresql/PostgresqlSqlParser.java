@@ -4,6 +4,7 @@ import io.github.e4c5.sqool.core.AntlrSyntaxErrorListener;
 import io.github.e4c5.sqool.core.DiagnosticSeverity;
 import io.github.e4c5.sqool.core.ParseAttempt;
 import io.github.e4c5.sqool.core.ParseFailure;
+import io.github.e4c5.sqool.core.ParseMetrics;
 import io.github.e4c5.sqool.core.ParseOptions;
 import io.github.e4c5.sqool.core.ParseResult;
 import io.github.e4c5.sqool.core.SqlDialect;
@@ -36,43 +37,61 @@ public final class PostgresqlSqlParser implements SqlParser {
       return failure("PostgresqlSqlParser only accepts POSTGRESQL parse options.", 1, 0, null);
     }
 
+    long startNanos = System.nanoTime();
     if (effectiveOptions.scriptMode()) {
-      ParseAttempt<PostgreSQLParser.RootContext> attempt =
-          parseRoot(sql, effectiveOptions.enableFallback());
-      if (!attempt.diagnostics().isEmpty()) {
-        return new ParseFailure(SqlDialect.POSTGRESQL, attempt.diagnostics());
+      ParseOutcome<PostgreSQLParser.RootContext> outcome =
+          parseRootWithMode(sql, effectiveOptions.enableFallback());
+      ParseMetrics metrics =
+          ParseMetrics.of(
+              outcome.usedSll() ? ParseMetrics.PredictionMode.SLL : ParseMetrics.PredictionMode.LL,
+              System.nanoTime() - startNanos);
+      if (!outcome.attempt().diagnostics().isEmpty()) {
+        return new ParseFailure(
+            SqlDialect.POSTGRESQL, outcome.attempt().diagnostics(), metrics);
       }
-      return PostgresqlAstMapper.mapRoot(attempt.context(), effectiveOptions);
+      return PostgresqlAstMapper.mapRoot(outcome.attempt().context(), effectiveOptions)
+          .withMetrics(metrics);
     }
 
-    ParseAttempt<PostgreSQLParser.SingleStatementContext> attempt =
-        parseSingleStatement(sql, effectiveOptions.enableFallback());
-    if (!attempt.diagnostics().isEmpty()) {
-      return new ParseFailure(SqlDialect.POSTGRESQL, attempt.diagnostics());
+    ParseOutcome<PostgreSQLParser.SingleStatementContext> outcome =
+        parseSingleStatementWithMode(sql, effectiveOptions.enableFallback());
+    ParseMetrics metrics =
+        ParseMetrics.of(
+            outcome.usedSll() ? ParseMetrics.PredictionMode.SLL : ParseMetrics.PredictionMode.LL,
+            System.nanoTime() - startNanos);
+    if (!outcome.attempt().diagnostics().isEmpty()) {
+      return new ParseFailure(SqlDialect.POSTGRESQL, outcome.attempt().diagnostics(), metrics);
     }
-    return PostgresqlAstMapper.mapSingleStatement(attempt.context(), effectiveOptions);
+    return PostgresqlAstMapper.mapSingleStatement(outcome.attempt().context(), effectiveOptions)
+        .withMetrics(metrics);
   }
 
-  private ParseAttempt<PostgreSQLParser.RootContext> parseRoot(String sql, boolean enableFallback) {
+  private record ParseOutcome<C>(ParseAttempt<C> attempt, boolean usedSll) {}
+
+  private ParseOutcome<PostgreSQLParser.RootContext> parseRootWithMode(
+      String sql, boolean enableFallback) {
     try {
-      return parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return new ParseOutcome<>(
+          parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       ParseAttempt<PostgreSQLParser.RootContext> llAttempt =
           parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
       if (!enableFallback) {
         if (!llAttempt.diagnostics().isEmpty()) {
-          return ParseAttempt.failure(llAttempt.diagnostics());
+          return new ParseOutcome<>(ParseAttempt.failure(llAttempt.diagnostics()), false);
         }
-        return ParseAttempt.failure(
-            List.of(
-                new SyntaxDiagnostic(
-                    DiagnosticSeverity.ERROR,
-                    "Fast-path PostgreSQL script parse failed.",
-                    1,
-                    0,
-                    null)));
+        return new ParseOutcome<>(
+            ParseAttempt.failure(
+                List.of(
+                    new SyntaxDiagnostic(
+                        DiagnosticSeverity.ERROR,
+                        "Fast-path PostgreSQL script parse failed.",
+                        1,
+                        0,
+                        null))),
+            false);
       }
-      return llAttempt;
+      return new ParseOutcome<>(llAttempt, false);
     }
   }
 
@@ -83,23 +102,26 @@ public final class PostgresqlSqlParser implements SqlParser {
     return doParse(sql, predictionMode, errorStrategy, PostgreSQLParser::root);
   }
 
-  private ParseAttempt<PostgreSQLParser.SingleStatementContext> parseSingleStatement(
+  private ParseOutcome<PostgreSQLParser.SingleStatementContext> parseSingleStatementWithMode(
       String sql, boolean enableFallback) {
     try {
-      return parseSingleStatement(sql, PredictionMode.SLL, new BailErrorStrategy());
+      return new ParseOutcome<>(
+          parseSingleStatement(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
       ParseAttempt<PostgreSQLParser.SingleStatementContext> llAttempt =
           parseSingleStatement(sql, PredictionMode.LL, new DefaultErrorStrategy());
       if (!enableFallback) {
         if (!llAttempt.diagnostics().isEmpty()) {
-          return ParseAttempt.failure(llAttempt.diagnostics());
+          return new ParseOutcome<>(ParseAttempt.failure(llAttempt.diagnostics()), false);
         }
-        return ParseAttempt.failure(
-            List.of(
-                new SyntaxDiagnostic(
-                    DiagnosticSeverity.ERROR, "Fast-path PostgreSQL parse failed.", 1, 0, null)));
+        return new ParseOutcome<>(
+            ParseAttempt.failure(
+                List.of(
+                    new SyntaxDiagnostic(
+                        DiagnosticSeverity.ERROR, "Fast-path PostgreSQL parse failed.", 1, 0, null))),
+            false);
       }
-      return llAttempt;
+      return new ParseOutcome<>(llAttempt, false);
     }
   }
 
@@ -138,6 +160,7 @@ public final class PostgresqlSqlParser implements SqlParser {
     return new ParseFailure(
         SqlDialect.POSTGRESQL,
         List.of(
-            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)));
+            new SyntaxDiagnostic(DiagnosticSeverity.ERROR, message, line, column, offendingToken)),
+        ParseMetrics.unknown());
   }
 }
