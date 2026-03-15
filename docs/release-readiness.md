@@ -88,7 +88,7 @@ This document tracks items that should be completed or decided before publishing
 
 **CI quality gates before release:** The release workflow runs `./gradlew check` (which includes tests, checkstyle, spotless). Optionally run `./gradlew :sqool-bench:jmh` locally to confirm no performance regressions.
 
-**Publishing to Maven Central:** Configure the `publish` task to use OSSRH (Sonatype) and GPG signing. Add repository URL and credentials via environment variables or Gradle properties (do not commit secrets). See the [release workflow](.github/workflows/release.yml) for the trigger; complete the publish step with your OSSRH and signing setup.
+**Publishing to Maven Central:** Configure the `publish` task to use OSSRH (Sonatype) and GPG signing. Add repository URL and credentials via environment variables or Gradle properties (do not commit secrets). See the [release workflow](../.github/workflows/release.yml) for the trigger; complete the publish step with your OSSRH and signing setup.
 
 - [x] Define release process (tag-based)
 - [x] Add release workflow (check + publish placeholder)

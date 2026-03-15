@@ -399,6 +399,13 @@ configure(publishableModules.map(::project)) {
                         url.set("https://github.com/e4c5/sqool")
                         connection.set("scm:git:https://github.com/e4c5/sqool.git")
                     }
+                    developers {
+                        developer {
+                            id.set("e4c5")
+                            name.set("Raditha Dissanayake")
+                            email.set("raditha.d@gmail.com")
+                            url.set("https://github.com/e4c5")
+                    }
                 }
             }
         }

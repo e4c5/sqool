@@ -10,7 +10,7 @@ on:
       - 'v*'
 
 permissions:
-  contents: write  # for publishing and creating GitHub release assets (optional)
+  contents: read
 
 jobs:
   release-check:
