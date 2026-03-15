@@ -18,19 +18,34 @@ public final class SourceSpans {
       return null;
     }
     int startColumn = start.getCharPositionInLine();
-    int stopColumn = stop.getCharPositionInLine();
-    if (stop.getText() != null && !stop.getText().isEmpty()) {
-      stopColumn += stop.getText().length() - 1;
+    int endLine = stop.getLine();
+    int endColumn;
+    String stopText = stop.getText();
+    if (stopText != null && !stopText.isEmpty()) {
+      int lastNewline = stopText.lastIndexOf('\n');
+      if (lastNewline >= 0) {
+        // Token spans multiple lines: end line advances and end column is text after last newline.
+        long newlineCount = stopText.chars().filter(c -> c == '\n').count();
+        endLine = stop.getLine() + (int) newlineCount;
+        endColumn = stopText.length() - lastNewline - 2;
+        if (endColumn < 0) {
+          endColumn = 0;
+        }
+      } else {
+        endColumn = stop.getCharPositionInLine() + stopText.length() - 1;
+      }
+    } else {
+      endColumn = stop.getCharPositionInLine();
     }
-    if (start.getLine() == stop.getLine()) {
-      stopColumn = Math.max(stopColumn, startColumn);
+    if (start.getLine() == endLine) {
+      endColumn = Math.max(endColumn, startColumn);
     }
     return new SourceSpan(
         start.getStartIndex(),
         stop.getStopIndex(),
         start.getLine(),
         startColumn,
-        stop.getLine(),
-        stopColumn);
+        endLine,
+        endColumn);
   }
 }

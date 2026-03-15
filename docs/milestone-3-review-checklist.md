@@ -78,14 +78,14 @@ Reference documents:
 
 ## 3. PostgreSQL parser pipeline
 
-- [ ] PostgreSQL dialect implementation resides in `sqool-dialect-postgresql`.
-- [ ] Parser setup follows the established pattern:
-  - [ ] SLL-fast path with parse tree disabled and bail-fast error strategy,
-  - [ ] LL-fallback path with structured diagnostics.
-- [ ] Shared parser utilities are used wherever reasonable (lexer/parser setup, error listeners, metrics).
-- [ ] Single-statement vs script entry points are defined where applicable.
-- [ ] `SqlDialect` and `ParseOptions` support PostgreSQL cleanly.
-- [ ] `ParseMetrics` capture PostgreSQL behavior for benchmarking and debugging.
+- [x] PostgreSQL dialect implementation resides in `sqool-dialect-postgresql`.
+- [x] Parser setup follows the established pattern:
+  - [x] SLL-fast path with parse tree disabled and bail-fast error strategy,
+  - [x] LL-fallback path with structured diagnostics.
+- [x] Shared parser utilities are used wherever reasonable (lexer/parser setup, error listeners, metrics).
+- [x] Single-statement vs script entry points are defined where applicable.
+- [x] `SqlDialect` and `ParseOptions` support PostgreSQL cleanly.
+- [x] `ParseMetrics` capture PostgreSQL behavior for benchmarking and debugging.
 
 ### Evidence to review
 

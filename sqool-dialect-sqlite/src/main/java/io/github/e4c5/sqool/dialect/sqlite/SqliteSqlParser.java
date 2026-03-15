@@ -70,7 +70,13 @@ public final class SqliteSqlParser implements SqlParser {
     try {
       return new ParseOutcome<>(parseRoot(sql, PredictionMode.SLL, new BailErrorStrategy()), true);
     } catch (ParseCancellationException | InputMismatchException exception) {
+      // SLL fast-path failed; run an LL pass to surface real syntax diagnostics.
+      ParseAttempt<SQLiteParser.ParseContext> llAttempt =
+          parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy());
       if (!enableFallback) {
+        if (!llAttempt.diagnostics().isEmpty()) {
+          return new ParseOutcome<>(ParseAttempt.failure(llAttempt.diagnostics()), false);
+        }
         return new ParseOutcome<>(
             ParseAttempt.failure(
                 List.of(
@@ -78,8 +84,7 @@ public final class SqliteSqlParser implements SqlParser {
                         DiagnosticSeverity.ERROR, "Fast-path SQLite parse failed.", 1, 0, null))),
             false);
       }
-      return new ParseOutcome<>(
-          parseRoot(sql, PredictionMode.LL, new DefaultErrorStrategy()), false);
+      return new ParseOutcome<>(llAttempt, false);
     }
   }
 

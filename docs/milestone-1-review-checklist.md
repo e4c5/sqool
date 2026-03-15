@@ -61,7 +61,8 @@ Reference documents:
 - [x] The MySQL parser implementation lives in `sqool-dialect-mysql`.
 - [x] Lexer and token stream setup is clearly encapsulated and reusable.
 - [x] The SLL-fast path is configured with:
-  - [x] bail-fast error strategy.
+  - [x] parse tree creation disabled,
+  - [x] a bail-fast error strategy.
 - [x] The LL-fallback path is configured with:
   - [x] structured diagnostic collection,
   - [x] richer error messages.

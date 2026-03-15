@@ -191,14 +191,33 @@ project(":sqool-grammar-sqlite") {
     }
 }
 
-listOf(
-    "sqool-grammar-postgresql",
-    "sqool-grammar-oracle",
-).forEach { moduleName ->
-    project(":$moduleName") {
-        dependencies {
-            "api"(libsCatalog.findLibrary("antlr-runtime").get())
-        }
+project(":sqool-grammar-postgresql") {
+    apply(plugin = "antlr")
+
+    dependencies {
+        "antlr"(libsCatalog.findLibrary("antlr-tool").get())
+        "api"(libsCatalog.findLibrary("antlr-runtime").get())
+    }
+
+    tasks.withType<AntlrTask>().configureEach {
+        arguments = arguments + listOf(
+            "-visitor",
+            "-long-messages",
+        )
+    }
+
+    tasks.named<Checkstyle>("checkstyleMain") {
+        source = files().asFileTree
+    }
+
+    tasks.named<Javadoc>("javadoc") {
+        source = files().asFileTree
+    }
+}
+
+project(":sqool-grammar-oracle") {
+    dependencies {
+        "api"(libsCatalog.findLibrary("antlr-runtime").get())
     }
 }
 
@@ -245,15 +264,24 @@ project(":sqool-conformance") {
         "implementation"(project(":sqool-core"))
         "implementation"(project(":sqool-ast"))
         "testImplementation"(project(":sqool-dialect-mysql"))
+        "testImplementation"(project(":sqool-dialect-postgresql"))
         "testImplementation"(project(":sqool-dialect-sqlite"))
     }
 
     tasks.named<org.gradle.testing.jacoco.tasks.JacocoReport>("jacocoTestReport") {
         dependsOn(tasks.named("test"))
         val mysqlDialect = project(":sqool-dialect-mysql")
-        val javaExt = mysqlDialect.extensions.getByType<JavaPluginExtension>()
-        sourceDirectories.from(javaExt.sourceSets.getByName("main").allSource.srcDirs)
-        classDirectories.from(javaExt.sourceSets.getByName("main").output)
+        val mysqlJavaExt = mysqlDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(mysqlJavaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(mysqlJavaExt.sourceSets.getByName("main").output)
+        val postgresqlDialect = project(":sqool-dialect-postgresql")
+        val postgresqlJavaExt = postgresqlDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(postgresqlJavaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(postgresqlJavaExt.sourceSets.getByName("main").output)
+        val sqliteDialect = project(":sqool-dialect-sqlite")
+        val sqliteJavaExt = sqliteDialect.extensions.getByType<JavaPluginExtension>()
+        sourceDirectories.from(sqliteJavaExt.sourceSets.getByName("main").allSource.srcDirs)
+        classDirectories.from(sqliteJavaExt.sourceSets.getByName("main").output)
     }
 }
 
@@ -271,6 +299,7 @@ project(":sqool-bench") {
     dependencies {
         "implementation"(project(":sqool-core"))
         "implementation"(project(":sqool-dialect-mysql"))
+        "implementation"(project(":sqool-dialect-postgresql"))
         "implementation"(project(":sqool-dialect-sqlite"))
         "implementation"(libsCatalog.findLibrary("jsqlparser").get())
     }

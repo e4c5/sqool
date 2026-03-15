@@ -6,50 +6,22 @@ ANTLR-based SQL parser for Java 25 targeting MySQL, PostgreSQL, Oracle, and SQLi
 
 - Build tool: Gradle
 - Target runtime: Java 25
-- Current status: Milestone 0 done; MySQL and SQLite MVP implemented
+- Current status: Milestone 0 done; MySQL, SQLite, and PostgreSQL MVP slices implemented
 
 ## Current parser coverage
 
 - **MySQL**
-  - real upstream grammar vendored from `antlr/grammars-v4`
-  - parser facade implemented with SLL-first parsing and LL fallback
-  - normalized AST currently supports:
-    - `CREATE TABLE` (including advanced options)
-    - `CREATE DATABASE`
-    - `DISTINCT`
-    - `DELETE` (with `ORDER BY` and `LIMIT`)
-    - `DROP TABLE` / `DROP DATABASE`
-    - derived tables
-    - `GROUP BY`
-    - `HAVING`
-    - `IN` / `BETWEEN` / `LIKE` / `IS [NOT] NULL`
-    - `INSERT` / `INSERT ... SELECT`
-    - `REPLACE` / `REPLACE ... SELECT`
-    - aliases
-    - arithmetic expressions (including `DIV`)
-    - aggregate and generic function calls
-    - selected runtime built-in functions (`COALESCE`, `IF`, `MOD`, `DATE`, `NOW`, `CURDATE`, `CURRENT_USER`)
-    - qualified references
-    - script mode for mixed multi-statement SELECT/DML/DDL batches
-    - `SHOW COLUMNS`
-    - `SHOW CREATE TABLE`
-    - `SHOW DATABASES`
-    - `SHOW TABLES`
-    - `TRUNCATE TABLE`
-    - `UNION` / `UNION ALL`
-    - `UPDATE` (with `ORDER BY` and `LIMIT`)
-    - joins with `USING`
-    - `WHERE`
-    - explicit joins with `ON`
-    - `ORDER BY`
-    - numeric `LIMIT`
-  - valid but not-yet-normalized MySQL statement kinds fall back to a typed `MySqlRawStatement` node
-  - comprehensive conformance/regression suite (>80% instruction coverage for key mapper logic)
-  - JMH benchmark includes a first comparison against JSqlParser
+  - Real upstream grammar vendored from `antlr/grammars-v4` (see `sqool-grammar-mysql/UPSTREAM.md`).
+  - Parser facade with SLL-first parsing and LL fallback; parser metrics via `ParseMetrics`.
+  - Normalized AST: `CREATE TABLE`, `CREATE DATABASE`, `DELETE`, `DROP TABLE`/`DROP DATABASE`, derived tables, `GROUP BY`, `HAVING`, `INSERT`/`REPLACE`, `SELECT` with joins/aliases/expressions, `SHOW` statements, `TRUNCATE`, `UNION`/`UNION ALL`, `UPDATE`, script mode, and more. Unsupported statement kinds fall back to `MySqlRawStatement`.
+  - Conformance and regression suite in `sqool-conformance`; JMH benchmark in `sqool-bench` (vs JSqlParser).
 - **SQLite**
-  - Grammar vendored in `sqool-grammar-sqlite` (see `UPSTREAM.md`). Parser in `sqool-dialect-sqlite` with SLL/LL and `ParseMetrics`. Normalized AST for core SELECT, CREATE TABLE, INSERT; conformance tests and JMH benchmark in `sqool-conformance` and `sqool-bench`. Cross-dialect tests (MySQL vs SQLite) in `sqool-conformance`.
-- **PostgreSQL, Oracle**
-  - planned, not yet implemented
+  - Grammar vendored in `sqool-grammar-sqlite` (see `UPSTREAM.md`). Parser in `sqool-dialect-sqlite` with SLL/LL and `ParseMetrics`.
+  - Normalized AST for core SELECT, CREATE TABLE, INSERT, and raw-statement fallback. Conformance tests and JMH benchmark in `sqool-conformance` and `sqool-bench`. Cross-dialect tests (MySQL vs SQLite) in `sqool-conformance`.
+- **PostgreSQL**
+  - Grammar vendored in `sqool-grammar-postgresql` (see `UPSTREAM.md`). Parser in `sqool-dialect-postgresql` with SLL/LL and `ParseMetrics`. v1 subset: SELECT, INSERT, UPDATE, DELETE, CREATE TABLE, DROP TABLE, transaction control. Conformance and JMH benchmark present.
+- **Oracle**
+  - Planned, not yet implemented.
 
 ## Common commands
 
